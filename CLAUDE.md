@@ -23,9 +23,18 @@ Pekerjaan dilacak sebagai GitHub issue per milestone (Tahap 1, 2, ...). Kriteria
 - Jangan menulis atau melengkapi implementasi domain kecuali diminta secara eksplisit. Kalau test gagal karena implementasi belum ada, itu memang tahap yang diharapkan; laporkan test mana yang merah dan kenapa.
 - Saat diminta review, jelaskan masalah dan alasannya; biarkan pemilik repo yang memperbaiki kecuali diminta.
 
+## Merencanakan pekerjaan: milestone
+
+Roadmap dilacak sebagai GitHub milestone, satu per tahap di "Tahapan pengerjaan" pada `docs/prd.md`.
+
+- **Nama**: `Tahap N: <nama>`, misalnya `Tahap 2: Auth dan toko`. **Deskripsi**: tujuan tahap, kriteria selesai, dan versi rilisnya.
+- **Semua milestone dibuat di awal** agar roadmap terlihat. Kalau PRD menambah atau mengubah tahap, perbarui milestone-nya juga.
+- **Issue hanya ditulis untuk tahap yang sedang berjalan.** Issue tahap berikutnya ditulis saat tahap sekarang hampir selesai, karena detailnya bergantung pada hasil tahap sebelumnya.
+- **Menutup milestone**: setelah semua issue-nya tertutup dan CI di `main` hijau, buat tag dan GitHub Release dengan versi di deskripsi milestone (Tahap 1 = `v0.1.0`, Tahap 2 = `v0.2.0`, ..., Tahap 7 = `v1.0.0`). Catatan rilis berisi ringkasan PR yang masuk. Claude Code hanya menyiapkan catatan rilisnya; pemilik repo yang membuat tag dan menutup milestone.
+
 ## Merencanakan pekerjaan: issue
 
-Setiap pekerjaan dimulai dari GitHub issue di milestone tahapnya (lihat "Tahapan pengerjaan" di PRD). Saat diminta merencanakan fitur atau tahap:
+Setiap pekerjaan dimulai dari GitHub issue di milestone tahapnya. Saat diminta merencanakan fitur atau tahap:
 
 1. Pecah fitur menjadi beberapa issue (aturan di bawah). Untuk fitur dengan lebih dari dua issue, buat satu issue induk dan jadikan sisanya sub-issue.
 2. Tulis setiap issue dengan template `.github/ISSUE_TEMPLATE/task.md`. Bagian wajib:

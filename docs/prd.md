@@ -222,7 +222,7 @@ Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung 
 3. **Produk:** CRUD produk, varian, foto; endpoint API seller; katalog dan detail produk di web
 4. **Android dasar:** login, daftar dan form produk dengan upload foto, pengaturan
 5. **Pesanan:** keranjang, checkout per toko, alur status, upload dan verifikasi bukti bayar; layar pesanan di Android
-6. **N****otifikasi:** FCM untuk pesanan baru, perubahan status, dan pengingat stok harian
+6. **Notifikasi:** FCM untuk pesanan baru, perubahan status, dan pengingat stok harian
 7. **Rilis portofolio:** deploy web (VPS atau Laravel Cloud), APK di GitHub Releases, README dengan diagram, screenshot, dan video demo
 
 **Standar portofolio** yang dijaga di setiap tahap: commit dan PR yang rapi per fitur, test otomatis, lint (Pint untuk PHP, ktlint untuk Kotlin), dan seeder data contoh kepiting, cumi beku, dan tiram agar demo langsung terisi.
