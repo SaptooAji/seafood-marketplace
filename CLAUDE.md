@@ -43,7 +43,7 @@ Setiap pekerjaan dimulai dari GitHub issue di milestone tahapnya. Saat diminta m
    - **Cara mulai**: perintah branch dan `php artisan make:*`.
    - **Petunjuk**: pola kode dan rujukan. Kalau perlu contoh, pakai domain lain; jangan tulis solusi lengkap.
    - **Di luar scope**.
-3. Beri label jenis (`feat`, `chore`, `fix`, `docs`), area (`backend`, `android`, `ci`), dan ukuran (`size: S`, `size: M`), lalu pasang milestone.
+3. Beri label jenis (`feat`, `fix`, `chore`, `docs`, `test`, `refactor`), area (`backend`, `android`, `ci`), dan ukuran (`size: S`, `size: M`), lalu pasang milestone.
 4. Issue ditulis dalam Bahasa Indonesia, judul dalam format Conventional Commits.
 
 ### Ukuran issue
@@ -55,9 +55,20 @@ Utamakan issue kecil yang bisa dipelajari dan direview sekali duduk:
 - Setiap issue harus meninggalkan `main` dalam keadaan hijau dan bisa di-merge sendiri, walau fiturnya belum lengkap.
 - Gabungkan dalam satu issue hanya kalau memecahnya membuat salah satu bagian tidak bisa dites, misalnya enum dan aturan transisinya.
 
+## Aturan branch
+
+- Satu issue = satu branch = satu PR. Format: `<jenis>/<nomor-issue>-<ringkas>`.
+  - `<jenis>` sama dengan label issue: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`.
+  - `<ringkas>`: 2–4 kata bahasa Inggris, huruf kecil, dipisah tanda hubung. Contoh: `feat/2-order-status`, `fix/15-stock-rounding`, `chore/6-strict-types`.
+- Selalu buat dari `main` terbaru: `git switch main && git pull && git switch -c feat/2-order-status`.
+- Tidak ada commit langsung ke `main`; semua perubahan lewat PR, termasuk dokumen. Kalau sedang berada di `main`, buat branch dulu sebelum mengubah file.
+- Kalau `main` maju, sinkronkan dengan `git merge main` di branch. Jangan rebase, amend, atau force-push branch yang sudah di-push.
+- Setelah PR di-merge, branch remote terhapus otomatis (pengaturan repo); hapus juga branch lokal dengan `git branch -d <branch>`.
+- Claude Code boleh membuat branch lokal dan commit, tetapi tidak push.
+
 ## Alur kerja per issue (test-first)
 
-1. Branch dari `main`: `jenis/<nomor-issue>-ringkas`, misalnya `feat/2-order-status`.
+1. Buat branch sesuai "Aturan branch".
 2. Claude Code menulis test lengkap dari bagian **Test case** di issue. Pakai Pest dataset untuk kasus yang berulang, dengan key deskriptif (`'payment review to scheduled' => [...]`). Kalau menemukan kasus penting yang belum tercantum, tambahkan ke test dan sebutkan ke pemilik repo.
 3. Pemilik repo menulis implementasi sampai test hijau.
 4. `composer check` harus hijau sebelum push.
