@@ -100,7 +100,8 @@ android/app/src/main/java/.../
 ## Git dan review
 
 - Milestone per tahap PRD (`Tahap N: <nama>`); setiap milestone yang selesai ditandai tag dan GitHub Release (`v0.N.0`, Tahap 7 = `v1.0.0`).
-- Satu issue GitHub = satu branch = satu PR. Nama branch `jenis/<nomor-issue>-ringkas`, misalnya `feat/2-order-status`. Deskripsi PR memuat `Closes #<nomor>`.
+- Satu issue GitHub = satu branch = satu PR. Nama branch `<jenis>/<nomor-issue>-<ringkas>`: jenis sama dengan label issue (`feat`, `fix`, `chore`, `docs`, `test`, `refactor`), ringkas 2–4 kata bahasa Inggris dalam kebab-case, misalnya `feat/2-order-status`. Deskripsi PR memuat `Closes #<nomor>`.
+- Branch selalu dibuat dari `main` terbaru; tidak ada commit langsung ke `main`. Sinkronkan dengan `git merge main`, bukan rebase, setelah branch di-push. Branch dihapus setelah di-merge.
 - Commit mengikuti **Conventional Commits** (`feat(stock): add daily stock confirmation`).
 - Satu PR = satu fitur kecil yang bisa direview; CI wajib hijau sebelum merge; merge dengan **Squash and merge** agar satu PR menjadi satu commit Conventional di `main`.
 - CI (GitHub Actions): backend (Pint, Larastan, Pest dengan service PostgreSQL) dan android (ktlint, detekt, unit test, build APK debug).
