@@ -1,0 +1,24 @@
+# Normalize line endings: LF in the repository and in the working copy,
+# so shell hooks, PHP, and CI behave the same on Windows, macOS, and Linux.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files: never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.jar binary
+*.keystore binary
+*.jks binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
