@@ -23,10 +23,33 @@ Pekerjaan dilacak sebagai GitHub issue per milestone (Tahap 1, 2, ...). Kriteria
 - Jangan menulis atau melengkapi implementasi domain kecuali diminta secara eksplisit. Kalau test gagal karena implementasi belum ada, itu memang tahap yang diharapkan; laporkan test mana yang merah dan kenapa.
 - Saat diminta review, jelaskan masalah dan alasannya; biarkan pemilik repo yang memperbaiki kecuali diminta.
 
+## Merencanakan pekerjaan: issue
+
+Setiap pekerjaan dimulai dari GitHub issue di milestone tahapnya (lihat "Tahapan pengerjaan" di PRD). Saat diminta merencanakan fitur atau tahap:
+
+1. Pecah fitur menjadi beberapa issue (aturan di bawah). Untuk fitur dengan lebih dari dua issue, buat satu issue induk dan jadikan sisanya sub-issue.
+2. Tulis setiap issue dengan template `.github/ISSUE_TEMPLATE/task.md`. Bagian wajib:
+   - **Tujuan** dan **Kriteria selesai** berupa checklist.
+   - **Test case**: daftar kasus valid, kasus yang ditolak, dan edge case, cukup detail sehingga test bisa ditulis tanpa menebak. Ambil aturannya dari PRD.
+   - **Cara mulai**: perintah branch dan `php artisan make:*`.
+   - **Petunjuk**: pola kode dan rujukan. Kalau perlu contoh, pakai domain lain; jangan tulis solusi lengkap.
+   - **Di luar scope**.
+3. Beri label jenis (`feat`, `chore`, `fix`, `docs`), area (`backend`, `android`, `ci`), dan ukuran (`size: S`, `size: M`), lalu pasang milestone.
+4. Issue ditulis dalam Bahasa Indonesia, judul dalam format Conventional Commits.
+
+### Ukuran issue
+
+Utamakan issue kecil yang bisa dipelajari dan direview sekali duduk:
+
+- Satu issue = satu PR = satu lapisan yang bisa dites sendiri. Contoh untuk fitur checkout: (1) migrasi dan model `orders` beserta factory, (2) Action `PlaceOrder` dengan feature test, (3) endpoint atau komponen Livewire yang memanggil Action itu, (4) notifikasi.
+- Target `size: S` (setengah hari) atau `size: M` (sekitar satu hari). `size: L` berarti issue harus dipecah lagi.
+- Setiap issue harus meninggalkan `main` dalam keadaan hijau dan bisa di-merge sendiri, walau fiturnya belum lengkap.
+- Gabungkan dalam satu issue hanya kalau memecahnya membuat salah satu bagian tidak bisa dites, misalnya enum dan aturan transisinya.
+
 ## Alur kerja per issue (test-first)
 
 1. Branch dari `main`: `jenis/<nomor-issue>-ringkas`, misalnya `feat/2-order-status`.
-2. Tulis test lebih dulu dari kriteria di issue dan aturan di PRD: kasus valid, kasus yang dilarang, dan edge case. Pakai Pest dataset untuk kasus yang berulang, dengan key deskriptif (`'payment review to scheduled' => [...]`).
+2. Claude Code menulis test lengkap dari bagian **Test case** di issue. Pakai Pest dataset untuk kasus yang berulang, dengan key deskriptif (`'payment review to scheduled' => [...]`). Kalau menemukan kasus penting yang belum tercantum, tambahkan ke test dan sebutkan ke pemilik repo.
 3. Pemilik repo menulis implementasi sampai test hijau.
 4. `composer check` harus hijau sebelum push.
 5. Commit memakai Conventional Commits. Commit test: `test(<modul>): ...`. Biarkan trailer `Co-Authored-By` pada commit yang dibuat Claude Code.
