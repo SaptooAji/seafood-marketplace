@@ -1,0 +1,11 @@
+#!/bin/sh
+# Run the same checks as CI before pushing.
+ROOT="$(git rev-parse --show-toplevel)"
+. "$ROOT/.githooks/_composer.sh"
+cd "$ROOT/backend" || exit 0
+
+echo "pre-push: running composer check (Pint, Larastan, Pest)"
+composer_run check || {
+  echo "pre-push: checks failed, push cancelled. Fix the errors or run 'composer fix'."
+  exit 1
+}
