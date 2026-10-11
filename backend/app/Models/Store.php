@@ -73,6 +73,16 @@ class Store extends Model
     }
 
     /**
+     * Get the shipping methods this store offers, one per type.
+     *
+     * @return HasMany<StoreShippingMethod, $this>
+     */
+    public function shippingMethods(): HasMany
+    {
+        return $this->hasMany(StoreShippingMethod::class);
+    }
+
+    /**
      * Get the owners of this store; one in the MVP.
      *
      * @return BelongsToMany<User, $this>
