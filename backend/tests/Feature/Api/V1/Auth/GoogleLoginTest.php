@@ -134,6 +134,30 @@ it('rejects a request without the required fields', function (string $field) {
     Http::assertNothingSent();
 })->with(['id_token', 'device_name']);
 
+it('blocks the eleventh Google sign-in attempt from one IP within a minute', function () {
+    Http::fake([TOKENINFO_URL => Http::response(['error' => 'invalid_token'], 400)]);
+
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson('/api/v1/auth/google', googleLoginPayload())->assertUnprocessable();
+    }
+
+    $this->postJson('/api/v1/auth/google', googleLoginPayload())->assertTooManyRequests();
+
+    Http::assertSentCount(10);
+});
+
+it('limits Google sign-in attempts per IP, not for every IP', function () {
+    Http::fake([TOKENINFO_URL => Http::response(['error' => 'invalid_token'], 400)]);
+
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson('/api/v1/auth/google', googleLoginPayload());
+    }
+
+    $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.2'])
+        ->postJson('/api/v1/auth/google', googleLoginPayload())
+        ->assertUnprocessable();
+});
+
 it('returns 503 when Google cannot be reached', function (Closure $googleResponse) {
     Http::fake([TOKENINFO_URL => $googleResponse]);
 
