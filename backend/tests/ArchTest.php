@@ -6,8 +6,8 @@ arch('no debugging calls')
     ->expect(['dd', 'dump', 'ray', 'var_dump'])
     ->not->toBeUsed();
 
-arch('domain enums are enums')
-    ->expect('App\Domain\*\Enums')
+arch('enums are enums')
+    ->expect('App\Enums')
     ->toBeEnums();
 
 arch()->preset()->php();

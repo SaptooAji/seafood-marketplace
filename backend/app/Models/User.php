@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Domain\Account\Enums\PlatformRole;
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Account\Models\SocialAccount;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\PlatformRole;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;

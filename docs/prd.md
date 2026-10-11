@@ -204,7 +204,7 @@ flowchart LR
 
 **Backend Laravel**
 
-- Struktur: Controller atau komponen Livewire yang tipis, logika di Action per modul `app/Domain/<Modul>/Actions` (mis. `PlaceOrder`, `ApprovePayment`), otorisasi di Policy, validasi di Form Request
+- Struktur: Controller atau komponen Livewire yang tipis, logika di Action `app/Actions` (mis. `PlaceOrder`, `ApprovePayment`), struktur folder bawaan Laravel, otorisasi di Policy, validasi di Form Request
 - Enum PHP untuk status pesanan, kondisi produk, dan satuan; transisi status dicek di satu tempat
 - Event + Listener untuk notifikasi (database dan FCM lewat queue); Task Scheduler untuk pengingat stok harian per toko; perubahan stok hanya lewat Action RecordStockMovement dalam transaksi database
 - Test dengan Pest: feature test untuk setiap endpoint API dan Action
