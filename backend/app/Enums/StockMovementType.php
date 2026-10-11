@@ -7,8 +7,9 @@ namespace App\Enums;
 /**
  * Reason for a stock change, stored in `stock_movements.type`.
  *
- * The direction of a movement comes from the sign of `stock_movements.qty`,
- * not from its type, since an adjustment can go either way.
+ * `stock_movements.qty` is signed. Most types always move stock one way (see
+ * direction()); an adjustment can go either way and takes its sign from the
+ * quantity.
  */
 enum StockMovementType: string
 {
@@ -31,6 +32,19 @@ enum StockMovementType: string
             self::Shrinkage => 'Susut',
             self::Adjustment => 'Penyesuaian',
             self::CancelReturn => 'Kembali dari Pembatalan',
+        };
+    }
+
+    /**
+     * Which way this type moves the stock: 1 adds, -1 removes, null for an
+     * adjustment, which can go either way.
+     */
+    public function direction(): ?int
+    {
+        return match ($this) {
+            self::StockIn, self::CancelReturn => 1,
+            self::SaleApp, self::SaleOffline, self::Shrinkage => -1,
+            self::Adjustment => null,
         };
     }
 }
