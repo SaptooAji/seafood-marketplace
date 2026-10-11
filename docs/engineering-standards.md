@@ -105,4 +105,5 @@ android/app/src/main/java/.../
 - Commit mengikuti **Conventional Commits** (`feat(stock): add daily stock confirmation`).
 - Satu PR = satu fitur kecil yang bisa direview; CI wajib hijau sebelum merge; merge dengan **Squash and merge** agar satu PR menjadi satu commit Conventional di `main`.
 - CI (GitHub Actions): backend (Pint, Larastan, Pest dengan service PostgreSQL) dan android (ktlint, detekt, unit test, build APK debug).
+- Semua job ada di satu workflow `.github/workflows/ci.yml`. Job `changes` mendeteksi area yang berubah (`backend/`, `android/`); job area hanya jalan bila areanya berubah, dan perubahan pada `ci.yml` menjalankan semuanya. Job `CI` adalah satu-satunya status check wajib di ruleset `main`; job yang dilewati dihitung lolos. Job baru cukup ditambahkan ke `needs` job `CI`, tanpa mengubah ruleset.
 - Rahasia tidak pernah masuk repository: `.env` dan `google-services.json` di `.gitignore`, contoh di `.env.example`.
