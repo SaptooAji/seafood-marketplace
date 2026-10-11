@@ -6,13 +6,17 @@ namespace App\Models;
 
 use App\Enums\PlatformRole;
 use App\Enums\StoreRole;
+use App\Enums\StoreStatus;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasTenants;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -22,7 +26,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'phone', 'avatar'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasTenants
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
@@ -30,16 +34,36 @@ class User extends Authenticatable implements FilamentUser
     /**
      * Determine whether the user can access the given Filament panel.
      *
-     * Only platform roles may enter the admin panel. Every other panel,
-     * including seller, is denied until store tenancy is in place.
+     * Only platform roles may enter the admin panel. The seller panel is open
+     * to members of at least one active store, whatever their platform role.
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        if ($panel->getId() === 'admin') {
-            return $this->hasRole([PlatformRole::Admin, PlatformRole::SuperAdmin]);
-        }
+        return match ($panel->getId()) {
+            'admin' => $this->hasRole([PlatformRole::Admin, PlatformRole::SuperAdmin]),
+            'seller' => $this->activeStores()->exists(),
+            default => false,
+        };
+    }
 
-        return false;
+    /**
+     * The stores the user may switch between in the seller panel: active ones only.
+     *
+     * @return Collection<int, Store>
+     */
+    public function getTenants(Panel $panel): Collection
+    {
+        return $this->activeStores()->get();
+    }
+
+    /**
+     * Checked on every seller panel request, so a store that is suspended
+     * while the user is signed in locks them out on the next request.
+     */
+    public function canAccessTenant(Model $tenant): bool
+    {
+        return $tenant instanceof Store
+            && $this->activeStores()->whereKey($tenant->getKey())->exists();
     }
 
     /**
@@ -75,6 +99,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(Store::class, 'store_members')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the active stores the user belongs to, as owner or staff.
+     *
+     * @return BelongsToMany<Store, $this>
+     */
+    public function activeStores(): BelongsToMany
+    {
+        return $this->stores()->where('stores.status', StoreStatus::Active->value);
     }
 
     /**

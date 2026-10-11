@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Models\Store;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -29,6 +30,9 @@ class SellerPanelProvider extends PanelProvider
             ->id('seller')
             ->path('seller')
             ->login()
+            // Each store is a tenant at /seller/{slug}. Stores are created through
+            // the API (#37), so there is no tenant registration page.
+            ->tenant(Store::class, slugAttribute: 'slug')
             ->colors([
                 'primary' => Color::Teal,
             ])
