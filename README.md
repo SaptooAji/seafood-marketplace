@@ -52,7 +52,7 @@ backend/    Aplikasi Laravel
 android/    Aplikasi Android (menyusul di tahap 4)
 docs/       PRD, standar engineering, dan catatan rilis (docs/releases/)
 .github/    CI dan template issue
-.githooks/  Hook git: format saat commit, cek kualitas saat push
+.githooks/  Hook git: format saat commit, cek kualitas saat push, status project saat branch dibuat
 ```
 
 ## Menjalankan di lokal
