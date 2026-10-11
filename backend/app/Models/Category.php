@@ -121,14 +121,26 @@ class Category extends Model
             SELECT id, depth FROM chain
             SQL;
 
-        return CategoryAttribute::query()
+        return self::keepClosest(CategoryAttribute::query()
             ->select('category_attributes.*')
             ->join(DB::raw("({$chain}) AS chain"), 'chain.id', '=', 'category_attributes.category_id')
             ->addBinding([$this->getKey(), self::MAX_DEPTH], 'join')
             ->orderByDesc('chain.depth')
             ->orderBy('category_attributes.id')
-            ->get()
-            // Walk from this category upward so the closest definition of a name is kept.
+            ->get());
+    }
+
+    /**
+     * The inheritance rule, shared by effectiveAttributes() and the category
+     * tree API: given a chain's attributes ordered top ancestor first, keep one
+     * attribute per name, the one defined closest to the category.
+     *
+     * @param  Collection<int, CategoryAttribute>  $topFirst
+     * @return Collection<int, CategoryAttribute>
+     */
+    public static function keepClosest(Collection $topFirst): Collection
+    {
+        return $topFirst
             ->reverse()
             ->unique('name')
             ->reverse()
