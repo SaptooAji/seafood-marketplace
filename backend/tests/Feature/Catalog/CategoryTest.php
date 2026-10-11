@@ -161,7 +161,8 @@ describe('constraints', function () {
         $parent = Category::factory()->create();
         $child = Category::factory()->childOf($parent)->create();
 
-        expect(fn () => $parent->delete())->toThrow(QueryException::class);
+        // A savepoint keeps PostgreSQL's test transaction usable after the failed delete.
+        expect(fn () => DB::transaction(fn () => $parent->delete()))->toThrow(QueryException::class);
 
         expect($child->fresh())->not->toBeNull()
             ->and($parent->fresh())->not->toBeNull();
