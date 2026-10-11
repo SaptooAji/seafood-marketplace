@@ -189,11 +189,11 @@ it('lets two stores use the same type', function () {
 describe('model and factory', function () {
     it('lists the shipping methods of a store', function () {
         $store = Store::factory()->create();
-        StoreShippingMethod::factory()->for($store)->pickup()->create();
+        $pickup = StoreShippingMethod::factory()->for($store)->pickup()->create();
         StoreShippingMethod::factory()->for($store)->ojol()->create();
 
         expect($store->shippingMethods)->toHaveCount(2)
-            ->and($store->shippingMethods->first()->store->is($store))->toBeTrue();
+            ->and($pickup->fresh()->store->is($store))->toBeTrue();
     });
 
     it('builds a valid method for each factory state', function (string $state, ShippingMethodType $type, ShippingFeeType $feeType) {
