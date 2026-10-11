@@ -99,7 +99,7 @@ android/app/src/main/java/.../
 
 ## Git dan review
 
-- Milestone per tahap PRD (`Tahap N: <nama>`); setiap milestone yang selesai ditandai tag dan GitHub Release (`v0.N.0`, Tahap 7 = `v1.0.0`).
+- Milestone per tahap PRD (`Tahap N: <nama>`); setiap milestone yang selesai ditandai tag beranotasi dan GitHub Release (`v0.N.0`, Tahap 7 = `v1.0.0`, perbaikan di antara tahap memakai patch `v0.N.1`). Catatan rilis disimpan di `docs/releases/vX.Y.Z.md` dan menjadi deskripsi GitHub Release; tag dibuat setelah PR catatan rilis di-merge. Langkah lengkap ada di CLAUDE.md "Menutup milestone".
 - Satu issue GitHub = satu branch = satu PR. Nama branch `<jenis>/<nomor-issue>-<ringkas>`: jenis sama dengan label issue (`feat`, `fix`, `chore`, `docs`, `test`, `refactor`), ringkas 2–4 kata bahasa Inggris dalam kebab-case, misalnya `feat/2-order-status`. Deskripsi PR memuat `Closes #<nomor>`.
 - Branch selalu dibuat dari `main` terbaru; tidak ada commit langsung ke `main`. Sinkronkan dengan `git merge main`, bukan rebase, setelah branch di-push. Branch dihapus setelah di-merge.
 - Commit mengikuti **Conventional Commits** (`feat(stock): add daily stock confirmation`).
