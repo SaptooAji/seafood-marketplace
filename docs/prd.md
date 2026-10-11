@@ -63,7 +63,7 @@ Role platform memakai spatie/laravel-permission dengan Filament Shield; role own
 - Panel /seller lengkap (pengaturan toko, metode pengiriman, member) dan role tambahan: CS/support dan kurir
 - Laporan transaksi per toko, kategori, dan periode dengan export Excel; broadcast notifikasi ke penjual; konten beranda (banner, produk unggulan)
 - Aplikasi kurir (React Native) untuk karyawan toko, dengan tracking posisi real-time
-- Login Facebook dan email/password
+- Login Facebook, dan email/password untuk pembeli web
 - Laporan pembelian per penyetor (nelayan) untuk pengepul
 - Payment gateway dengan split ke penjual
 - Fitur ekspor: minimum order, harga grosir, dokumen sertifikasi
@@ -80,7 +80,7 @@ Inti modelnya: satu **store** milik satu penjual, produk punya banyak **varian**
 | users | name, email, phone, password (nullable), avatar, role platform via spatie/laravel-permission (super_admin, admin; pembeli tanpa role) | anggota stores lewat store_members, banyak addresses, orders, social_accounts |
 | social_accounts | user_id, provider (google, facebook), provider_id | milik users; satu user bisa beberapa provider |
 | addresses | label, recipient, phone, address, city, postal_code, lat, lng, is_default | milik users |
-| stores | parent_store_id (selalu null di MVP), name, slug, description, phone, address, city, lat, lng, logo, bank_name, bank_account_no, bank_account_name, stock_reminder_time, status (pending, active, rejected, suspended), verified_at | punya banyak store_members, products, orders, shipping_methods |
+| stores | parent_store_id (selalu null di MVP), name, slug, description, phone, address, city, lat, lng, logo, bank_name, bank_account_no, bank_account_name, stock_reminder_time, status (pending, active, rejected, suspended), verified_at, rejection_reason (diisi saat ditolak; `Tidak diketahui` bila admin tidak mengisi alasan) | punya banyak store_members, products, orders, shipping_methods |
 | store_shipping_methods | store_id, type (own_delivery, pickup, ojol, expedition), max_radius_km, fee_type (flat, per_km, manual), flat_fee, fee_per_km, min_fee, is_active | milik stores |
 | categories | parent_id, name, slug, sort_order, quality_standard | bertingkat (Kepiting > Bakau, Soka) |
 | products | store_id, category_id, name, slug, description, condition (live, fresh, frozen, marinated), sales_mode (ready_stock, pre_order), daily_quota, lead_time_days, cutoff_time, shelf_life_days, storage_instructions, is_active | punya banyak variants, images |
@@ -134,14 +134,18 @@ Jika stok varian belum dikonfirmasi lebih dari 24 jam, checkout tetap bisa tetap
 
 Semua endpoint berawalan `/api/v1`, memakai token Sanctum (header `Authorization: Bearer`), dan respons JSON lewat API Resource Laravel. Endpoint seller hanya bisa mengakses data toko miliknya sendiri (Policy).
 
+Penjual login dengan email + password atau akun Google. Kolom `users.password` nullable karena pembeli web dan penjual yang memakai Google tidak punya password.
+
 | Method | Endpoint | Fungsi |
 | --- | --- | --- |
-| POST | /auth/register | Daftar akun penjual |
-| POST | /auth/login | Login, mengembalikan token |
+| POST | /auth/register | Daftar akun penjual dengan email + password |
+| POST | /auth/login | Login dengan email + password, mengembalikan token |
+| POST | /auth/google | Login dengan Google ID token dari Android, mengembalikan token |
 | POST | /auth/logout | Cabut token aktif |
 | GET | /me | Profil pengguna |
 | POST | /device-tokens | Simpan token FCM perangkat |
-| GET, PUT | /seller/store | Lihat dan ubah profil toko, lokasi (lat/lng), serta rekening |
+| POST | /seller/store | Buat toko setelah akun terdaftar; status pending sampai diverifikasi admin |
+| GET, PUT | /seller/store | Lihat dan ubah profil toko, lokasi (lat/lng), serta rekening; alasan penolakan bila ditolak |
 | GET | /categories | Daftar kategori bertingkat beserta atribut wajib dan standar kualitas |
 | GET, POST | /seller/products | Daftar dan tambah produk |
 | GET, PUT, DELETE | /seller/products/{id} | Detail, ubah, hapus produk |
@@ -204,6 +208,7 @@ flowchart LR
 - Enum PHP untuk status pesanan, kondisi produk, dan satuan; transisi status dicek di satu tempat
 - Event + Listener untuk notifikasi (database dan FCM lewat queue); Task Scheduler untuk pengingat stok harian per toko; perubahan stok hanya lewat Action RecordStockMovement dalam transaksi database
 - Test dengan Pest: feature test untuk setiap endpoint API dan Action
+- Package: Sanctum (token API), Socialite (login Google web), Filament 5 (panel `/admin` dan `/seller`), spatie/laravel-permission dengan Filament Shield (role platform), spatie/laravel-activitylog (jejak audit). Token Google dari Android diverifikasi lewat endpoint `tokeninfo` Google tanpa package tambahan
 
 **Android Kotlin**
 
@@ -229,9 +234,9 @@ Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung 
 
 | Tahap | Tabel |
 | --- | --- |
-| 2. Auth dan toko | kolom tambahan `users`, `social_accounts`, `roles`, `permissions`, `activity_log`, `stores`, `store_members`, `store_shipping_methods`, `categories`, `category_attributes`, `settings` |
+| 2. Auth dan toko | kolom tambahan `users`, `social_accounts`, `roles`, `permissions`, `activity_log`, `stores`, `store_members`, `store_shipping_methods`, `categories`, `category_attributes` |
 | 3. Produk | `products`, `product_variants`, `product_images`, `product_attribute_values`, `stock_movements` |
-| 5. Pesanan | `addresses`, `cart_items`, `orders`, `order_items`, `payments` |
+| 5. Pesanan | `addresses`, `cart_items`, `orders`, `order_items`, `payments`, `settings` |
 | 6. Notifikasi | `device_tokens` |
 
 Pemetaan ini perkiraan awal; issue tahapnya yang menentukan. Tabel dari package (`roles`, `permissions`, `activity_log`) masuk bersama package-nya, dan pemasangan package tetap butuh persetujuan.
