@@ -91,3 +91,43 @@ it('rejects invalid registration data', function (array $overrides, string $fiel
     'missing phone' => [['phone' => null], 'phone'],
     'missing device name' => [['device_name' => null], 'device_name'],
 ]);
+
+it('allows 10 registrations from one IP within a minute', function () {
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson('/api/v1/auth/register', registerPayload(['email' => "budi{$attempt}@mail.com"]))
+            ->assertCreated();
+    }
+
+    expect(User::query()->count())->toBe(10);
+});
+
+it('blocks the eleventh registration from one IP within a minute', function () {
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson('/api/v1/auth/register', registerPayload(['email' => "budi{$attempt}@mail.com"]));
+    }
+
+    $this->postJson('/api/v1/auth/register', registerPayload(['email' => 'budi11@mail.com']))
+        ->assertTooManyRequests();
+
+    expect(User::query()->where('email', 'budi11@mail.com')->exists())->toBeFalse();
+});
+
+it('counts failed registrations toward the limit so emails cannot be probed', function () {
+    User::factory()->create(['email' => 'budi@mail.com']);
+
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson('/api/v1/auth/register', registerPayload())->assertUnprocessable();
+    }
+
+    $this->postJson('/api/v1/auth/register', registerPayload())->assertTooManyRequests();
+});
+
+it('limits registrations per IP, not for every IP', function () {
+    foreach (range(1, 10) as $attempt) {
+        $this->postJson('/api/v1/auth/register', registerPayload(['email' => "budi{$attempt}@mail.com"]));
+    }
+
+    $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.2'])
+        ->postJson('/api/v1/auth/register', registerPayload(['email' => 'sari@mail.com']))
+        ->assertCreated();
+});
