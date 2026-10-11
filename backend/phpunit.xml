@@ -11,6 +11,11 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Arch">
+            <directory>tests</directory>
+            <exclude>tests/Unit</exclude>
+            <exclude>tests/Feature</exclude>
+        </testsuite>
     </testsuites>
     <source>
         <include>
