@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\AuthenticateWithPassword;
+use App\Actions\LoginWithGoogle;
 use App\Actions\RegisterUser;
+use App\Actions\VerifyGoogleIdToken;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\GoogleLoginRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Resources\Api\V1\UserResource;
@@ -17,7 +20,8 @@ use Illuminate\Http\Response;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
- * Email and password authentication for the Android app using Sanctum tokens.
+ * Authentication for the Android app using Sanctum tokens, with email and
+ * password or a Google ID token.
  */
 class AuthController extends Controller
 {
@@ -45,6 +49,17 @@ class AuthController extends Controller
     }
 
     /**
+     * Issue a token for the requesting device after Google confirms the ID
+     * token. Finds, links, or creates the user the same way as the web sign-in.
+     */
+    public function google(GoogleLoginRequest $request, VerifyGoogleIdToken $verifyIdToken, LoginWithGoogle $loginWithGoogle): JsonResponse
+    {
+        $profile = $verifyIdToken->handle($request->string('id_token')->toString());
+
+        return $this->tokenResponse($loginWithGoogle->handle($profile), $request->string('device_name')->toString());
+    }
+
+    /**
      * Revoke the token used for this request; the user's other devices stay signed in.
      */
     public function logout(Request $request): Response
@@ -68,7 +83,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Build the `{token, user}` response shared by register and login.
+     * Build the `{token, user}` response shared by register, login, and Google sign-in.
      */
     private function tokenResponse(User $user, string $deviceName, int $status = Response::HTTP_OK): JsonResponse
     {

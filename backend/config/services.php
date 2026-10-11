@@ -41,6 +41,12 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+        // ID tokens sent to the API must be issued for one of these client IDs
+        // (comma-separated). Android requests tokens for the web client ID.
+        'allowed_client_ids' => array_values(array_filter(explode(
+            ',',
+            (string) (env('GOOGLE_ALLOWED_CLIENT_IDS') ?: env('GOOGLE_CLIENT_ID')),
+        ))),
     ],
 
 ];
