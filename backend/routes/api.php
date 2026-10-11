@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,8 @@ Route::post('auth/google', [AuthController::class, 'google'])->middleware('throt
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
     Route::get('me', [AuthController::class, 'me'])->name('api.me');
+
+    Route::get('categories', CategoryController::class)->name('api.categories.index');
 
     Route::post('seller/store', [StoreController::class, 'store'])->name('api.seller.store.store');
     Route::get('seller/store', [StoreController::class, 'show'])->name('api.seller.store.show');
