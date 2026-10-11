@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Data\StoreData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -46,7 +47,24 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Build store input as sellers send it, shared by the store Action tests.
+ *
+ * @param  array<string, string|null>  $overrides  Keyed by StoreData constructor parameter.
+ */
+function storeData(array $overrides = []): StoreData
 {
-    // ..
+    return new StoreData(...array_merge([
+        'name' => 'Kepiting Pak Budi',
+        'description' => 'Kepiting bakau segar langsung dari tambak.',
+        'phone' => '081234567890',
+        'address' => 'Jl. Pelabuhan No. 5, Muara Angke',
+        'city' => 'Jakarta Utara',
+        'lat' => '-6.2087634',
+        'lng' => '106.8455990',
+        'bankName' => 'BCA',
+        'bankAccountNo' => '1234567890',
+        'bankAccountName' => 'Budi Santoso',
+        'stockReminderTime' => '06:00',
+    ], $overrides));
 }
