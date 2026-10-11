@@ -62,21 +62,28 @@ class CategoryResource extends Resource
 
     /**
      * The delete action for the table and the edit page. A category with
-     * subcategories is kept and the admin is told why, instead of hitting the
-     * database's restrict rule and getting an error page.
+     * subcategories or products is kept and the admin is told why, instead of
+     * hitting the database's restrict rule and getting an error page.
+     * Soft deleted products count: their rows still reference the category.
      */
     public static function deleteAction(): DeleteAction
     {
         return DeleteAction::make()
             ->before(function (DeleteAction $action, Category $record): void {
-                if (! $record->children()->exists()) {
+                $reason = match (true) {
+                    $record->children()->exists() => 'Pindahkan atau hapus subkategorinya lebih dulu.',
+                    $record->products()->withTrashed()->exists() => 'Kategori ini masih dipakai produk. Pindahkan produknya ke kategori lain lebih dulu.',
+                    default => null,
+                };
+
+                if ($reason === null) {
                     return;
                 }
 
                 Notification::make()
                     ->danger()
                     ->title('Kategori tidak bisa dihapus')
-                    ->body('Pindahkan atau hapus subkategorinya lebih dulu.')
+                    ->body($reason)
                     ->send();
 
                 $action->cancel();
