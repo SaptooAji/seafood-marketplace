@@ -41,6 +41,11 @@ class RoleSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
+        // DatabaseSeeder mutes model events, which normally clear this cache
+        // when a permission is created; without this, givePermissionTo() below
+        // cannot find the new permissions.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         foreach (PlatformRole::cases() as $role) {
             Role::findOrCreate($role->value, 'web')->givePermissionTo(self::ADMIN_PERMISSIONS);
         }
