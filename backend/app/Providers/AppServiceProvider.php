@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Policies\ActivityPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Refuse db:wipe, migrate:fresh, refresh, reset, and rollback in production, even with --force.
         DB::prohibitDestructiveCommands($this->app->environment('production'));
+
+        // The activitylog model is outside App\Models, so policy auto-discovery misses it.
+        Gate::policy(Activity::class, ActivityPolicy::class);
 
         $this->configureRateLimiting();
     }

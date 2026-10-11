@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * A seller's store. Users join it through store_members with a store role.
@@ -30,7 +32,20 @@ use Illuminate\Support\Carbon;
 class Store extends Model
 {
     /** @use HasFactory<StoreFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    /**
+     * Log status and verification changes and the public profile, only the
+     * fields that changed. Bank details are left out on purpose: they are
+     * sensitive and must never be copied into the log.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['status', 'verified_at', 'rejection_reason', 'name', 'phone', 'address', 'city', 'lat', 'lng'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 
     /**
      * Get the attributes that should be cast.
