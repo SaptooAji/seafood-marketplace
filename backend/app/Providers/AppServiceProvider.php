@@ -40,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
      *   until Google verifies the token, so the IP is the only stable key; the
      *   limit is looser because mobile carriers put many users behind one IP.
      *   It also caps how often one client can make us call Google.
+     * - `register`: 10 attempts per minute per IP, for the same reason: there
+     *   is no identity yet and the email changes freely between requests.
+     *   Failed attempts count too, which stops probing for registered emails.
      */
     private function configureRateLimiting(): void
     {
@@ -48,5 +51,7 @@ class AppServiceProvider extends ServiceProvider
         ));
 
         RateLimiter::for('google-login', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
+
+        RateLimiter::for('register', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
     }
 }

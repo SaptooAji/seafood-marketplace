@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 | (apiPrefix in bootstrap/app.php) and always responds with JSON.
 */
 
-Route::post('auth/register', [AuthController::class, 'register'])->name('api.auth.register');
+Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:register')->name('api.auth.register');
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('api.auth.login');
 Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:google-login')->name('api.auth.google');
 
