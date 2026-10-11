@@ -217,7 +217,7 @@ flowchart LR
 
 Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung padanya; setiap tahap selesai saat test-nya hijau di CI.
 
-1. **Fondasi:** monorepo (`backend/`, `android/`, `docs/`), Laravel + PostgreSQL (lokal via Laravel Herd, CI dengan service PostgreSQL), migrasi dan seeder dari ERD di atas, CI GitHub Actions
+1. **Fondasi:** monorepo (`backend/`, `android/`, `docs/`), Laravel + PostgreSQL (lokal via Laravel Herd, CI dengan service PostgreSQL), enum domain, arch test, CI GitHub Actions
 2. **Auth dan toko:** login Google (web) dan token API (Android), role, profil toko dengan pin lokasi, metode pengiriman, verifikasi toko di Filament, kategori
 3. **Produk:** CRUD produk, varian, foto; endpoint API seller; katalog dan detail produk di web
 4. **Android dasar:** login, daftar dan form produk dengan upload foto, pengaturan
@@ -225,4 +225,15 @@ Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung 
 6. **Notifikasi:** FCM untuk pesanan baru, perubahan status, dan pengingat stok harian
 7. **Rilis portofolio:** deploy web (VPS atau Laravel Cloud), APK di GitHub Releases, README dengan diagram, screenshot, dan video demo
 
-**Standar portofolio** yang dijaga di setiap tahap: commit dan PR yang rapi per fitur, test otomatis, lint (Pint untuk PHP, ktlint untuk Kotlin), dan seeder data contoh kepiting, cumi beku, dan tiram agar demo langsung terisi.
+**Migrasi per tahap.** Tabel ERD tidak dibuat sekaligus. Migrasi, model, dan factory sebuah tabel masuk di tahap yang pertama kali memakainya, sebagai issue pertama fitur itu, sehingga setiap PR membawa tabel beserta test yang membuktikannya:
+
+| Tahap | Tabel |
+| --- | --- |
+| 2. Auth dan toko | kolom tambahan `users`, `social_accounts`, `roles`, `permissions`, `activity_log`, `stores`, `store_members`, `store_shipping_methods`, `categories`, `category_attributes`, `settings` |
+| 3. Produk | `products`, `product_variants`, `product_images`, `product_attribute_values`, `stock_movements` |
+| 5. Pesanan | `addresses`, `cart_items`, `orders`, `order_items`, `payments` |
+| 6. Notifikasi | `device_tokens` |
+
+Pemetaan ini perkiraan awal; issue tahapnya yang menentukan. Tabel dari package (`roles`, `permissions`, `activity_log`) masuk bersama package-nya, dan pemasangan package tetap butuh persetujuan.
+
+**Standar portofolio** yang dijaga di setiap tahap: commit dan PR yang rapi per fitur, test otomatis, lint (Pint untuk PHP, ktlint untuk Kotlin), dan seeder data contoh kepiting, cumi beku, dan tiram agar demo langsung terisi. Seeder ditambah bertahap bersama tabelnya (toko dan kategori di Tahap 2, produk dan stok di Tahap 3, pesanan di Tahap 5), lalu dirapikan untuk demo di Tahap 7.
