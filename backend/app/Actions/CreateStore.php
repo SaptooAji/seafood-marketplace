@@ -9,8 +9,8 @@ use App\Enums\StoreRole;
 use App\Exceptions\UserAlreadyOwnsStore;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\UniqueSlug;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Opens a new store for a seller, waiting for admin verification.
@@ -32,7 +32,7 @@ class CreateStore
         return DB::transaction(function () use ($owner, $data): Store {
             $store = Store::query()->create([
                 ...$data->toAttributes(),
-                'slug' => $this->uniqueSlug($data->name),
+                'slug' => UniqueSlug::for(Store::query(), $data->name, 'toko'),
             ]);
 
             $store->users()->attach($owner, ['role' => StoreRole::Owner->value]);
@@ -40,21 +40,5 @@ class CreateStore
             // Load the database defaults, such as the pending status.
             return $store->refresh();
         });
-    }
-
-    /**
-     * Slug the name, adding -2, -3, ... when it is taken. The slug never changes
-     * afterwards, so store URLs stay stable.
-     */
-    private function uniqueSlug(string $name): string
-    {
-        $base = Str::slug($name) ?: 'toko';
-        $slug = $base;
-
-        for ($suffix = 2; Store::query()->where('slug', $slug)->exists(); $suffix++) {
-            $slug = "{$base}-{$suffix}";
-        }
-
-        return $slug;
     }
 }
