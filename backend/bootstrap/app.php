@@ -31,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         // Domain exceptions stay free of HTTP; their status codes are mapped here.
+        // An expected business outcome answered with a 4xx is not an error, so
+        // it is kept out of the log.
+        $exceptions->dontReport([UserAlreadyOwnsStore::class]);
+
         $exceptions->render(fn (UserAlreadyOwnsStore $e) => response()->json(
             ['message' => $e->getMessage()],
             Response::HTTP_CONFLICT,
