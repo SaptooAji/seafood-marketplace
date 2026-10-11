@@ -32,6 +32,15 @@ Roadmap dilacak sebagai GitHub milestone, satu per tahap di "Tahapan pengerjaan"
 - **Issue hanya ditulis untuk tahap yang sedang berjalan.** Issue tahap berikutnya ditulis saat tahap sekarang hampir selesai, karena detailnya bergantung pada hasil tahap sebelumnya.
 - **Menutup milestone**: setelah semua issue-nya tertutup dan CI di `main` hijau, buat tag dan GitHub Release dengan versi di deskripsi milestone (Tahap 1 = `v0.1.0`, Tahap 2 = `v0.2.0`, ..., Tahap 7 = `v1.0.0`). Catatan rilis berisi ringkasan PR yang masuk. Claude Code hanya menyiapkan catatan rilisnya; pemilik repo yang membuat tag dan menutup milestone.
 
+## Papan kerja: GitHub Project
+
+Issue dilacak di project [Seafood Marketplace Roadmap](https://github.com/users/SaptooAji/projects/2) (nomor `2`, owner `SaptooAji`). Field **Status**: Todo, In Progress, Done.
+
+- **Todo**: issue baru masuk otomatis (workflow *Auto-add*). Setelah membuat issue, pastikan tetap ada di project dengan `gh project item-add 2 --owner SaptooAji --url <url-issue>` (aman diulang).
+- **In Progress**: diatur oleh hook `post-checkout` saat branch issue dibuat (`git switch -c <jenis>/<nomor>-...`). Kalau hook mencetak peringatan atau dilewati (`SKIP_PROJECT_HOOK=1`), ubah statusnya dengan `gh project item-edit`.
+- **Done**: otomatis saat issue ditutup lewat PR `Closes #<nomor>`.
+- `gh` butuh scope `project` (`gh auth refresh -s project`).
+
 ## Merencanakan pekerjaan: issue
 
 Setiap pekerjaan dimulai dari GitHub issue di milestone tahapnya. Saat diminta merencanakan fitur atau tahap:
@@ -43,7 +52,7 @@ Setiap pekerjaan dimulai dari GitHub issue di milestone tahapnya. Saat diminta m
    - **Cara mulai**: perintah branch dan `php artisan make:*`.
    - **Petunjuk**: pola kode dan rujukan. Kalau perlu contoh, pakai domain lain; jangan tulis solusi lengkap.
    - **Di luar scope**.
-3. Beri label jenis (`feat`, `fix`, `chore`, `docs`, `test`, `refactor`), area (`backend`, `android`, `ci`), dan ukuran (`size: S`, `size: M`), lalu pasang milestone.
+3. Beri label jenis (`feat`, `fix`, `chore`, `docs`, `test`, `refactor`), area (`backend`, `android`, `ci`), dan ukuran (`size: S`, `size: M`), lalu pasang milestone dan masukkan ke project (lihat "Papan kerja").
 4. Issue ditulis dalam Bahasa Indonesia, judul dalam format Conventional Commits.
 
 ### Ukuran issue
@@ -85,7 +94,7 @@ Utamakan issue kecil yang bisa dipelajari dan direview sekali duduk:
 | `composer analyse` | Larastan level 6 |
 | `php artisan test --filter=OrderStatus` | Jalankan test tertentu |
 
-Hook git ada di `.githooks/` (aktif lewat `core.hooksPath`): pre-commit memformat file PHP yang di-stage, pre-push menjalankan `composer check`. Lingkungan pemilik repo adalah Windows 11 dengan Laravel Herd dan Git Bash; di Git Bash, `vendor/bin/*` tidak bisa dijalankan langsung, jadi pakai `composer exec <tool>` atau script composer.
+Hook git ada di `.githooks/` (aktif lewat `core.hooksPath`): pre-commit memformat file PHP yang di-stage, pre-push menjalankan `composer check`, post-checkout memindahkan issue ke In Progress di project saat branch issue dibuat. Lingkungan pemilik repo adalah Windows 11 dengan Laravel Herd dan Git Bash; di Git Bash, `vendor/bin/*` tidak bisa dijalankan langsung, jadi pakai `composer exec <tool>` atau script composer.
 
 ## Konvensi backend
 

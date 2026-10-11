@@ -4,7 +4,7 @@ Marketplace hasil laut multi-penjual: pemilik usaha hasil laut (kepiting, cumi, 
 
 Proyek ini adalah rebuild skripsi LP3I (2020): aplikasi penjualan kepiting untuk satu UD yang dulu dibangun dengan Android Java. Versi ini dibangun ulang dari nol dengan Laravel dan Kotlin, lalu dikembangkan menjadi marketplace multi-penjual.
 
-> Status: **Tahap 1 (Fondasi)** sedang dikerjakan. Lihat [milestones](https://github.com/SaptooAji/seafood-marketplace/milestones).
+> Status: **Tahap 1 (Fondasi)** sedang dikerjakan. Lihat [milestones](https://github.com/SaptooAji/seafood-marketplace/milestones) dan papan kerja di [GitHub Project](https://github.com/users/SaptooAji/projects/2).
 
 ## Fitur MVP
 
@@ -84,7 +84,7 @@ Jalankan dari `backend/`:
 | `composer fix` | Format dengan Pint, lalu Larastan dan Pest |
 | `php artisan test` | Hanya test |
 
-Hook pre-commit memformat file PHP yang di-commit, dan hook pre-push menjalankan `composer check`. CI menjalankan pemeriksaan yang sama dengan PostgreSQL.
+Hook pre-commit memformat file PHP yang di-commit, hook pre-push menjalankan `composer check`, dan hook post-checkout memindahkan issue ke In Progress di GitHub Project saat branch issue dibuat. CI menjalankan pemeriksaan yang sama dengan PostgreSQL.
 
 ## Alur kerja
 

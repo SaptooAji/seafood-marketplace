@@ -1,0 +1,63 @@
+#!/bin/sh
+# When a new issue branch is created (<type>/<issue>-<summary>), add the issue to the
+# GitHub Project and set its Status to "In Progress". Never blocks the checkout.
+# Skip with SKIP_PROJECT_HOOK=1.
+
+PROJECT_NUMBER=2
+STATUS_NAME="In Progress"
+
+# Only branch checkouts (third argument is 1), and not when skipped.
+[ "$3" = "1" ] || exit 0
+[ -n "$SKIP_PROJECT_HOOK" ] && exit 0
+
+BRANCH=$(git symbolic-ref --short -q HEAD) || exit 0
+ISSUE=$(echo "$BRANCH" | sed -nE 's#^(feat|fix|chore|docs|test|refactor)/([0-9]+)-.+#\2#p')
+[ -z "$ISSUE" ] && exit 0
+
+# Only newly created branches: the oldest reflog entry is "Created from" and
+# was written in the last few seconds. Switching to an existing branch adds no entry.
+CREATED_AT=$(git reflog show --date=unix --format='%gd %gs' "refs/heads/$BRANCH" 2>/dev/null |
+  tail -n 1 | sed -nE 's/.*@\{([0-9]+)\} branch: Created from.*/\1/p')
+[ -n "$CREATED_AT" ] && [ $(($(date +%s) - CREATED_AT)) -le 10 ] || exit 0
+
+warn() {
+  echo "post-checkout: $1. Set issue #$ISSUE to $STATUS_NAME manually in the project." >&2
+  exit 0
+}
+
+if command -v gh >/dev/null 2>&1; then
+  GH=gh
+elif [ -x "/c/Program Files/GitHub CLI/gh.exe" ]; then
+  GH="/c/Program Files/GitHub CLI/gh.exe"
+else
+  warn "gh not found"
+fi
+
+REPO=$(git remote get-url origin 2>/dev/null | sed -E 's#^.*github\.com[:/]##; s#\.git$##')
+OWNER=${REPO%%/*}
+[ -n "$REPO" ] || warn "no GitHub remote 'origin'"
+
+STATE=$("$GH" issue view "$ISSUE" -R "$REPO" --json state --jq .state 2>/dev/null) ||
+  warn "issue #$ISSUE not found or gh not logged in"
+[ "$STATE" = "OPEN" ] || { echo "post-checkout: issue #$ISSUE is closed, status unchanged."; exit 0; }
+
+echo "post-checkout: setting issue #$ISSUE to $STATUS_NAME in project $PROJECT_NUMBER"
+
+ITEM_ID=$("$GH" project item-add "$PROJECT_NUMBER" --owner "$OWNER" \
+  --url "https://github.com/$REPO/issues/$ISSUE" --format json --jq .id 2>/dev/null) ||
+  warn "cannot add issue to project (missing 'project' scope? run: gh auth refresh -s project)"
+
+PROJECT_ID=$("$GH" project view "$PROJECT_NUMBER" --owner "$OWNER" --format json --jq .id 2>/dev/null) ||
+  warn "cannot read project"
+
+FIELD=$("$GH" project field-list "$PROJECT_NUMBER" --owner "$OWNER" --format json \
+  --jq ".fields[] | select(.name == \"Status\") | \"\(.id) \(.options[] | select(.name == \"$STATUS_NAME\") | .id)\"" 2>/dev/null)
+FIELD_ID=${FIELD% *}
+OPTION_ID=${FIELD#* }
+[ -n "$FIELD_ID" ] && [ -n "$OPTION_ID" ] || warn "Status option '$STATUS_NAME' not found"
+
+"$GH" project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" \
+  --field-id "$FIELD_ID" --single-select-option-id "$OPTION_ID" >/dev/null 2>&1 ||
+  warn "cannot update status"
+
+exit 0
