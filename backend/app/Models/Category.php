@@ -65,6 +65,16 @@ class Category extends Model
     }
 
     /**
+     * Get the products filed directly under this category.
+     *
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
      * Get the attributes defined on this category only, without inherited ones.
      *
      * @return HasMany<CategoryAttribute, $this>

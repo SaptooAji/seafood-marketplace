@@ -98,6 +98,16 @@ class Store extends Model
     }
 
     /**
+     * Get the products this store sells.
+     *
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
      * Get the owners of this store; one in the MVP.
      *
      * @return BelongsToMany<User, $this>

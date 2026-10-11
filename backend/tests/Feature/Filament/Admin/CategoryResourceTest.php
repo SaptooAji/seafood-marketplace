@@ -10,6 +10,7 @@ use App\Filament\Admin\Resources\Categories\Pages\ListCategories;
 use App\Filament\Admin\Resources\Categories\RelationManagers\AttributesRelationManager;
 use App\Models\Category;
 use App\Models\CategoryAttribute;
+use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Filament\Actions\DeleteAction;
@@ -158,6 +159,30 @@ describe('delete', function () {
         expect($kepiting->fresh())->not->toBeNull()
             ->and(Category::query()->count())->toBe(2);
     })->with(['table', 'edit page']);
+
+    it('keeps a category that has products and shows a notification', function (string $where) {
+        $category = Category::factory()->create();
+        Product::factory()->for($category)->create();
+
+        $page = $where === 'table'
+            ? Livewire::test(ListCategories::class)->callAction(TestAction::make('delete')->table($category))
+            : Livewire::test(EditCategory::class, ['record' => $category->getRouteKey()])->callAction(DeleteAction::class);
+
+        $page->assertNotified();
+
+        expect($category->fresh())->not->toBeNull();
+    })->with(['table', 'edit page']);
+
+    it('keeps a category whose products were soft deleted', function () {
+        $category = Category::factory()->create();
+        Product::factory()->for($category)->create()->delete();
+
+        Livewire::test(ListCategories::class)
+            ->callAction(TestAction::make('delete')->table($category))
+            ->assertNotified();
+
+        expect($category->fresh())->not->toBeNull();
+    });
 
     it('deletes a category without children', function () {
         $leaf = Category::factory()->create();
