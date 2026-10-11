@@ -179,6 +179,19 @@ describe('GET /seller/store', function () {
 
         $this->getJson(SELLER_STORE_URL)->assertNotFound();
     });
+
+    it('returns the owned store to a user who is also staff elsewhere', function () {
+        $user = User::factory()->create();
+        $ownStore = Store::factory()->create();
+        // Staff membership created first, so it would win without an explicit order.
+        Store::factory()->create()->users()->attach($user, ['role' => StoreRole::Staff->value]);
+        $ownStore->users()->attach($user, ['role' => StoreRole::Owner->value]);
+        Sanctum::actingAs($user);
+
+        $this->getJson(SELLER_STORE_URL)
+            ->assertOk()
+            ->assertJsonPath('data.id', $ownStore->id);
+    });
 });
 
 describe('PUT /seller/store', function () {
