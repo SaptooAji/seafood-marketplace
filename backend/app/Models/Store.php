@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\StoreRole;
 use App\Enums\StoreStatus;
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -69,5 +70,23 @@ class Store extends Model
         return $this->belongsToMany(User::class, 'store_members')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the owners of this store; one in the MVP.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function owners(): BelongsToMany
+    {
+        return $this->users()->wherePivot('role', StoreRole::Owner->value);
+    }
+
+    /**
+     * A Google Maps link to the store's coordinates.
+     */
+    public function googleMapsUrl(): string
+    {
+        return "https://www.google.com/maps/search/?api=1&query={$this->lat},{$this->lng}";
     }
 }
