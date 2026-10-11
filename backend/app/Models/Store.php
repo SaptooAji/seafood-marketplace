@@ -11,12 +11,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * A seller's store. Users join it through store_members with a store role.
  *
  * `status`, `verified_at`, and `rejection_reason` are not fillable: they only
  * change through the admin verification actions, never from seller input.
+ *
+ * @property StoreStatus $status
+ * @property Carbon|null $verified_at
  */
 #[Fillable([
     'name', 'slug', 'description', 'phone', 'address', 'city', 'lat', 'lng', 'logo',
