@@ -83,20 +83,22 @@ Inti modelnya: satu **store** milik satu penjual, produk punya banyak **varian**
 | stores | parent_store_id (selalu null di MVP), name, slug, description, phone, address, city, lat, lng, logo, bank_name, bank_account_no, bank_account_name, stock_reminder_time, status (pending, active, rejected, suspended), verified_at, rejection_reason (diisi saat ditolak; `Tidak diketahui` bila admin tidak mengisi alasan) | punya banyak store_members, products, orders, shipping_methods |
 | store_shipping_methods | store_id, type (own_delivery, pickup, ojol, expedition), max_radius_km, fee_type (flat, per_km, manual), flat_fee, fee_per_km, min_fee, is_active | milik stores |
 | categories | parent_id, name, slug, sort_order, quality_standard | bertingkat (Kepiting > Bakau, Soka) |
-| products | store_id, category_id, name, slug, description, condition (live, fresh, frozen, marinated), sales_mode (ready_stock, pre_order), daily_quota, lead_time_days, cutoff_time, shelf_life_days, storage_instructions, is_active | punya banyak variants, images |
+| products | store_id, category_id (hanya kategori daun), name, slug, description, condition (live, fresh, frozen, marinated), sales_mode (ready_stock, pre_order), daily_quota, lead_time_days, cutoff_time, shelf_life_days, storage_instructions, is_active (diatur penjual), blocked_at dan block_reason (moderasi admin), deleted_at (soft delete) | punya banyak variants, images |
 | product_images | product_id, path, sort_order | milik products |
-| product_variants | product_id, name (mis. Grade A 300-400 g), unit (kg, ekor, lusin, pack), price, stock (decimal, hasil dari stock_movements), stock_confirmed_at, min_qty, is_active | milik products |
+| product_variants | product_id, name (mis. Grade A 300-400 g), unit (kg, ekor, lusin, pack), price, stock (decimal, hasil dari stock_movements), stock_confirmed_at, min_qty, is_active, deleted_at (soft delete) | milik products |
 | cart_items | user_id atau session_id, variant_id, qty | pembeli atau tamu ke varian |
 | orders | code, buyer_id, store_id, shipping_address (json snapshot), shipping_method, distance_km, scheduled_date (pre-order), status, subtotal, shipping_cost, total, tracking_url, note, cancelled_by (buyer, seller, admin, system), cancellation_reason, cancelled_at | punya banyak order_items, satu payment |
 | order_items | order_id, variant_id, product_name, variant_name, unit, price, qty, subtotal (semua snapshot) | milik orders |
 | payments | order_id, method (transfer), amount, proof_path, status (pending, approved, rejected), verified_at | milik orders |
 | device_tokens | user_id, token, platform | untuk push FCM |
-| stock_movements | variant_id, type (stock_in, sale_app, sale_offline, shrinkage, adjustment, cancel_return), qty (+/-), supplier_name, unit_cost, order_id, note, created_by | milik product_variants; riwayat setiap perubahan stok |
+| stock_movements | variant_id, type (stock_in, sale_app, sale_offline, shrinkage, adjustment, cancel_return), qty (+/-), stock_after, supplier_name, unit_cost, order_id, note, created_by | milik product_variants; riwayat setiap perubahan stok |
 | store_members | store_id, user_id, role (owner, staff) | penghubung users dan stores; di MVP satu owner per toko |
 | settings | key, value (json) | pengaturan platform yang diubah Super Admin |
 | roles, permissions, activity_log | tabel bawaan spatie/laravel-permission dan spatie/laravel-activitylog | role platform dan jejak audit |
 | category_attributes | category_id, name, type (text, number, select, date), options (json), unit, is_required, is_filterable | milik categories; diwarisi subkategori |
 | product_attribute_values | product_id, category_attribute_id, value | nilai atribut per produk |
+
+Produk dan varian memakai soft delete agar riwayat stok dan pesanan tetap utuh. Produk tampil di katalog hanya bila aktif, tidak diblokir admin, tokonya `active`, dan punya minimal satu varian aktif. Moderasi admin memakai `blocked_at`, sehingga penjual tidak bisa membatalkannya dengan mengaktifkan produk lagi.
 
 Jarak toko ke pembeli dihitung dengan rumus Haversine di PostgreSQL dari lat/lng toko dan alamat; ini dipakai untuk filter toko terdekat dan ongkir otomatis. Ongkir dihitung otomatis untuk diantar sendiri (flat atau per km) dan ambil di tempat (gratis); untuk ojek online dan ekspedisi, penjual mengisinya manual.
 
@@ -147,10 +149,11 @@ Penjual login dengan email + password atau akun Google. Kolom `users.password` n
 | POST | /seller/store | Buat toko setelah akun terdaftar; status pending sampai diverifikasi admin |
 | GET, PUT | /seller/store | Lihat dan ubah profil toko, lokasi (lat/lng), serta rekening; alasan penolakan bila ditolak |
 | GET | /categories | Daftar kategori bertingkat beserta atribut wajib dan standar kualitas |
-| GET, POST | /seller/products | Daftar dan tambah produk |
+| GET, POST | /seller/products | Daftar dan tambah produk; produk baru dikirim bersama minimal satu varian |
 | GET, PUT, DELETE | /seller/products/{id} | Detail, ubah, hapus produk |
 | POST | /seller/products/{id}/images | Upload foto produk (multipart) |
 | DELETE | /seller/products/{id}/images/{imageId} | Hapus foto |
+| PUT | /seller/products/{id}/images/order | Ubah urutan foto |
 | POST | /seller/products/{id}/variants | Tambah varian |
 | PUT, DELETE | /seller/variants/{id} | Ubah atau hapus varian, termasuk stok dan harga |
 | GET | /seller/orders?status= | Daftar pesanan per status |
@@ -185,7 +188,7 @@ Web pembeli dan admin hidup di satu aplikasi Laravel; admin di subdomain `admin.
 | Akun | /akun | Profil, alamat, ganti password |
 | Auth | /masuk, /auth/google/callback | Login dan registrasi dengan Google (Socialite), hanya muncul saat checkout |
 
-**Panel /admin:** resource Stores (verifikasi, tolak, suspend), Categories (bertingkat, urutan, atribut wajib, standar kualitas), Users dan Roles, Products (nonaktifkan), Orders (baca saja), Settings, Activity Log, dan widget dashboard berisi jumlah toko aktif, pesanan per status, nilai transaksi bulanan, dan toko dengan stok basi.
+**Panel /admin:** resource Stores (verifikasi, tolak, suspend), Categories (bertingkat, urutan, atribut wajib, standar kualitas), Users dan Roles, Products (blokir dan buka blokir dengan alasan), Orders (baca saja), Settings, Activity Log, dan widget dashboard berisi jumlah toko aktif, pesanan per status, nilai transaksi bulanan, dan toko dengan stok basi.
 
 **Panel /seller:** resource Products (dengan varian dan foto), Stok hari ini, Buku stok, Jadwal produksi, dan Orders milik toko yang sedang dipilih.
 
@@ -208,7 +211,7 @@ flowchart LR
 - Enum PHP untuk status pesanan, kondisi produk, dan satuan; transisi status dicek di satu tempat
 - Event + Listener untuk notifikasi (database dan FCM lewat queue); Task Scheduler untuk pengingat stok harian per toko; perubahan stok hanya lewat Action RecordStockMovement dalam transaksi database
 - Test dengan Pest: feature test untuk setiap endpoint API dan Action
-- Package: Sanctum (token API), Socialite (login Google web), Filament 5 (panel `/admin` dan `/seller`), spatie/laravel-permission dengan Filament Shield (role platform), spatie/laravel-activitylog (jejak audit). Token Google dari Android diverifikasi lewat endpoint `tokeninfo` Google tanpa package tambahan
+- Package: Sanctum (token API), Socialite (login Google web), Filament 5 (panel `/admin` dan `/seller`), Livewire 4 (web pembeli; juga dipakai Filament), spatie/laravel-permission dengan Filament Shield (role platform), spatie/laravel-activitylog (jejak audit), intervention/image 4 (resize foto produk ke WebP dan thumbnail dengan GD). Token Google dari Android diverifikasi lewat endpoint `tokeninfo` Google tanpa package tambahan
 
 **Android Kotlin**
 
@@ -224,7 +227,7 @@ Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung 
 
 1. **Fondasi:** monorepo (`backend/`, `android/`, `docs/`), Laravel + PostgreSQL (lokal via Laravel Herd, CI dengan service PostgreSQL), enum domain, arch test, CI GitHub Actions
 2. **Auth dan toko:** login Google (web) dan token API (Android), role, profil toko dengan pin lokasi, metode pengiriman, verifikasi toko di Filament, kategori
-3. **Produk:** CRUD produk, varian, foto; endpoint API seller; katalog dan detail produk di web
+3. **Produk:** CRUD produk, varian, foto (di-resize); buku stok dan stok harian; endpoint API seller; resource produk dan stok di panel `/seller`, moderasi produk di `/admin`; katalog dengan toko terdekat, detail produk, dan halaman toko di web. Jadwal produksi pre-order menunggu pesanan di Tahap 5
 4. **Android dasar:** login, daftar dan form produk dengan upload foto, pengaturan
 5. **Pesanan:** keranjang, checkout per toko, alur status, upload dan verifikasi bukti bayar; layar pesanan di Android
 6. **Notifikasi:** FCM untuk pesanan baru, perubahan status, dan pengingat stok harian
