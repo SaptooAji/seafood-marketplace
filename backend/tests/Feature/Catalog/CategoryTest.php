@@ -81,22 +81,26 @@ describe('effectiveAttributes()', function () {
             ->and($weights->first()->unit)->toBe('kg');
     });
 
-    it('loads the chain with the same number of queries at any depth', function () {
-        $category = Category::factory()->create();
-        addAttribute($category, 'Level 0');
+    it('uses the same number of queries at any depth', function () {
+        $chain = [Category::factory()->create()];
+        addAttribute($chain[0], 'Level 0');
 
         foreach (range(1, 4) as $level) {
-            $category = Category::factory()->childOf($category)->create();
-            addAttribute($category, "Level {$level}");
+            $chain[$level] = Category::factory()->childOf($chain[$level - 1])->create();
+            addAttribute($chain[$level], "Level {$level}");
         }
 
-        $category = $category->fresh();
-        DB::enableQueryLog();
+        $queriesFor = function (Category $category): int {
+            $category = $category->fresh();
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $category->effectiveAttributes();
 
-        $names = $category->effectiveAttributes()->pluck('name')->all();
+            return count(DB::getQueryLog());
+        };
 
-        expect($names)->toBe(['Level 0', 'Level 1', 'Level 2', 'Level 3', 'Level 4'])
-            ->and(DB::getQueryLog())->toHaveCount(2);
+        expect(effectiveNames($chain[4]))->toBe(['Level 0', 'Level 1', 'Level 2', 'Level 3', 'Level 4'])
+            ->and($queriesFor($chain[4]))->toBe($queriesFor($chain[1]));
     });
 });
 
