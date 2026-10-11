@@ -27,4 +27,27 @@ enum StoreStatus: string
             self::Suspended => 'Ditangguhkan',
         };
     }
+
+    /**
+     * Statuses this status may move to next. Rejected is final in the MVP.
+     *
+     * @return list<self>
+     */
+    public function allowedTransitions(): array
+    {
+        return match ($this) {
+            self::Pending => [self::Active, self::Rejected],
+            self::Active => [self::Suspended],
+            self::Suspended => [self::Active],
+            self::Rejected => [],
+        };
+    }
+
+    /**
+     * Whether moving from this status to the given status is allowed.
+     */
+    public function canTransitionTo(self $newStatus): bool
+    {
+        return in_array($newStatus, $this->allowedTransitions(), true);
+    }
 }

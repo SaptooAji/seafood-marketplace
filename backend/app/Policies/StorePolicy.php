@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\PlatformRole;
 use App\Enums\StoreRole;
 use App\Models\Store;
 use App\Models\User;
@@ -37,5 +38,14 @@ class StorePolicy
     public function update(User $user, Store $store): bool
     {
         return $user->roleIn($store) === StoreRole::Owner;
+    }
+
+    /**
+     * Only platform admins may verify, reject, suspend, or reactivate a store,
+     * never its own members.
+     */
+    public function changeStatus(User $user, Store $store): bool
+    {
+        return $user->hasAnyRole([PlatformRole::SuperAdmin, PlatformRole::Admin]);
     }
 }
