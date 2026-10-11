@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Account\Enums;
+namespace App\Enums;
 
 /**
  * Sign-in provider of a social account, stored in `social_accounts.provider`.

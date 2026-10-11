@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Domain\Account\Enums\SocialProvider;
+use App\Enums\SocialProvider;
 
 it('keeps the stored values unchanged', function () {
     expect(array_map(fn (SocialProvider $provider) => $provider->value, SocialProvider::cases()))

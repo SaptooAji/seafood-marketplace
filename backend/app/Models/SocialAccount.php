@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Account\Models;
+namespace App\Models;
 
-use App\Domain\Account\Enums\SocialProvider;
-use App\Models\User;
-use Database\Factories\Domain\Account\Models\SocialAccountFactory;
+use App\Enums\SocialProvider;
+use Database\Factories\SocialAccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

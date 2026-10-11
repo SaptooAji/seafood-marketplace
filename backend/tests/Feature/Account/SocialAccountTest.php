@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use App\Domain\Account\Enums\SocialProvider;
-use App\Domain\Account\Models\SocialAccount;
+use App\Enums\SocialProvider;
+use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;

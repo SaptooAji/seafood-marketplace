@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Database\Factories\Domain\Account\Models;
+namespace Database\Factories;
 
-use App\Domain\Account\Enums\SocialProvider;
-use App\Domain\Account\Models\SocialAccount;
+use App\Enums\SocialProvider;
+use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -14,13 +14,6 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class SocialAccountFactory extends Factory
 {
-    /**
-     * The model this factory builds. Laravel cannot guess it for models outside app/Models.
-     *
-     * @var class-string<SocialAccount>
-     */
-    protected $model = SocialAccount::class;
-
     /**
      * Define the model's default state.
      *
