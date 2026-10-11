@@ -65,6 +65,29 @@ class Category extends Model
     }
 
     /**
+     * IDs of every category below this one, at any depth, in one query.
+     * Used to keep a category from being moved under its own subtree.
+     *
+     * @return list<int>
+     */
+    public function descendantIds(): array
+    {
+        $rows = DB::select(<<<'SQL'
+            WITH RECURSIVE tree AS (
+                SELECT id, 0 AS depth FROM categories WHERE parent_id = ?
+                UNION ALL
+                SELECT categories.id, tree.depth + 1
+                FROM categories
+                JOIN tree ON categories.parent_id = tree.id
+                WHERE tree.depth < ?
+            )
+            SELECT id FROM tree
+            SQL, [$this->getKey(), self::MAX_DEPTH]);
+
+        return array_map(fn (object $row): int => (int) $row->id, $rows);
+    }
+
+    /**
      * The attributes that apply to this category: the top ancestor's first,
      * then down to this category's own. When a name is defined at several
      * levels, the one closest to this category wins.
