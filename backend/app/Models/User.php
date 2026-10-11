@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PlatformRole;
+use App\Enums\StoreRole;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -74,5 +75,25 @@ class User extends Authenticatable implements FilamentUser
         return $this->belongsToMany(Store::class, 'store_members')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the user's role in the given store, or null when they are not a member.
+     */
+    public function roleIn(Store $store): ?StoreRole
+    {
+        return StoreMember::query()
+            ->where('store_id', $store->id)
+            ->where('user_id', $this->id)
+            ->first()
+            ?->role;
+    }
+
+    /**
+     * Determine whether the user is the owner of any store.
+     */
+    public function ownsAnyStore(): bool
+    {
+        return $this->stores()->wherePivot('role', StoreRole::Owner->value)->exists();
     }
 }

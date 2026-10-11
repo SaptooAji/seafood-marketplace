@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * A user's membership in a store and their role there (owner or staff).
+ *
+ * @property StoreRole $role
  */
 #[Fillable(['store_id', 'user_id', 'role'])]
 class StoreMember extends Model
