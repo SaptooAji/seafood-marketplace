@@ -23,7 +23,7 @@ it('forbids the admin panel to users without a platform role', function () {
     $this->actingAs(User::factory()->create())->get('/admin')->assertForbidden();
 });
 
-it('forbids the seller panel to platform roles until store tenancy exists', function () {
+it('forbids the seller panel to platform roles without a store', function () {
     $user = User::factory()->create();
     $user->assignRole('super_admin');
 
