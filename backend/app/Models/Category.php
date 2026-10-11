@@ -1,0 +1,104 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use Database\Factories\CategoryFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * A product category in a tree (Kepiting > Bakau > Bakau Super). A category
+ * inherits the attributes of its ancestors; see effectiveAttributes().
+ *
+ * Note: inside this class `$this->attributes` is Eloquent's raw attribute
+ * array, not the relation. Use `$this->attributes()` for the relation.
+ */
+#[Fillable(['parent_id', 'name', 'slug', 'sort_order', 'quality_standard'])]
+class Category extends Model
+{
+    /** @use HasFactory<CategoryFactory> */
+    use HasFactory;
+
+    /**
+     * Guards effectiveAttributes() against a parent loop in bad data.
+     * Real trees are a few levels deep.
+     */
+    private const int MAX_DEPTH = 50;
+
+    /**
+     * Get the parent category, or null for a root category.
+     *
+     * @return BelongsTo<Category, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    /**
+     * Get the direct subcategories, ordered by sort_order, then name.
+     *
+     * @return HasMany<Category, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id')
+            ->orderBy('sort_order')
+            ->orderBy('name');
+    }
+
+    /**
+     * Get the attributes defined on this category only, without inherited ones.
+     *
+     * @return HasMany<CategoryAttribute, $this>
+     */
+    public function attributes(): HasMany
+    {
+        return $this->hasMany(CategoryAttribute::class);
+    }
+
+    /**
+     * The attributes that apply to this category: the top ancestor's first,
+     * then down to this category's own. When a name is defined at several
+     * levels, the one closest to this category wins.
+     *
+     * The chain of ancestors is walked with a recursive CTE, so this is one
+     * query at any depth.
+     *
+     * @return Collection<int, CategoryAttribute>
+     */
+    public function effectiveAttributes(): Collection
+    {
+        $chain = <<<'SQL'
+            WITH RECURSIVE chain AS (
+                SELECT id, parent_id, 0 AS depth FROM categories WHERE id = ?
+                UNION ALL
+                SELECT categories.id, categories.parent_id, chain.depth + 1
+                FROM categories
+                JOIN chain ON categories.id = chain.parent_id
+                WHERE chain.depth < ?
+            )
+            SELECT id, depth FROM chain
+            SQL;
+
+        return CategoryAttribute::query()
+            ->select('category_attributes.*')
+            ->join(DB::raw("({$chain}) AS chain"), 'chain.id', '=', 'category_attributes.category_id')
+            ->addBinding([$this->getKey(), self::MAX_DEPTH], 'join')
+            ->orderByDesc('chain.depth')
+            ->orderBy('category_attributes.id')
+            ->get()
+            // Walk from this category upward so the closest definition of a name is kept.
+            ->reverse()
+            ->unique('name')
+            ->reverse()
+            ->values();
+    }
+}
