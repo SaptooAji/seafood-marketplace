@@ -15,22 +15,25 @@ Dokumen ini adalah aturan kerja untuk semua kode di repository: backend Laravel 
 
 ### Struktur
 
+Struktur mengikuti direktori bawaan Laravel, sehingga generator, tebakan factory, dan auto-discovery Policy bekerja tanpa konfigurasi tambahan. Tidak ada folder dasar khusus seperti `app/Domain`.
+
 ```
 backend/app/
-  Domain/<Modul>/          # Account, Catalog, Ordering, Inventory, Store, Shipping
-    Actions/               # use case: PlaceOrder, ApprovePayment, RecordStockMovement
-    Data/                  # DTO input/output (readonly class)
-    Enums/                 # OrderStatus, ProductCondition, SalesMode, Unit
-    Events/ Listeners/
-    Exceptions/            # exception domain, mis. InsufficientStock
-    Models/                # Eloquent model + relasi + scope, tanpa logika bisnis berat
-    Policies/
+  Actions/                 # use case: PlaceOrder, ApprovePayment, RecordStockMovement
+  Data/                    # DTO input/output (readonly class)
+  Enums/                   # OrderStatus, ProductCondition, SalesMode, Unit
+  Events/ Listeners/
+  Exceptions/              # exception domain, mis. InsufficientStock
+  Models/                  # Eloquent model + relasi + scope, tanpa logika bisnis berat
+  Policies/                # ditemukan otomatis untuk model di App\Models
   Http/
     Controllers/Api/V1/    # tipis: validasi -> Action -> Resource
     Requests/              # Form Request untuk validasi + authorize
     Resources/             # API Resource, format respons stabil
   Livewire/                # web pembeli, memanggil Action yang sama
   Filament/Admin/ Filament/Seller/
+backend/database/factories/   # factory per model, tanpa properti $model
+backend/tests/Unit/<Area>/ tests/Feature/<Area>/   # area: Account, Catalog, Inventory, Ordering, Shipping, Store
 ```
 
 ### Generator
@@ -39,14 +42,16 @@ File baru selalu dibuat dengan `php artisan make:*`, tidak ditulis manual dari n
 
 | Kebutuhan | Perintah |
 | --- | --- |
-| Enum | `php artisan make:enum Domain/Ordering/Enums/OrderStatus --string` |
-| Model + migration + factory | `php artisan make:model Domain/Catalog/Models/Product -mf` |
-| Action, DTO, Exception | `php artisan make:class Domain/Ordering/Actions/PlaceOrder` (Laravel tidak punya `make:action`) |
-| Policy | `php artisan make:policy Domain/Catalog/Policies/ProductPolicy --model=Domain/Catalog/Models/Product` |
+| Enum | `php artisan make:enum OrderStatus --string` (masuk ke `app/Enums`) |
+| Model + migration + factory | `php artisan make:model Product -mf` |
+| Action, DTO | `php artisan make:class Actions/PlaceOrder`, `php artisan make:class Data/OrderData` (Laravel tidak punya `make:action`) |
+| Exception | `php artisan make:exception InsufficientStock` |
+| Policy | `php artisan make:policy ProductPolicy --model=Product` |
+| Event, Listener | `php artisan make:event OrderPlaced`, `php artisan make:listener SendOrderNotification --event=OrderPlaced` |
 | Form Request, API Resource | `php artisan make:request Api/V1/StoreProductRequest`, `php artisan make:resource Api/V1/ProductResource` |
 | Controller API | `php artisan make:controller Api/V1/ProductController --api` |
 | Livewire, Filament | `php artisan make:livewire ...`, `php artisan make:filament-resource ...` |
-| Test | `php artisan make:test Domain/Ordering/OrderStatusTest --unit --pest` |
+| Test | `php artisan make:test Ordering/OrderStatusTest --unit --pest`, `php artisan make:test Store/CreateStoreTest --pest` |
 
 Template generator tidak dikustomisasi (`stub:publish` tidak dipakai). Konvensi seperti `declare(strict_types=1);` ditegakkan oleh Pint (rule `declare_strict_types` di `pint.json`, issue #6), sehingga file hasil generator langsung dirapikan saat commit.
 

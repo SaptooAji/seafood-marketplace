@@ -38,11 +38,12 @@ flowchart LR
     Actions --> Events[Events + Queue] --> FCM[Notifikasi FCM]
 ```
 
-Kode backend dikelompokkan per modul domain:
+Kode backend memakai struktur bawaan Laravel; logika bisnis ada di Action:
 
 ```
-backend/app/Domain/<Modul>/   Account, Catalog, Ordering, Inventory, Store, Shipping
-  Actions/  Data/  Enums/  Events/  Exceptions/  Models/  Policies/
+backend/app/
+  Actions/  Data/  Enums/  Events/  Exceptions/  Listeners/  Models/  Policies/
+  Http/  Filament/  Livewire/
 ```
 
 ## Struktur repository

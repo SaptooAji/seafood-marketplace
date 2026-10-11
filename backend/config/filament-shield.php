@@ -141,8 +141,9 @@ return [
     'policies' => [
         'path' => app_path('Policies'),
         'merge' => true,
-        // Domain policies in app/Domain/*/Policies are written by hand and check
-        // Shield permissions for admin abilities, so Shield must not generate them.
+        // Policies in app/Policies are written by hand: each one covers seller and
+        // admin abilities and checks Shield permissions for the admin side, so
+        // Shield must not generate (and overwrite) them.
         'generate' => false,
         'methods' => [
             'viewAny', 'view', 'create', 'update', 'delete', 'deleteAny', 'restore',
