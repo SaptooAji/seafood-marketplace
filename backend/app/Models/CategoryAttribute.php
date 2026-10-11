@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * A field sellers fill in for products of a category, such as "Berat per ekor"
@@ -22,7 +24,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CategoryAttribute extends Model
 {
     /** @use HasFactory<CategoryAttributeFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
+
+    /**
+     * Log every fillable field, only the ones that changed.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontLogEmptyChanges();
+    }
 
     /**
      * Get the attributes that should be cast.
