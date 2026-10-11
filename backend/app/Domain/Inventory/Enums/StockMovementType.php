@@ -30,7 +30,7 @@ enum StockMovementType: string
             self::SaleOffline => 'Penjualan Offline',
             self::Shrinkage => 'Susut',
             self::Adjustment => 'Penyesuaian',
-            self::CancelReturn => 'Pembatalan Retur',
+            self::CancelReturn => 'Kembali dari Pembatalan',
         };
     }
 }
