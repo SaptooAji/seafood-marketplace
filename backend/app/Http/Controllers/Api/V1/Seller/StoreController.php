@@ -54,15 +54,11 @@ class StoreController extends Controller
     }
 
     /**
-     * The store the seller belongs to, or a 404 when they have none. A staff
-     * member may also open their own store, so the owned store comes first
-     * (`owner` sorts before `staff`).
+     * The store the seller belongs to, or a 404 when they have none.
      */
     private function currentStore(Request $request): Store
     {
-        return $this->user($request)->stores()
-            ->orderByPivot('role')
-            ->firstOrFail();
+        return $this->user($request)->currentStore() ?? abort(Response::HTTP_NOT_FOUND);
     }
 
     private function user(Request $request): User
