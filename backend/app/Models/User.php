@@ -112,6 +112,16 @@ class User extends Authenticatable implements FilamentUser, HasTenants
     }
 
     /**
+     * The store the seller API works on. In the MVP a user owns at most one
+     * store, but a staff member may also open their own, so the owned store
+     * comes first (`owner` sorts before `staff`).
+     */
+    public function currentStore(): ?Store
+    {
+        return $this->stores()->orderByPivot('role')->first();
+    }
+
+    /**
      * Get the user's role in the given store, or null when they are not a member.
      */
     public function roleIn(Store $store): ?StoreRole

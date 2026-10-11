@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,4 +23,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('seller/store', [StoreController::class, 'store'])->name('api.seller.store.store');
     Route::get('seller/store', [StoreController::class, 'show'])->name('api.seller.store.show');
     Route::put('seller/store', [StoreController::class, 'update'])->name('api.seller.store.update');
+
+    Route::get('seller/shipping-methods', [ShippingMethodController::class, 'index'])->name('api.seller.shipping-methods.index');
+    Route::post('seller/shipping-methods', [ShippingMethodController::class, 'store'])->name('api.seller.shipping-methods.store');
+    Route::put('seller/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])
+        ->whereNumber('shippingMethod')
+        ->name('api.seller.shipping-methods.update');
 });

@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\InvalidShippingMethod;
 use App\Exceptions\UserAlreadyOwnsStore;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -33,4 +35,9 @@ return Application::configure(basePath: dirname(__DIR__))
             ['message' => $e->getMessage()],
             Response::HTTP_CONFLICT,
         ));
+
+        // Reported like any other validation error: 422 with errors.<field>.
+        $exceptions->map(InvalidShippingMethod::class, fn (InvalidShippingMethod $e) => ValidationException::withMessages([
+            $e->field => $e->getMessage(),
+        ]));
     })->create();
