@@ -22,6 +22,11 @@ class RoleSeeder extends Seeder
     private const array ADMIN_PERMISSIONS = [
         'ViewAny:Store',
         'View:Store',
+        'ViewAny:Category',
+        'View:Category',
+        'Create:Category',
+        'Update:Category',
+        'Delete:Category',
     ];
 
     /**
