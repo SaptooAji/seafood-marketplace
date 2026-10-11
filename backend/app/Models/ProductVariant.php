@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -57,6 +58,16 @@ class ProductVariant extends Model
     {
         return $this->stock_confirmed_at === null
             || $this->stock_confirmed_at->lt(now()->subHours(config()->integer('catalog.stale_stock_hours')));
+    }
+
+    /**
+     * Get the stock book of this variant.
+     *
+     * @return HasMany<StockMovement, $this>
+     */
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class, 'variant_id');
     }
 
     /**

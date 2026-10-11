@@ -15,6 +15,17 @@ it('keeps the stored values unchanged', function () {
     ]);
 });
 
+it('knows which way each type moves the stock', function (StockMovementType $type, ?int $direction) {
+    expect($type->direction())->toBe($direction);
+})->with([
+    'stock in adds' => [StockMovementType::StockIn, 1],
+    'cancel return adds' => [StockMovementType::CancelReturn, 1],
+    'app sale removes' => [StockMovementType::SaleApp, -1],
+    'offline sale removes' => [StockMovementType::SaleOffline, -1],
+    'shrinkage removes' => [StockMovementType::Shrinkage, -1],
+    'adjustment goes either way' => [StockMovementType::Adjustment, null],
+]);
+
 it('has a unique, non-empty label for every case', function () {
     $labels = array_map(fn (StockMovementType $case) => $case->label(), StockMovementType::cases());
 
