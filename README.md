@@ -18,7 +18,7 @@ Detail lengkap ada di [docs/prd.md](docs/prd.md).
 
 | Bagian | Teknologi |
 | --- | --- |
-| Backend dan REST API | Laravel 13, PHP 8.4, PostgreSQL 16, Sanctum, Socialite, spatie/laravel-permission, spatie/laravel-activitylog |
+| Backend dan REST API | Laravel 13, PHP 8.4, PostgreSQL 16, Sanctum, Socialite, spatie/laravel-permission, spatie/laravel-activitylog, intervention/image |
 | Web pembeli | Blade + Livewire |
 | Admin dan panel penjual | Filament (`/admin`, `/seller`) |
 | Aplikasi penjual | Kotlin, Jetpack Compose, Hilt, Retrofit, Room |

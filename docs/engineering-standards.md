@@ -64,6 +64,20 @@ Template generator tidak dikustomisasi (`stub:publish` tidak dipakai). Konvensi 
 - Otorisasi lewat Policy; data toko selalu discoping ke toko milik user (store_members).
 - API versi di path (`/api/v1`, diatur lewat `apiPrefix` di `bootstrap/app.php`), respons error konsisten: request ke `api/*` selalu dijawab JSON walau tanpa header `Accept`, dengan bentuk `{"message": "..."}` ditambah `"errors": {"field": ["..."]}` untuk 422. Tamu di route `auth:sanctum` mendapat 401, bukan redirect. Saat `APP_DEBUG=false`, error 500 hanya berisi `{"message": "Server Error"}` tanpa detail exception.
 
+### Package
+
+Package yang disetujui pemilik repo. Menambah atau mengubah dependency composer selalu butuh persetujuan lebih dulu.
+
+| Package | Fungsi | Tahap |
+| --- | --- | --- |
+| `laravel/sanctum ^4` | Token API Android | 2 |
+| `laravel/socialite ^5` | Login Google di web | 2 |
+| `filament/filament ^5` | Panel `/admin` dan `/seller` | 2 |
+| `spatie/laravel-permission ^8`, `bezhansalleh/filament-shield ^4` | Role platform dan permission panel | 2 |
+| `spatie/laravel-activitylog ^5` | Jejak audit | 2 |
+| `livewire/livewire ^4` | Web pembeli (sebelumnya hanya terpasang lewat Filament) | 3 |
+| `intervention/image ^4` | Resize foto produk (driver GD; extension `gd` wajib di server dan CI) | 3 |
+
 ### Kualitas
 
 - Format: **Laravel Pint** (preset laravel).
