@@ -92,13 +92,13 @@ describe('visibleInCatalog()', function () {
 
         expect(Product::query()->visibleInCatalog()->count())->toBe(0);
     })->with([
-        'inactive product' => fn () => fn (Product $p) => $p->update(['is_active' => false]),
-        'blocked product' => fn () => fn (Product $p) => $p->forceFill(['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai'])->save(),
-        'deleted product' => fn () => fn (Product $p) => $p->delete(),
-        'pending store' => fn () => fn (Product $p) => $p->store->forceFill(['status' => 'pending'])->save(),
-        'suspended store' => fn () => fn (Product $p) => $p->store->forceFill(['status' => 'suspended'])->save(),
-        'only inactive variants' => fn () => fn (Product $p) => $p->variants()->update(['is_active' => false]),
-        'only deleted variants' => fn () => fn (Product $p) => $p->variants->each->delete(),
+        'inactive product' => fn (Product $p) => $p->update(['is_active' => false]),
+        'blocked product' => fn (Product $p) => $p->forceFill(['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai'])->save(),
+        'deleted product' => fn (Product $p) => $p->delete(),
+        'pending store' => fn (Product $p) => $p->store->forceFill(['status' => 'pending'])->save(),
+        'suspended store' => fn (Product $p) => $p->store->forceFill(['status' => 'suspended'])->save(),
+        'only inactive variants' => fn (Product $p) => $p->variants()->update(['is_active' => false]),
+        'only deleted variants' => fn (Product $p) => $p->variants->each->delete(),
     ]);
 
     it('keeps the variants of a soft deleted product', function () {
