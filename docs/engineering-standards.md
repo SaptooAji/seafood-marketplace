@@ -17,7 +17,7 @@ Dokumen ini adalah aturan kerja untuk semua kode di repository: backend Laravel 
 
 ```
 backend/app/
-  Domain/<Modul>/          # Catalog, Ordering, Inventory, Store, Shipping
+  Domain/<Modul>/          # Account, Catalog, Ordering, Inventory, Store, Shipping
     Actions/               # use case: PlaceOrder, ApprovePayment, RecordStockMovement
     Data/                  # DTO input/output (readonly class)
     Enums/                 # OrderStatus, ProductCondition, SalesMode, Unit

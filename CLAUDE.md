@@ -102,7 +102,7 @@ Hook git ada di `.githooks/` (aktif lewat `core.hooksPath`): pre-commit memforma
 
 ## Konvensi backend
 
-- **Struktur domain** `app/Domain/<Modul>/{Actions,Data,Enums,Events,Listeners,Exceptions,Models,Policies}` sudah disetujui, walau Boost menyarankan tidak membuat folder dasar baru. Modul: Catalog, Ordering, Inventory, Store, Shipping.
+- **Struktur domain** `app/Domain/<Modul>/{Actions,Data,Enums,Events,Listeners,Exceptions,Models,Policies}` sudah disetujui, walau Boost menyarankan tidak membuat folder dasar baru. Modul: Account (user, akun sosial, role platform; model `User` tetap di `AppModels`), Catalog, Ordering, Inventory, Store, Shipping.
 - **Generator dulu.** Buat file dengan `php artisan make:*` (lihat tabel di engineering-standards). Action, DTO, dan Exception dengan `make:class`.
 - **Strict types** di semua file PHP (ditegakkan Pint, rule `declare_strict_types`).
 - **Enum**: backed enum string; nama case PascalCase (`AwaitingPayment`), nilai snake_case (`'awaiting_payment'`); setiap enum punya `label(): string` berbahasa Indonesia. Ejaan `cancelled` dengan double L.

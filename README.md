@@ -18,7 +18,7 @@ Detail lengkap ada di [docs/prd.md](docs/prd.md).
 
 | Bagian | Teknologi |
 | --- | --- |
-| Backend dan REST API | Laravel 13, PHP 8.4, PostgreSQL 16, Sanctum, Socialite |
+| Backend dan REST API | Laravel 13, PHP 8.4, PostgreSQL 16, Sanctum, Socialite, spatie/laravel-permission, spatie/laravel-activitylog |
 | Web pembeli | Blade + Livewire |
 | Admin dan panel penjual | Filament (`/admin`, `/seller`) |
 | Aplikasi penjual | Kotlin, Jetpack Compose, Hilt, Retrofit, Room |
@@ -41,7 +41,7 @@ flowchart LR
 Kode backend dikelompokkan per modul domain:
 
 ```
-backend/app/Domain/<Modul>/   Catalog, Ordering, Inventory, Store, Shipping
+backend/app/Domain/<Modul>/   Account, Catalog, Ordering, Inventory, Store, Shipping
   Actions/  Data/  Enums/  Events/  Exceptions/  Models/  Policies/
 ```
 
