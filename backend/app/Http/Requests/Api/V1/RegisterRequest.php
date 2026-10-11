@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Rules\IndonesianPhone;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -22,9 +23,6 @@ class RegisterRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * The phone must be an Indonesian mobile number: `08` or `+628` followed by
-     * 8 to 13 digits, which is 10 to 15 digits in the local `08` form.
-     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
@@ -32,7 +30,7 @@ class RegisterRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'phone' => ['required', 'string', 'regex:/^(?:08|\+628)\d{8,13}$/'],
+            'phone' => ['required', 'string', new IndonesianPhone],
             'password' => ['required', 'string', 'confirmed', Password::min(8)],
             'device_name' => ['required', 'string', 'max:255'],
         ];
