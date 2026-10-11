@@ -102,14 +102,14 @@ Hook git ada di `.githooks/` (aktif lewat `core.hooksPath`): pre-commit memforma
 
 ## Konvensi backend
 
-- **Struktur domain** `app/Domain/<Modul>/{Actions,Data,Enums,Events,Listeners,Exceptions,Models,Policies}` sudah disetujui, walau Boost menyarankan tidak membuat folder dasar baru. Modul: Account (user, akun sosial, role platform; model `User` tetap di `AppModels`), Catalog, Ordering, Inventory, Store, Shipping.
-- **Generator dulu.** Buat file dengan `php artisan make:*` (lihat tabel di engineering-standards). Action, DTO, dan Exception dengan `make:class`.
+- **Struktur bawaan Laravel**: `app/{Actions,Data,Enums,Events,Listeners,Exceptions,Models,Policies}`, tanpa folder dasar khusus. Generator, tebakan factory, dan auto-discovery Policy bekerja tanpa konfigurasi tambahan. Penyimpangan dari default Laravel harus disebutkan beserta konsekuensinya dan disetujui pemilik repo lebih dulu.
+- **Generator dulu.** Buat file dengan `php artisan make:*` (lihat tabel di engineering-standards). Action dan DTO dengan `make:class Actions/...` dan `make:class Data/...`; exception dengan `make:exception`.
 - **Strict types** di semua file PHP (ditegakkan Pint, rule `declare_strict_types`).
 - **Enum**: backed enum string; nama case PascalCase (`AwaitingPayment`), nilai snake_case (`'awaiting_payment'`); setiap enum punya `label(): string` berbahasa Indonesia. Ejaan `cancelled` dengan double L.
 - **Array bertipe** di docblock (`/** @return list<self> */`) karena Larastan level 6.
 - Controller dan komponen Livewire tipis: validasi, panggil satu Action, kembalikan respons. Action punya satu method publik `handle()`, dibungkus `DB::transaction()` bila menulis lebih dari satu tabel.
 - Stok hanya berubah lewat `RecordStockMovement`. Status pesanan hanya berubah setelah dicek `OrderStatus::canTransitionTo()`. Enum hanya menjawab transisi mana yang mungkin; siapa yang boleh dan kapan diatur di Action atau Policy.
 - Uang dalam rupiah sebagai integer; berat dan qty `decimal(10,3)`. Tidak ada float.
-- Test database memakai PostgreSQL, bukan SQLite. Unit test untuk enum dan logika murni di `tests/Unit/Domain/<Modul>/`; feature test untuk Action dan endpoint.
+- Test database memakai PostgreSQL, bukan SQLite. Unit test untuk enum dan logika murni di `tests/Unit/<Area>/`; feature test untuk Action dan endpoint di `tests/Feature/<Area>/` (area: Account, Catalog, Inventory, Ordering, Shipping, Store).
 - Tidak ada `dd`, `dump`, `ray`, `var_dump` yang ter-commit (dicek arch test).
 - Jangan menambah atau mengubah dependency composer tanpa persetujuan.

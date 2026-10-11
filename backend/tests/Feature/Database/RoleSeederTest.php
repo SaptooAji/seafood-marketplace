@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Domain\Account\Enums\PlatformRole;
+use App\Enums\PlatformRole;
 use Database\Seeders\RoleSeeder;
 use Spatie\Permission\Models\Role;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Domain\Account\Enums\PlatformRole;
+use App\Enums\PlatformRole;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 
