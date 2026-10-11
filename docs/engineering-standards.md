@@ -57,7 +57,7 @@ Template generator tidak dikustomisasi (`stub:publish` tidak dipakai). Konvensi 
 - Perubahan stok **hanya** lewat `RecordStockMovement`; transisi status pesanan **hanya** lewat method di enum/state `OrderStatus::canTransitionTo()`.
 - Query N+1 dicegah: `Model::preventLazyLoading()` aktif di non-production.
 - Otorisasi lewat Policy; data toko selalu discoping ke toko milik user (store_members).
-- API versi di path (`/api/v1`), respons error konsisten (format JSON yang sama untuk 4xx/5xx).
+- API versi di path (`/api/v1`, diatur lewat `apiPrefix` di `bootstrap/app.php`), respons error konsisten: request ke `api/*` selalu dijawab JSON walau tanpa header `Accept`, dengan bentuk `{"message": "..."}` ditambah `"errors": {"field": ["..."]}` untuk 422. Tamu di route `auth:sanctum` mendapat 401, bukan redirect. Saat `APP_DEBUG=false`, error 500 hanya berisi `{"message": "Server Error"}` tanpa detail exception.
 
 ### Kualitas
 
