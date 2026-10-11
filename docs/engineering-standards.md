@@ -40,7 +40,7 @@ File baru selalu dibuat dengan `php artisan make:*`, tidak ditulis manual dari n
 | Kebutuhan | Perintah |
 | --- | --- |
 | Enum | `php artisan make:enum Domain/Ordering/Enums/OrderStatus --string` |
-| Model + migration + factory | `php artisan make:model App/Domain/Catalog/Models/Product -mf` (awalan `App/` wajib; tanpa itu model masuk ke `app/Models/Domain/...`). Factory model domain wajib menulis `protected $model = <Model>::class;` karena Laravel hanya bisa menebak model di `app/Models` |
+| Model + migration + factory | `php artisan make:model App/Domain/Catalog/Models/Product -mf` (awalan `App/` wajib; tanpa itu model masuk ke `app/Models/Domain/...`) |
 | Action, DTO, Exception | `php artisan make:class Domain/Ordering/Actions/PlaceOrder` (Laravel tidak punya `make:action`) |
 | Policy | `php artisan make:policy App/Domain/Catalog/Policies/ProductPolicy --model=App/Domain/Catalog/Models/Product` (awalan `App/` wajib di nama dan `--model`) |
 | Form Request, API Resource | `php artisan make:request Api/V1/StoreProductRequest`, `php artisan make:resource Api/V1/ProductResource` |
