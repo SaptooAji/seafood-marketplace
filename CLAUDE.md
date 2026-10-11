@@ -30,7 +30,11 @@ Roadmap dilacak sebagai GitHub milestone, satu per tahap di "Tahapan pengerjaan"
 - **Nama**: `Tahap N: <nama>`, misalnya `Tahap 2: Auth dan toko`. **Deskripsi**: tujuan tahap, kriteria selesai, dan versi rilisnya.
 - **Semua milestone dibuat di awal** agar roadmap terlihat. Kalau PRD menambah atau mengubah tahap, perbarui milestone-nya juga.
 - **Issue hanya ditulis untuk tahap yang sedang berjalan.** Issue tahap berikutnya ditulis saat tahap sekarang hampir selesai, karena detailnya bergantung pada hasil tahap sebelumnya.
-- **Menutup milestone**: setelah semua issue-nya tertutup dan CI di `main` hijau, buat tag dan GitHub Release dengan versi di deskripsi milestone (Tahap 1 = `v0.1.0`, Tahap 2 = `v0.2.0`, ..., Tahap 7 = `v1.0.0`). Catatan rilis berisi ringkasan PR yang masuk. Claude Code hanya menyiapkan catatan rilisnya; pemilik repo yang membuat tag dan menutup milestone.
+- **Menutup milestone**: setelah semua issue-nya tertutup dan CI di `main` hijau, rilis dengan versi di deskripsi milestone (Tahap 1 = `v0.1.0`, Tahap 2 = `v0.2.0`, ..., Tahap 7 = `v1.0.0`; perbaikan di antara tahap memakai patch, misalnya `v0.1.1`). Alurnya:
+  1. **Claude Code** membuat issue `docs(release): ...` di milestone itu, lalu menulis `docs/releases/vX.Y.Z.md` di branch `docs/<nomor>-release-notes`. Isinya: baris judul tebal (versi, tahap, tanggal), ringkasan, sorotan, daftar PR per kelompok (fitur, test dan kualitas, CI dan alur kerja, dokumentasi) dengan judul Conventional Commits dan nomor PR/issue, angka (issue, PR, test), dan tahap berikutnya. Data diambil dari `gh pr list`, `gh issue list --milestone`, dan hasil test, bukan ditebak.
+  2. **Pemilik repo** push dan merge PR catatan rilis itu.
+  3. **Claude Code** membuat tag beranotasi di `main` terbaru (yang sudah berisi file catatan): `git switch main && git pull && git tag -a vX.Y.Z -m "vX.Y.Z: Tahap N, <nama>"`. Tag tidak di-push.
+  4. **Pemilik repo** menjalankan `git push origin vX.Y.Z`, lalu membuat GitHub Release lewat UI: pilih tag itu, judul `vX.Y.Z: Tahap N, <nama>`, deskripsi berisi seluruh isi `docs/releases/vX.Y.Z.md`. Setelah itu menutup milestone.
 
 ## Papan kerja: GitHub Project
 

@@ -50,7 +50,7 @@ backend/app/Domain/<Modul>/   Catalog, Ordering, Inventory, Store, Shipping
 ```
 backend/    Aplikasi Laravel
 android/    Aplikasi Android (menyusul di tahap 4)
-docs/       PRD dan standar engineering
+docs/       PRD, standar engineering, dan catatan rilis (docs/releases/)
 .github/    CI dan template issue
 .githooks/  Hook git: format saat commit, cek kualitas saat push
 ```
