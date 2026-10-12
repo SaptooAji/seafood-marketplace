@@ -105,27 +105,6 @@ function panelBakauProduct(Store $store, array $attributes = []): Product
 }
 
 /**
- * Run without a current tenant. While a tenant is set, Filament assigns every
- * new product to it, so records of other stores are created through this.
- *
- * @template T
- *
- * @param  Closure(): T  $create
- * @return T
- */
-function outsideTenant(Closure $create): mixed
-{
-    $tenant = Filament::getTenant();
-    Filament::setTenant(null, isQuiet: true);
-
-    try {
-        return $create();
-    } finally {
-        Filament::setTenant($tenant, isQuiet: true);
-    }
-}
-
-/**
  * A photo row with its two files on the fake public disk.
  */
 function panelStoredPhoto(Product $product, int $sortOrder): ProductImage
