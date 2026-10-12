@@ -123,7 +123,7 @@ describe('Stok hari ini', function () {
 
     it('records one adjustment for a changed variant and confirms the rest', function () {
         Livewire::test(DailyStock::class)
-            ->fillForm(['counts.'.$this->size50->id => '8.5'])
+            ->fillForm(['counts' => [$this->size50->id => '8.5', $this->size70->id => '4.000', $this->besar->id => '6.000']])
             ->callAction('save')
             ->assertHasNoFormErrors();
 
@@ -142,7 +142,7 @@ describe('Stok hari ini', function () {
 
     it('rejects a count on its field and changes nothing', function (string $count) {
         Livewire::test(DailyStock::class)
-            ->fillForm(['counts.'.$this->size50->id => $count])
+            ->fillForm(['counts' => [$this->size50->id => $count, $this->size70->id => '4.000', $this->besar->id => '6.000']])
             ->callAction('save')
             ->assertHasFormErrors(['counts.'.$this->size50->id]);
 
