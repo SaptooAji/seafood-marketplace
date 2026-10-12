@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\InsufficientStock;
 use App\Exceptions\InvalidShippingMethod;
+use App\Exceptions\InvalidStockMovement;
 use App\Exceptions\UserAlreadyOwnsStore;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -43,5 +45,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Reported like any other validation error: 422 with errors.<field>.
         $exceptions->map(InvalidShippingMethod::class, fn (InvalidShippingMethod $e) => ValidationException::withMessages([
             $e->field => $e->getMessage(),
+        ]));
+        $exceptions->map(InvalidStockMovement::class, fn (InvalidStockMovement $e) => ValidationException::withMessages([
+            $e->field => $e->getMessage(),
+        ]));
+        $exceptions->map(InsufficientStock::class, fn (InsufficientStock $e) => ValidationException::withMessages([
+            'qty' => $e->getMessage(),
         ]));
     })->create();
