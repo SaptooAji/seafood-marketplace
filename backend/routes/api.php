@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\Seller\ProductController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
 use Illuminate\Support\Facades\Route;
@@ -32,4 +33,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('seller/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])
         ->whereNumber('shippingMethod')
         ->name('api.seller.shipping-methods.update');
+
+    Route::apiResource('seller/products', ProductController::class)
+        ->names('api.seller.products')
+        ->whereNumber('product');
 });

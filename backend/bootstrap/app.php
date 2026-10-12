@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\InvalidProductData;
+use App\Exceptions\InvalidProductPhoto;
 use App\Exceptions\InvalidShippingMethod;
 use App\Exceptions\UserAlreadyOwnsStore;
 use Illuminate\Foundation\Application;
@@ -42,6 +44,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Reported like any other validation error: 422 with errors.<field>.
         $exceptions->map(InvalidShippingMethod::class, fn (InvalidShippingMethod $e) => ValidationException::withMessages([
+            $e->field => $e->getMessage(),
+        ]));
+        $exceptions->map(InvalidProductData::class, fn (InvalidProductData $e) => ValidationException::withMessages([
+            $e->field => $e->getMessage(),
+        ]));
+        $exceptions->map(InvalidProductPhoto::class, fn (InvalidProductPhoto $e) => ValidationException::withMessages([
             $e->field => $e->getMessage(),
         ]));
     })->create();
