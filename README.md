@@ -58,7 +58,7 @@ docs/       PRD, standar engineering, dan catatan rilis (docs/releases/)
 
 ## Menjalankan di lokal
 
-Kebutuhan: PHP 8.4 dan Composer (misalnya lewat [Laravel Herd](https://herd.laravel.com)), PostgreSQL 16, Node.js.
+Kebutuhan: PHP 8.4 (dengan ekstensi `gd`) dan Composer (misalnya lewat [Laravel Herd](https://herd.laravel.com)), PostgreSQL 16, Node.js.
 
 ```bash
 git clone https://github.com/SaptooAji/seafood-marketplace.git
@@ -72,6 +72,7 @@ composer install            # juga mengaktifkan hook git di .githooks
 cp .env.example .env        # isi DB_PASSWORD
 php artisan key:generate
 php artisan migrate
+php artisan storage:link    # foto produk disajikan dari storage/app/public
 composer run dev
 ```
 
