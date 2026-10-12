@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Seller\DailyStockController;
 use App\Http\Controllers\Api\V1\Seller\ProductController;
+use App\Http\Controllers\Api\V1\Seller\ProductImageController;
+use App\Http\Controllers\Api\V1\Seller\ProductVariantController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StockMovementController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
@@ -42,6 +44,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('seller/products', ProductController::class)
         ->names('api.seller.products')
         ->whereNumber('product');
+
+    Route::post('seller/products/{product}/images', [ProductImageController::class, 'store'])
+        ->whereNumber('product')
+        ->name('api.seller.products.images.store');
+    Route::put('seller/products/{product}/images/order', [ProductImageController::class, 'reorder'])
+        ->whereNumber('product')
+        ->name('api.seller.products.images.reorder');
+    Route::delete('seller/products/{product}/images/{image}', [ProductImageController::class, 'destroy'])
+        ->whereNumber(['product', 'image'])
+        ->name('api.seller.products.images.destroy');
+
+    Route::post('seller/products/{product}/variants', [ProductVariantController::class, 'store'])
+        ->whereNumber('product')
+        ->name('api.seller.products.variants.store');
+    Route::put('seller/variants/{variant}', [ProductVariantController::class, 'update'])
+        ->whereNumber('variant')
+        ->name('api.seller.variants.update');
+    Route::delete('seller/variants/{variant}', [ProductVariantController::class, 'destroy'])
+        ->whereNumber('variant')
+        ->name('api.seller.variants.destroy');
 
     Route::get('seller/stock-movements', [StockMovementController::class, 'index'])->name('api.seller.stock-movements.index');
     Route::post('seller/stock-movements', [StockMovementController::class, 'store'])->name('api.seller.stock-movements.store');

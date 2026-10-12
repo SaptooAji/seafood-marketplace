@@ -6,7 +6,6 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Models\CategoryAttribute;
 use App\Models\Product;
-use App\Models\ProductImage;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -73,12 +72,7 @@ class ProductResource extends JsonResource
                 'name' => $this->category->name,
             ],
             'variants' => ProductVariantResource::collection($this->variants),
-            'images' => $this->images->map(fn (ProductImage $image): array => [
-                'id' => $image->id,
-                'url' => $image->url(),
-                'thumbnail_url' => $image->thumbnailUrl(),
-                'sort_order' => $image->sort_order,
-            ])->all(),
+            'images' => ProductImageResource::collection($this->images),
             'attributes' => $this->when($this->effectiveAttributes !== null, fn (): array => $this->attributesWithValues()),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
