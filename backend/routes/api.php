@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\Seller\DailyStockController;
 use App\Http\Controllers\Api\V1\Seller\ProductController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
@@ -37,4 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('seller/products', ProductController::class)
         ->names('api.seller.products')
         ->whereNumber('product');
+
+    Route::get('seller/stock/today', [DailyStockController::class, 'index'])->name('api.seller.stock.today');
+    Route::post('seller/stock/confirm', [DailyStockController::class, 'confirm'])->name('api.seller.stock.confirm');
 });

@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\InsufficientStock;
 use App\Exceptions\InvalidProductData;
 use App\Exceptions\InvalidProductPhoto;
 use App\Exceptions\InvalidShippingMethod;
+use App\Exceptions\InvalidStockMovement;
 use App\Exceptions\UserAlreadyOwnsStore;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -51,5 +53,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]));
         $exceptions->map(InvalidProductPhoto::class, fn (InvalidProductPhoto $e) => ValidationException::withMessages([
             $e->field => $e->getMessage(),
+        ]));
+        $exceptions->map(InvalidStockMovement::class, fn (InvalidStockMovement $e) => ValidationException::withMessages([
+            $e->field => $e->getMessage(),
+        ]));
+        $exceptions->map(InsufficientStock::class, fn (InsufficientStock $e) => ValidationException::withMessages([
+            'qty' => $e->getMessage(),
         ]));
     })->create();
