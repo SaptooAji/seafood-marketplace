@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Data\StoreData;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -67,4 +68,25 @@ function storeData(array $overrides = []): StoreData
         'bankAccountName' => 'Budi Santoso',
         'stockReminderTime' => '06:00',
     ], $overrides));
+}
+
+/**
+ * Run without a current tenant. While a tenant is set, Filament assigns every
+ * new product to it, so records of other stores are created through this.
+ *
+ * @template T
+ *
+ * @param  Closure(): T  $create
+ * @return T
+ */
+function outsideTenant(Closure $create): mixed
+{
+    $tenant = Filament::getTenant();
+    Filament::setTenant(null, isQuiet: true);
+
+    try {
+        return $create();
+    } finally {
+        Filament::setTenant($tenant, isQuiet: true);
+    }
 }
