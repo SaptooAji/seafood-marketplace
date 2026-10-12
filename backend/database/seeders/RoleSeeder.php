@@ -27,6 +27,9 @@ class RoleSeeder extends Seeder
         'Create:Category',
         'Update:Category',
         'Delete:Category',
+        'ViewAny:Product',
+        'View:Product',
+        'Update:Product',
     ];
 
     /**
