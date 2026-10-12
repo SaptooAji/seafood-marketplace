@@ -105,6 +105,27 @@ function panelBakauProduct(Store $store, array $attributes = []): Product
 }
 
 /**
+ * Run without a current tenant. While a tenant is set, Filament assigns every
+ * new product to it, so records of other stores are created through this.
+ *
+ * @template T
+ *
+ * @param  Closure(): T  $create
+ * @return T
+ */
+function outsideTenant(Closure $create): mixed
+{
+    $tenant = Filament::getTenant();
+    Filament::setTenant(null, isQuiet: true);
+
+    try {
+        return $create();
+    } finally {
+        Filament::setTenant($tenant, isQuiet: true);
+    }
+}
+
+/**
  * A photo row with its two files on the fake public disk.
  */
 function panelStoredPhoto(Product $product, int $sortOrder): ProductImage
@@ -134,7 +155,7 @@ describe('access', function () {
     ]);
 
     it('returns 404 for the edit page of another store’s product', function () {
-        $other = panelBakauProduct(Store::factory()->active()->create());
+        $other = outsideTenant(fn () => panelBakauProduct(Store::factory()->active()->create()));
 
         $this->get("/seller/{$this->store->slug}/products/{$other->id}/edit")->assertNotFound();
     });
@@ -150,7 +171,7 @@ describe('access', function () {
 describe('list', function () {
     it('lists only the products of the tenant store', function () {
         $own = Product::factory()->for($this->store)->count(2)->create();
-        $others = Product::factory()->count(2)->create();
+        $others = outsideTenant(fn () => Product::factory()->count(2)->create());
 
         Livewire::test(ListProducts::class)
             ->assertCanSeeTableRecords($own)
@@ -224,9 +245,10 @@ describe('create', function () {
     it('offers only leaf categories', function () {
         Livewire::test(CreateProduct::class)
             ->assertFormFieldExists('category_id', function (Select $field): bool {
-                $options = collect($field->getOptions())->flatMap(fn ($option, $key) => is_array($option) ? $option : [$key => $option]);
+                $ids = array_keys($field->getOptions());
+                sort($ids);
 
-                return $options->keys()->sort()->values()->all() === collect([$this->bakau->id, $this->cumiSegar->id])->sort()->values()->all();
+                return $ids === [$this->bakau->id, $this->cumiSegar->id];
             });
     });
 
