@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\Seller\DailyStockController;
 use App\Http\Controllers\Api\V1\Seller\ProductController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StockMovementController;
@@ -28,6 +29,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('seller/store', [StoreController::class, 'store'])->name('api.seller.store.store');
     Route::get('seller/store', [StoreController::class, 'show'])->name('api.seller.store.show');
     Route::put('seller/store', [StoreController::class, 'update'])->name('api.seller.store.update');
+
+    Route::get('seller/stock/today', [DailyStockController::class, 'index'])->name('api.seller.stock.today');
+    Route::post('seller/stock/confirm', [DailyStockController::class, 'confirm'])->name('api.seller.stock.confirm');
 
     Route::get('seller/shipping-methods', [ShippingMethodController::class, 'index'])->name('api.seller.shipping-methods.index');
     Route::post('seller/shipping-methods', [ShippingMethodController::class, 'store'])->name('api.seller.shipping-methods.store');
