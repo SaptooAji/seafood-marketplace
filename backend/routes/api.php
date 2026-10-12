@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Seller\DailyStockController;
 use App\Http\Controllers\Api\V1\Seller\ProductController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
+use App\Http\Controllers\Api\V1\Seller\StockMovementController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,4 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('seller/products', ProductController::class)
         ->names('api.seller.products')
         ->whereNumber('product');
+
+    Route::get('seller/stock-movements', [StockMovementController::class, 'index'])->name('api.seller.stock-movements.index');
+    Route::post('seller/stock-movements', [StockMovementController::class, 'store'])->name('api.seller.stock-movements.store');
 });
