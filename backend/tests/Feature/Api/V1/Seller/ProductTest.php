@@ -180,6 +180,9 @@ describe('GET /seller/products', function () {
             return count(DB::getQueryLog());
         };
 
+        // Warm-up: the first request also loads the permission cache.
+        $queriesFor(1);
+
         expect($queriesFor(3))->toBe($queriesFor(20));
     });
 
