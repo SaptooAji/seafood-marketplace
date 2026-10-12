@@ -36,6 +36,11 @@ class SaveProduct
         $category = $this->leafCategory($data->categoryId);
         $values = $this->attributeValues($category, $data->attributes);
         $this->ensureSalesModeFields($data);
+        $this->check(
+            'is_active',
+            ! $this->turnsOnBlockedProduct($product, $data),
+            'Produk diblokir admin dan tidak bisa diaktifkan. Perbaiki sesuai alasan blokir, lalu hubungi admin.',
+        );
 
         $preOrder = $data->salesMode === SalesMode::PreOrder;
 
@@ -168,6 +173,19 @@ class SaveProduct
         $this->check('daily_quota', $data->dailyQuota !== null && is_numeric($data->dailyQuota) && $data->dailyQuota > 0, 'Kuota harian wajib diisi dan lebih dari 0.');
         $this->check('lead_time_days', $data->leadTimeDays !== null && $data->leadTimeDays >= 1, 'Lama persiapan minimal 1 hari.');
         $this->check('cutoff_time', $data->cutoffTime !== null && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $data->cutoffTime) === 1, 'Jam tutup pesanan wajib diisi (HH:MM).');
+    }
+
+    /**
+     * Only an admin lifts a block. A seller may still edit a blocked product,
+     * and an active one stays active (the block already hides it), but an
+     * inactive one may not be switched on.
+     */
+    private function turnsOnBlockedProduct(?Product $product, ProductData $data): bool
+    {
+        return $product !== null
+            && $product->blocked_at !== null
+            && ! $product->is_active
+            && $data->isActive;
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\Seller\ProductController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StockMovementController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
@@ -33,6 +34,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('seller/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])
         ->whereNumber('shippingMethod')
         ->name('api.seller.shipping-methods.update');
+
+    Route::apiResource('seller/products', ProductController::class)
+        ->names('api.seller.products')
+        ->whereNumber('product');
 
     Route::get('seller/stock-movements', [StockMovementController::class, 'index'])->name('api.seller.stock-movements.index');
     Route::post('seller/stock-movements', [StockMovementController::class, 'store'])->name('api.seller.stock-movements.store');
