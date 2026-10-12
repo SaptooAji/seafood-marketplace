@@ -35,6 +35,7 @@ Ada tiga peran di MVP. Aplikasi kurir belum dibuat; setiap toko memilih metode p
 - Register sebagai penjual, isi profil toko, **pin lokasi toko di peta**, dan rekening bank, menunggu verifikasi admin
 - Atur **metode pengiriman** toko: diantar sendiri (radius, tarif flat atau per km dengan minimum), ambil di tempat, ojek online, ekspedisi
 - CRUD produk: foto (beberapa), nama, deskripsi, kategori beserta atribut wajibnya, kondisi, mode penjualan (ready stock, atau pre-order dengan kuota harian, lead time, dan jam tutup pesanan), varian (grade/ukuran, satuan, harga, stok)
+- **Deskripsi dengan AI:** tombol "Buat deskripsi dengan AI" menyusun deskripsi dan ringkasan SEO dari nama, kategori, atribut, kondisi, mode jual, dan cara penyimpanan; hanya fakta yang diisi penjual, tanpa harga dan klaim kesehatan. Hasilnya saran yang ditinjau dan bisa diedit penjual sebelum disimpan
 - **Stok harian:** pengingat di jam pilihan penjual membuka layar Stok hari ini; tombol "Sama seperti kemarin" atau +/- cepat per varian
 - **Buku stok:** catat stok masuk (berat, grade, nama penyetor dan harga beli opsional), penjualan offline, dan susut; stok berkurang otomatis saat pesanan dibayar dan kembali saat batal; untuk produk pre-order, layar Jadwal produksi merekap total per varian per tanggal
 - Terima notifikasi pesanan baru dan perubahan status (FCM)
@@ -83,7 +84,7 @@ Inti modelnya: satu **store** milik satu penjual, produk punya banyak **varian**
 | stores | parent_store_id (selalu null di MVP), name, slug, description, phone, address, city, lat, lng, logo, bank_name, bank_account_no, bank_account_name, stock_reminder_time, status (pending, active, rejected, suspended), verified_at, rejection_reason (diisi saat ditolak; `Tidak diketahui` bila admin tidak mengisi alasan) | punya banyak store_members, products, orders, shipping_methods |
 | store_shipping_methods | store_id, type (own_delivery, pickup, ojol, expedition), max_radius_km, fee_type (flat, per_km, manual), flat_fee, fee_per_km, min_fee, is_active | milik stores |
 | categories | parent_id, name, slug, sort_order, quality_standard | bertingkat (Kepiting > Bakau, Soka) |
-| products | store_id, category_id (hanya kategori daun), name, slug, description, condition (live, fresh, frozen, marinated), sales_mode (ready_stock, pre_order), daily_quota, lead_time_days, cutoff_time, shelf_life_days, storage_instructions, is_active (diatur penjual), blocked_at dan block_reason (moderasi admin), deleted_at (soft delete) | punya banyak variants, images |
+| products | store_id, category_id (hanya kategori daun), name, slug, description, seo_description (nullable, maks 160 karakter; bila kosong, meta deskripsi memakai potongan description), condition (live, fresh, frozen, marinated), sales_mode (ready_stock, pre_order), daily_quota, lead_time_days, cutoff_time, shelf_life_days, storage_instructions, is_active (diatur penjual), blocked_at dan block_reason (moderasi admin), deleted_at (soft delete) | punya banyak variants, images |
 | product_images | product_id, path, sort_order | milik products |
 | product_variants | product_id, name (mis. Grade A 300-400 g), unit (kg, ekor, lusin, pack), price, stock (decimal, hasil dari stock_movements), stock_confirmed_at, min_qty, is_active, deleted_at (soft delete) | milik products |
 | cart_items | user_id atau session_id, variant_id, qty | pembeli atau tamu ke varian |
@@ -151,6 +152,7 @@ Penjual login dengan email + password atau akun Google. Kolom `users.password` n
 | GET | /categories | Daftar kategori bertingkat beserta atribut wajib dan standar kualitas |
 | GET, POST | /seller/products | Daftar dan tambah produk; produk baru dikirim bersama minimal satu varian |
 | GET, PUT, DELETE | /seller/products/{id} | Detail, ubah, hapus produk |
+| POST | /seller/products/description-suggestion | Saran deskripsi dan ringkasan SEO dari AI berdasarkan isi form; tidak menyimpan apa pun; dibatasi 20 per toko per hari |
 | POST | /seller/products/{id}/images | Upload foto produk (multipart) |
 | DELETE | /seller/products/{id}/images/{imageId} | Hapus foto |
 | PUT | /seller/products/{id}/images/order | Ubah urutan foto |
@@ -187,10 +189,13 @@ Web pembeli dan admin hidup di satu aplikasi Laravel; admin di subdomain `admin.
 | Pesanan saya | /pesanan | Daftar dan detail status, upload bukti bayar, konfirmasi diterima |
 | Akun | /akun | Profil, alamat, ganti password |
 | Auth | /masuk, /auth/google/callback | Login dan registrasi dengan Google (Socialite), hanya muncul saat checkout |
+| Sitemap dan robots | /sitemap.xml, /robots.txt | Produk yang tampil di katalog dan toko aktif; area admin, seller, keranjang, checkout, dan akun tidak diindeks |
+
+**SEO halaman publik.** Beranda, katalog, detail produk, dan halaman toko dirender di server dan memiliki judul, meta deskripsi, canonical, dan Open Graph (foto produk untuk tautan yang dibagikan lewat WhatsApp). Detail produk memuat JSON-LD `Product` dengan harga dan ketersediaan; halaman toko memuat JSON-LD `Store`. Katalog dengan pencarian atau filter diberi `noindex`.
 
 **Panel /admin:** resource Stores (verifikasi, tolak, suspend), Categories (bertingkat, urutan, atribut wajib, standar kualitas), Users dan Roles, Products (blokir dan buka blokir dengan alasan), Orders (baca saja), Settings, Activity Log, dan widget dashboard berisi jumlah toko aktif, pesanan per status, nilai transaksi bulanan, dan toko dengan stok basi.
 
-**Panel /seller:** resource Products (dengan varian dan foto), Stok hari ini, Buku stok, Jadwal produksi, dan Orders milik toko yang sedang dipilih.
+**Panel /seller:** resource Products (dengan varian, foto, dan tombol deskripsi AI), Stok hari ini, Buku stok, Jadwal produksi, dan Orders milik toko yang sedang dipilih.
 
 ## Arsitektur
 
@@ -212,6 +217,8 @@ flowchart LR
 - Event + Listener untuk notifikasi (database dan FCM lewat queue); Task Scheduler untuk pengingat stok harian per toko; perubahan stok hanya lewat Action RecordStockMovement dalam transaksi database
 - Test dengan Pest: feature test untuk setiap endpoint API dan Action
 - Package: Sanctum (token API), Socialite (login Google web), Filament 5 (panel `/admin` dan `/seller`), Livewire 4 (web pembeli; juga dipakai Filament), spatie/laravel-permission dengan Filament Shield (role platform), spatie/laravel-activitylog (jejak audit), intervention/image 4 (resize foto produk ke WebP dan thumbnail dengan GD). Token Google dari Android diverifikasi lewat endpoint `tokeninfo` Google tanpa package tambahan
+- Deskripsi AI memanggil Google Gemini API (`generateContent`, keluaran JSON terstruktur) dari server lewat HTTP client Laravel, tanpa package tambahan; panel dan API memakai Action yang sama. Bila kunci kosong, fitur ini disembunyikan
+- Keamanan fitur AI: kunci API hanya di `.env` server (tidak pernah di aplikasi Android, URL, atau log) dan dibatasi ke Generative Language API; isian penjual dikirim sebagai blok data terpisah dari instruksi (mencegah prompt injection); keluaran divalidasi, dibersihkan dari HTML, dan selalu dirender ter-escape; tanpa data rekening, kontak, atau pembeli; kuota per toko, per pengguna, dan global harian. Tier gratis Gemini hanya untuk demo karena isi prompt dapat dipakai Google; produksi memakai tier berbayar
 
 **Android Kotlin**
 
@@ -227,7 +234,7 @@ Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung 
 
 1. **Fondasi:** monorepo (`backend/`, `android/`, `docs/`), Laravel + PostgreSQL (lokal via Laravel Herd, CI dengan service PostgreSQL), enum domain, arch test, CI GitHub Actions
 2. **Auth dan toko:** login Google (web) dan token API (Android), role, profil toko dengan pin lokasi, metode pengiriman, verifikasi toko di Filament, kategori
-3. **Produk:** CRUD produk, varian, foto (di-resize); buku stok dan stok harian; endpoint API seller; resource produk dan stok di panel `/seller`, moderasi produk di `/admin`; katalog dengan toko terdekat, detail produk, dan halaman toko di web. Jadwal produksi pre-order menunggu pesanan di Tahap 5
+3. **Produk:** CRUD produk, varian, foto (di-resize); buku stok dan stok harian; endpoint API seller; resource produk dan stok di panel `/seller`, moderasi produk di `/admin`; katalog dengan toko terdekat, detail produk, dan halaman toko di web; deskripsi produk dengan AI; SEO halaman publik (meta, Open Graph, JSON-LD, sitemap). Jadwal produksi pre-order menunggu pesanan di Tahap 5
 4. **Android dasar:** login, daftar dan form produk dengan upload foto, pengaturan
 5. **Pesanan:** keranjang, checkout per toko, alur status, upload dan verifikasi bukti bayar; layar pesanan di Android
 6. **Notifikasi:** FCM untuk pesanan baru, perubahan status, dan pengingat stok harian
