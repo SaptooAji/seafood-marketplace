@@ -219,7 +219,17 @@ describe('create', function () {
         'an empty required attribute' => [fn () => ['attributes' => [test()->berat->id => '', test()->kelamin->id => 'Jantan']], fn () => 'attributes.'.test()->berat->id],
         'a select attribute outside its options' => [fn () => ['attributes' => [test()->berat->id => '350', test()->kelamin->id => 'Banci']], fn () => 'attributes.'.test()->kelamin->id],
         'a pre-order without a quota' => [fn () => ['sales_mode' => 'pre_order', 'lead_time_days' => 2, 'cutoff_time' => '15:00'], fn () => 'daily_quota'],
+        'an seo description longer than 160 characters' => [fn () => ['seo_description' => str_repeat('a', 161)], fn () => 'seo_description'],
     ]);
+
+    it('saves the seo description', function () {
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['seo_description' => 'Kepiting bakau hidup dari Muara Angke.']))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        expect(Product::query()->sole()->seo_description)->toBe('Kepiting bakau hidup dari Muara Angke.');
+    });
 
     it('offers only leaf categories', function () {
         Livewire::test(CreateProduct::class)
@@ -288,6 +298,18 @@ describe('edit', function () {
             ->slug->toBe('kepiting-bakau')
             ->and($product->attributeValues()->pluck('value', 'category_attribute_id')->all())
             ->toEqual([$this->berat->id => '500', $this->kelamin->id => 'Betina']);
+    });
+
+    it('keeps the seo description when saving other changes', function () {
+        $product = panelBakauProduct($this->store, ['seo_description' => 'Ringkasan dari aplikasi.']);
+
+        Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()])
+            ->assertFormSet(['seo_description' => 'Ringkasan dari aplikasi.'])
+            ->fillForm(['name' => 'Kepiting Bakau Jumbo'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        expect($product->fresh()->seo_description)->toBe('Ringkasan dari aplikasi.');
     });
 
     it('shows the block reason and does not let a blocked product be turned on', function () {

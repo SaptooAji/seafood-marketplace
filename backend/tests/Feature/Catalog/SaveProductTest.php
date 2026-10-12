@@ -176,6 +176,25 @@ describe('valid products', function () {
         expect(attributeValuesOf($product))->toBe([$this->tanggalBeku->id => '2026-10-01']);
     });
 
+    it('saves an seo description of 160 characters as is', function () {
+        $summary = str_repeat('Kepiting bakau segar. ', 7).'Kirim.';
+
+        expect(mb_strlen($summary))->toBe(160)
+            ->and(saveProduct(productData(['seoDescription' => $summary]))->fresh()->seo_description)->toBe($summary);
+    });
+
+    it('trims the seo description and stores a blank one as null', function (string $input, ?string $stored) {
+        expect(saveProduct(productData(['seoDescription' => $input]))->fresh()->seo_description)->toBe($stored);
+    })->with([
+        'surrounding spaces' => ['  Kepiting bakau hidup dari Muara Angke.  ', 'Kepiting bakau hidup dari Muara Angke.'],
+        'only spaces' => ['   ', null],
+        'empty' => ['', null],
+    ]);
+
+    it('leaves the seo description empty when it is not given', function () {
+        expect(saveProduct(productData())->fresh()->seo_description)->toBeNull();
+    });
+
     it('soft deletes a product', function () {
         $product = saveProduct(productData());
 
@@ -242,6 +261,10 @@ describe('rejected products', function () {
                 test()->berat->id => '350', test()->kelamin->id => 'Jantan', test()->tanggalBeku->id => '2026-10-01',
             ]]),
             fn ($t) => "attributes.{$t->tanggalBeku->id}",
+        ],
+        'seo description longer than 160 characters' => [
+            fn () => productData(['seoDescription' => str_repeat('a', 161)]),
+            fn () => 'seo_description',
         ],
         'pre-order without a daily quota' => [
             fn () => productData(['salesMode' => SalesMode::PreOrder, 'leadTimeDays' => 2, 'cutoffTime' => '15:00']),

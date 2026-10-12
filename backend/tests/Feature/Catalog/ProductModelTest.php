@@ -111,6 +111,48 @@ describe('visibleInCatalog()', function () {
     });
 });
 
+describe('metaDescription()', function () {
+    it('uses the seo description when it is filled in', function () {
+        $product = Product::factory()->make([
+            'description' => 'Deskripsi panjang yang tidak dipakai.',
+            'seo_description' => 'Kepiting bakau hidup, dikirim hari ini dari Muara Angke.',
+        ]);
+
+        expect($product->metaDescription())->toBe('Kepiting bakau hidup, dikirim hari ini dari Muara Angke.');
+    });
+
+    it('falls back to the description on one line, cut at a word within 155 characters', function () {
+        $description = str_repeat("Kepiting bakau segar dari tambak Muara Angke.\n\nDikirim  hidup setiap pagi. ", 6);
+        $flat = trim((string) preg_replace('/\s+/', ' ', $description));
+
+        $meta = Product::factory()->make(['description' => $description, 'seo_description' => null])->metaDescription();
+        $kept = mb_substr($meta, 0, -1);
+
+        expect(mb_strlen($description))->toBeGreaterThan(400)
+            ->and($meta)->not->toContain("\n")
+            ->and($meta)->not->toContain('  ')
+            ->and(mb_strlen($meta))->toBeLessThanOrEqual(155)
+            ->and($meta)->toEndWith('…')
+            ->and($flat)->toStartWith($kept)
+            ->and(mb_substr($flat, mb_strlen($kept), 1))->toBe(' ');
+    });
+
+    it('returns a short description whole without an ellipsis', function () {
+        $product = Product::factory()->make([
+            'description' => "Cumi segar.\n\nDitangkap  pagi ini.",
+            'seo_description' => null,
+        ]);
+
+        expect($product->metaDescription())->toBe('Cumi segar. Ditangkap pagi ini.');
+    });
+
+    it('falls back to the description when the seo description is empty', function () {
+        $product = Product::factory()->make(['description' => 'Tiram segar.', 'seo_description' => '']);
+
+        expect($product->metaDescription())->toBe('Tiram segar.');
+    });
+});
+
 describe('isStockStale()', function () {
     it('tells whether the stock confirmation is older than the limit', function (?int $hoursAgo, bool $stale) {
         $variant = ProductVariant::factory()->create([

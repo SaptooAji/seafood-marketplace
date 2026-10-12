@@ -264,6 +264,34 @@ describe('POST /seller/products', function () {
         'a pre-order without a quota' => [fn () => ['sales_mode' => 'pre_order', 'lead_time_days' => 2, 'cutoff_time' => '15:00'], 'daily_quota'],
     ]);
 
+    it('saves the seo description and shows it', function () {
+        actingAsProductSeller();
+
+        $this->postJson(PRODUCTS_URL, productPayload(['seo_description' => 'Kepiting bakau hidup dari Muara Angke.']))
+            ->assertCreated()
+            ->assertJsonPath('data.seo_description', 'Kepiting bakau hidup dari Muara Angke.');
+
+        expect(Product::query()->sole()->seo_description)->toBe('Kepiting bakau hidup dari Muara Angke.');
+    });
+
+    it('rejects an seo description longer than 160 characters', function () {
+        actingAsProductSeller();
+
+        $this->postJson(PRODUCTS_URL, productPayload(['seo_description' => str_repeat('a', 161)]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('seo_description');
+
+        expect(Product::withTrashed()->count())->toBe(0);
+    });
+
+    it('keeps markup in the seo description as plain text', function () {
+        actingAsProductSeller();
+
+        $this->postJson(PRODUCTS_URL, productPayload(['seo_description' => '<script>alert(1)</script>']))
+            ->assertCreated()
+            ->assertJsonPath('data.seo_description', '<script>alert(1)</script>');
+    });
+
     it('reports an empty required attribute on its key', function () {
         actingAsProductSeller();
 
@@ -324,6 +352,28 @@ describe('PUT /seller/products/{id}', function () {
             ->assertJsonPath('data.slug', 'kepiting-bakau')
             ->assertJsonPath('data.attributes.0.value', '500')
             ->assertJsonPath('data.attributes.1.value', 'Betina');
+    });
+
+    it('changes the seo description', function () {
+        $store = actingAsProductSeller();
+        $product = bakauProduct($store, ['seo_description' => 'Ringkasan lama.']);
+
+        $this->putJson(PRODUCTS_URL.'/'.$product->id, productPayload(['seo_description' => 'Ringkasan baru.']))
+            ->assertOk()
+            ->assertJsonPath('data.seo_description', 'Ringkasan baru.');
+
+        expect($product->fresh()->seo_description)->toBe('Ringkasan baru.');
+    });
+
+    it('clears the seo description when it is left out, like other nullable fields', function () {
+        $store = actingAsProductSeller();
+        $product = bakauProduct($store, ['seo_description' => 'Ringkasan lama.']);
+
+        $this->putJson(PRODUCTS_URL.'/'.$product->id, productPayload())
+            ->assertOk()
+            ->assertJsonPath('data.seo_description', null);
+
+        expect($product->fresh()->seo_description)->toBeNull();
     });
 
     it('leaves the variants alone', function () {
@@ -388,6 +438,15 @@ describe('DELETE /seller/products/{id}', function () {
 });
 
 describe('a product of another store', function () {
+    it('keeps its seo description', function () {
+        actingAsProductSeller();
+        $other = bakauProduct(Store::factory()->active()->create(), ['seo_description' => 'Ringkasan toko lain.']);
+
+        $this->putJson(PRODUCTS_URL.'/'.$other->id, productPayload(['seo_description' => 'Diubah.']))->assertNotFound();
+
+        expect($other->fresh()->seo_description)->toBe('Ringkasan toko lain.');
+    });
+
     it('is a 404', function (string $method) {
         actingAsProductSeller();
         $other = bakauProduct(Store::factory()->active()->create());
