@@ -6,7 +6,7 @@ use App\Models\Category;
 use Illuminate\Support\Facades\Blade;
 
 beforeEach(function () {
-    config(['app.name' => 'Seafood Marketplace', 'app.url' => 'http://localhost']);
+    config(['app.name' => 'Seafood Marketplace']);
 });
 
 /**
@@ -48,20 +48,20 @@ describe('home page', function () {
             ->assertOk()
             ->assertSee('<title>Seafood Marketplace</title>', escape: false)
             ->assertSee('<meta name="description" content="', escape: false)
-            ->assertSee('<link rel="canonical" href="http://localhost">', escape: false)
+            ->assertSee('<link rel="canonical" href="'.url('/').'">', escape: false)
             ->assertSee('<meta property="og:site_name" content="Seafood Marketplace">', escape: false)
             ->assertSee('<meta property="og:locale" content="id_ID">', escape: false)
             ->assertSee('<meta property="og:type" content="website">', escape: false)
             ->assertSee('<meta property="og:title" content="Seafood Marketplace">', escape: false)
-            ->assertSee('<meta property="og:url" content="http://localhost">', escape: false)
+            ->assertSee('<meta property="og:url" content="'.url('/').'">', escape: false)
             ->assertSee('<meta property="og:description" content="', escape: false);
     });
 
     it('leaves the query out of the canonical URL', function () {
         $this->get('/?utm_source=wa&ref=budi')
             ->assertOk()
-            ->assertSee('<link rel="canonical" href="http://localhost">', escape: false)
-            ->assertSee('<meta property="og:url" content="http://localhost">', escape: false)
+            ->assertSee('<link rel="canonical" href="'.url('/').'">', escape: false)
+            ->assertSee('<meta property="og:url" content="'.url('/').'">', escape: false)
             ->assertDontSee('utm_source');
     });
 
@@ -70,7 +70,7 @@ describe('home page', function () {
             ->assertOk()
             ->assertDontSee('<script>alert(1)</script>', escape: false)
             ->assertSee('value="&lt;script&gt;alert(1)&lt;/script&gt;"', escape: false)
-            ->assertSee('<link rel="canonical" href="http://localhost">', escape: false);
+            ->assertSee('<link rel="canonical" href="'.url('/').'">', escape: false);
     });
 });
 
