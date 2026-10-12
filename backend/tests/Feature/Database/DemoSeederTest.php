@@ -5,16 +5,27 @@ declare(strict_types=1);
 use App\Actions\SaveShippingMethod;
 use App\Data\ShippingMethodData;
 use App\Enums\PlatformRole;
+use App\Enums\SalesMode;
+use App\Enums\StockMovementType;
 use App\Enums\StoreRole;
 use App\Enums\StoreStatus;
 use App\Models\Category;
 use App\Models\CategoryAttribute;
+use App\Models\Product;
+use App\Models\ProductImage;
+use App\Models\ProductVariant;
+use App\Models\StockMovement;
 use App\Models\Store;
 use App\Models\StoreMember;
 use App\Models\StoreShippingMethod;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
+
+beforeEach(function () {
+    Storage::fake('public');
+});
 
 /**
  * Row counts of everything the seeders create, to compare runs.
@@ -31,6 +42,11 @@ function seededCounts(): array
         'stores' => Store::query()->count(),
         'members' => StoreMember::query()->count(),
         'shipping methods' => StoreShippingMethod::query()->count(),
+        'products' => Product::withTrashed()->count(),
+        'variants' => ProductVariant::withTrashed()->count(),
+        'images' => ProductImage::query()->count(),
+        'stock movements' => StockMovement::query()->count(),
+        'photo files' => count(Storage::disk('public')->allFiles()),
     ];
 }
 
@@ -119,6 +135,61 @@ it('creates shipping methods that pass the SaveShippingMethod rules', function (
     expect(true)->toBeTrue();
 });
 
+it('creates the demo products of each store', function () {
+    $this->seed();
+
+    $productsOf = fn (string $store): array => Product::query()
+        ->whereHas('store', fn ($query) => $query->where('name', $store))
+        ->orderBy('name')
+        ->pluck('name')
+        ->all();
+
+    expect($productsOf('UD Kepiting Pak Budi'))->toBe(['Kepiting Bakau', 'Kepiting Soka', 'Rajungan'])
+        ->and($productsOf('Cumi Beku Bu Sri'))->toBe(['Cumi Beku', 'Cumi Segar'])
+        ->and($productsOf('Tiram Segar Mas Joko'))->toBe([])
+        ->and(Product::query()->where('name', 'Kepiting Bakau')->sole()->variants()->count())->toBe(2)
+        ->and(Product::query()->where('name', 'Cumi Beku')->sole())
+        ->sales_mode->toBe(SalesMode::PreOrder)
+        ->daily_quota->not->toBeNull()
+        ->lead_time_days->not->toBeNull()
+        ->cutoff_time->not->toBeNull();
+});
+
+it('shows five products in the catalog, each with a photo and stocked variants', function () {
+    $this->seed();
+
+    $products = Product::query()->visibleInCatalog()->with(['images', 'variants'])->get();
+
+    expect($products)->toHaveCount(5);
+
+    foreach ($products as $product) {
+        expect($product->images)->toHaveCount(1)
+            ->and($product->variants)->not->toBeEmpty();
+
+        $image = $product->images->sole();
+        Storage::disk('public')->assertExists([$image->path, $image->thumbnailPath()]);
+
+        foreach ($product->variants as $variant) {
+            expect((float) $variant->stock)->toBeGreaterThan(0);
+        }
+    }
+});
+
+it('stocks every variant through the stock book from a supplier', function () {
+    $this->seed();
+
+    $variants = ProductVariant::query()->get();
+    expect($variants)->not->toBeEmpty();
+
+    foreach ($variants as $variant) {
+        $stockIn = $variant->stockMovements()->where('type', StockMovementType::StockIn->value)->get();
+
+        expect($stockIn)->not->toBeEmpty()
+            ->and($stockIn->every(fn (StockMovement $movement): bool => filled($movement->supplier_name)))->toBeTrue()
+            ->and($variant->stockMovements()->latest('id')->first()?->stock_after)->toBe($variant->stock);
+    }
+});
+
 it('can run twice without duplicating anything', function () {
     $this->seed();
     $first = seededCounts();
@@ -136,5 +207,7 @@ it('skips demo users and stores in production', function () {
 
     expect(User::query()->count())->toBe(0)
         ->and(Store::query()->count())->toBe(0)
+        ->and(Product::query()->count())->toBe(0)
+        ->and(Storage::disk('public')->allFiles())->toBe([])
         ->and(Role::query()->count())->toBe(2);
 });
