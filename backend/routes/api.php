@@ -29,6 +29,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('seller/store', [StoreController::class, 'show'])->name('api.seller.store.show');
     Route::put('seller/store', [StoreController::class, 'update'])->name('api.seller.store.update');
 
+    Route::get('seller/stock/today', [DailyStockController::class, 'index'])->name('api.seller.stock.today');
+    Route::post('seller/stock/confirm', [DailyStockController::class, 'confirm'])->name('api.seller.stock.confirm');
+
     Route::get('seller/shipping-methods', [ShippingMethodController::class, 'index'])->name('api.seller.shipping-methods.index');
     Route::post('seller/shipping-methods', [ShippingMethodController::class, 'store'])->name('api.seller.shipping-methods.store');
     Route::put('seller/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])
@@ -38,7 +41,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('seller/products', ProductController::class)
         ->names('api.seller.products')
         ->whereNumber('product');
-
-    Route::get('seller/stock/today', [DailyStockController::class, 'index'])->name('api.seller.stock.today');
-    Route::post('seller/stock/confirm', [DailyStockController::class, 'confirm'])->name('api.seller.stock.confirm');
 });
