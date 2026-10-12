@@ -97,6 +97,10 @@ Hook pre-commit memformat file PHP yang di-commit, hook pre-push menjalankan `co
 
 Aturan lengkap ada di [docs/engineering-standards.md](docs/engineering-standards.md).
 
+### Keamanan
+
+Standar keamanan proyek (mengacu ke OWASP ASVS level 2 dan OWASP API Security Top 10) ada di [docs/security-standards.md](docs/security-standards.md). Untuk melaporkan celah keamanan, lihat [SECURITY.md](SECURITY.md); jangan membuka issue publik.
+
 ### Penggunaan AI
 
 Proyek ini dikerjakan bersama Claude Code. Kode domain (Actions, aturan bisnis, model) ditulis oleh pemilik repo; Claude Code membantu menulis test, boilerplate, konfigurasi, dokumentasi, dan review. Commit yang dibuat dengan bantuan AI ditandai `Co-Authored-By`. Aturan untuk agen ada di [CLAUDE.md](CLAUDE.md).

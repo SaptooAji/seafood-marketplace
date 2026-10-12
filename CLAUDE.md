@@ -11,6 +11,7 @@ Marketplace hasil laut multi-penjual (rebuild skripsi, dipakai sebagai portofoli
 - `docs/`: dokumen acuan. Baca sebelum mengerjakan fitur:
   - [docs/prd.md](docs/prd.md): scope MVP, model data (ERD), alur status pesanan, daftar endpoint API.
   - [docs/engineering-standards.md](docs/engineering-standards.md): struktur kode, aturan, tooling, alur git.
+  - [docs/security-standards.md](docs/security-standards.md): aturan keamanan berkode (`AC-2`, `VAL-4`, ...), checklist issue dan review, klasifikasi temuan.
 
 Pekerjaan dilacak sebagai GitHub issue per milestone (Tahap 1, 2, ...). Kriteria selesai ada di issue; baca issue-nya dulu (`gh issue view <nomor>`).
 
@@ -22,6 +23,7 @@ Pekerjaan dilacak sebagai GitHub issue per milestone (Tahap 1, 2, ...). Kriteria
 - **Claude Code** menulis test, boilerplate, konfigurasi, migrasi berdasarkan ERD bila diminta, dan dokumentasi.
 - Jangan menulis atau melengkapi implementasi domain kecuali diminta secara eksplisit. Kalau test gagal karena implementasi belum ada, itu memang tahap yang diharapkan; laporkan test mana yang merah dan kenapa.
 - Saat diminta review, jelaskan masalah dan alasannya; biarkan pemilik repo yang memperbaiki kecuali diminta.
+- Review PR selalu mencakup checklist keamanan di `docs/security-standards.md`. Temuan ditulis dengan kode aturan dan tingkatnya (kritis, tinggi, sedang, rendah). Detail celah yang belum diperbaiki tidak ditulis di issue atau komentar publik.
 
 ## Merencanakan pekerjaan: milestone
 
@@ -54,6 +56,7 @@ Setiap pekerjaan dimulai dari GitHub issue di milestone tahapnya. Saat diminta m
    - **Tujuan** dan **Kriteria selesai** berupa checklist.
    - **Test case**: daftar kasus valid, kasus yang ditolak, dan edge case, cukup detail sehingga test bisa ditulis tanpa menebak. Ambil aturannya dari PRD.
    - **Cara mulai**: perintah branch dan `php artisan make:*`.
+   - **Keamanan**: jawaban checklist di `docs/security-standards.md` dengan rujukan kode aturan, dan kasus keamanan di **Test case** (minimal akses data toko lain atau peran yang tidak berhak, serta input berbahaya bila ada teks atau file).
    - **Petunjuk**: pola kode dan rujukan. Kalau perlu contoh, pakai domain lain; jangan tulis solusi lengkap.
    - **Di luar scope**.
 3. Beri label jenis (`feat`, `fix`, `chore`, `docs`, `test`, `refactor`), area (`backend`, `android`, `ci`), dan ukuran (`size: S`, `size: M`), lalu pasang milestone dan masukkan ke project (lihat "Papan kerja").
