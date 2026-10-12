@@ -126,3 +126,7 @@ android/app/src/main/java/.../
 - CI (GitHub Actions): backend (Pint, Larastan, Pest dengan service PostgreSQL) dan android (ktlint, detekt, unit test, build APK debug).
 - Semua job ada di satu workflow `.github/workflows/ci.yml`. Job `changes` mendeteksi area yang berubah (`backend/`, `android/`); job area hanya jalan bila areanya berubah, dan perubahan pada `ci.yml` menjalankan semuanya. Job `CI` adalah satu-satunya status check wajib di ruleset `main`; job yang dilewati dihitung lolos. Job baru cukup ditambahkan ke `needs` job `CI`, tanpa mengubah ruleset.
 - Rahasia tidak pernah masuk repository: `.env` dan `google-services.json` di `.gitignore`, contoh di `.env.example`.
+
+## Keamanan
+
+Aturan keamanan ada di [security-standards.md](security-standards.md), mengacu ke OWASP ASVS level 2, OWASP API Security Top 10, OWASP Top 10 for LLM, dan MASVS dasar. Setiap issue mengisi bagian **Keamanan** dan setiap PR direview terhadap checklist-nya. Celah dilaporkan lewat [SECURITY.md](../SECURITY.md), bukan issue publik.
