@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Log;
 const GEMINI_TEST_KEY = 'AIzaFAKE-test-key-123';
 const GEMINI_TEST_MODEL = 'gemini-test-flash';
 const GEMINI_TEST_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-test-flash:generateContent';
+const GEMINI_FALLBACK_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-test-lite:generateContent';
 
 /*
  * Kepiting (Berat per ekor: number, unit g)
@@ -34,6 +35,7 @@ beforeEach(function () {
         'services.gemini.key' => GEMINI_TEST_KEY,
         'services.gemini.model' => GEMINI_TEST_MODEL,
         'services.gemini.timeout' => 20,
+        'services.gemini.fallback_models' => ['gemini-test-lite'],
     ]);
 
     $this->store = Store::factory()->active()->create([
@@ -177,6 +179,16 @@ describe('valid', function () {
             ->and($config['maxOutputTokens'])->toBeInt()->toBeGreaterThan(0)->toBeLessThanOrEqual(2048);
     });
 
+    it('asks for separate paragraphs and no quality claims the data does not state', function () {
+        fakeGemini();
+
+        suggestDescription();
+
+        expect(sentRequest()['systemInstruction']['parts'][0]['text'])
+            ->toContain('baris kosong')
+            ->toContain('terbaik');
+    });
+
     it('sends the product details as one JSON data block', function () {
         fakeGemini();
 
@@ -309,6 +321,91 @@ describe('unavailable', function () {
 
         expect($response->getStatusCode())->toBe(503)
             ->and(json_decode((string) $response->getContent(), true))->toBe(['message' => (new ProductDescriptionUnavailable)->getMessage()]);
+    });
+});
+
+describe('fallback', function () {
+    it('asks the fallback model once when the main model is overloaded', function () {
+        Log::spy();
+        Http::fake([
+            GEMINI_TEST_URL => Http::response(['error' => ['code' => 503, 'status' => 'UNAVAILABLE']], 503),
+            GEMINI_FALLBACK_URL => Http::response(geminiReply(['description' => 'Dari model cadangan.'])),
+        ]);
+
+        expect(suggestDescription()->description)->toBe('Dari model cadangan.');
+
+        $urls = collect(Http::recorded())->map(fn (array $pair) => $pair[0]->url())->all();
+
+        expect($urls)->toBe([GEMINI_TEST_URL, GEMINI_FALLBACK_URL]);
+
+        Log::shouldHaveReceived('warning')->withArgs(fn (string $message, array $context = []) => ($context['model'] ?? null) === GEMINI_TEST_MODEL
+            && ($context['status'] ?? null) === 503
+            && ! str_contains($message.json_encode($context), GEMINI_TEST_KEY));
+    });
+
+    it('sends the same request to the fallback model', function () {
+        Http::fake([
+            GEMINI_TEST_URL => Http::response([], 503),
+            GEMINI_FALLBACK_URL => Http::response(geminiReply()),
+        ]);
+
+        suggestDescription();
+
+        [[$main], [$fallback]] = Http::recorded()->all();
+
+        expect($fallback->data())->toBe($main->data())
+            ->and($fallback->header('x-goog-api-key'))->toBe([GEMINI_TEST_KEY]);
+    });
+
+    it('fails when the fallback model is overloaded too', function () {
+        Http::fake([
+            GEMINI_TEST_URL => Http::response([], 503),
+            GEMINI_FALLBACK_URL => Http::response([], 503),
+        ]);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
+
+        Http::assertSentCount(2);
+    });
+
+    it('does not fall back for other failures', function (Closure $response) {
+        Http::fake([
+            GEMINI_TEST_URL => $response(),
+            GEMINI_FALLBACK_URL => Http::response(geminiReply()),
+        ]);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
+
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn (Request $request) => $request->url() === GEMINI_FALLBACK_URL);
+    })->with([
+        'bad request' => [fn () => Http::response([], 400)],
+        'quota exhausted' => [fn () => Http::response([], 429)],
+        'server error' => [fn () => Http::response([], 500)],
+        'timeout' => [fn () => Http::failedConnection('cURL error 28: Operation timed out')],
+        'blocked prompt' => [fn () => Http::response(['promptFeedback' => ['blockReason' => 'SAFETY']])],
+        'unfinished answer' => [fn () => Http::response(geminiReply(candidate: ['finishReason' => 'MAX_TOKENS']))],
+    ]);
+
+    it('does not fall back when no fallback model is configured', function () {
+        config(['services.gemini.fallback_models' => []]);
+        Http::fake([GEMINI_TEST_URL => Http::response([], 503)]);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
+
+        Http::assertSentCount(1);
+    });
+
+    it('tries only the first fallback model', function () {
+        config(['services.gemini.fallback_models' => ['gemini-test-lite', 'gemini-test-other']]);
+        Http::fake([
+            GEMINI_TEST_URL => Http::response([], 503),
+            GEMINI_FALLBACK_URL => Http::response([], 503),
+        ]);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
+
+        Http::assertSentCount(2);
     });
 });
 
