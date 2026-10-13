@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# Read-only token: no job here writes to the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -93,6 +97,15 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      # Fails on any advisory; one without a fix yet may only be ignored in
+      # composer.json (config.audit.ignore) with a reason and a review date.
+      - name: Audit Composer packages
+        run: composer audit --locked
+
+      # Reads package-lock.json only, so no npm install is needed.
+      - name: Audit npm packages
+        run: npm audit --audit-level=high
 
       - name: Prepare environment
         run: |

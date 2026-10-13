@@ -1,0 +1,38 @@
+# Weekly dependency updates. Security updates come on top of these as soon as
+# an advisory is published (enabled in Settings → Code security).
+# Commit messages read `chore(deps): ...` or `chore(deps-dev): ...`.
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: /backend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [chore, backend]
+    # One PR for all minor and patch bumps; majors get their own PR.
+    groups:
+      composer-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [chore, backend]
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [chore, ci]
