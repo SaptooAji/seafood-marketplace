@@ -26,6 +26,7 @@ use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\ToggleButtons;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -243,6 +244,13 @@ describe('create', function () {
 
                 return $ids === [$this->bakau->id, $this->cumiSegar->id];
             });
+    });
+
+    it('offers the condition and the sales mode as buttons, with no condition picked yet', function () {
+        Livewire::test(CreateProduct::class)
+            ->assertFormFieldExists('condition', fn (ToggleButtons $field): bool => array_keys($field->getOptions()) === ['live', 'fresh', 'frozen', 'marinated'])
+            ->assertFormFieldExists('sales_mode', fn (ToggleButtons $field): bool => array_keys($field->getOptions()) === ['ready_stock', 'pre_order'])
+            ->assertSchemaStateSet(['condition' => null, 'sales_mode' => 'ready_stock'], 'form');
     });
 
     it('swaps the attribute fields when the category changes', function () {
@@ -595,21 +603,37 @@ describe('description suggestion', function () {
             ->assertSchemaStateSet(['description' => 'Deskripsi saya sendiri.', 'seo_description' => null], 'form');
     });
 
-    it('asks for the category, name, and condition first', function (array $overrides) {
+    it('names the missing fields and marks them before asking', function (array $overrides, string $message, array $fields) {
         fakePanelGemini();
 
         Livewire::test(CreateProduct::class)
             ->fillForm(panelProductForm(['description' => null, ...$overrides]))
             ->callAction($this->suggestAction)
-            ->assertNotified('Isi kategori, nama, dan kondisi produk sebelum meminta saran deskripsi.')
+            ->assertNotified($message)
+            ->assertHasFormErrors($fields)
             ->assertSchemaStateSet(['description' => null], 'form');
 
         Http::assertNothingSent();
     })->with([
-        'no category' => [['category_id' => null]],
-        'no name' => [['name' => '']],
-        'no condition' => [['condition' => null]],
+        'no category' => [['category_id' => null], 'Lengkapi kategori sebelum meminta saran deskripsi.', ['category_id']],
+        'no name' => [['name' => '  '], 'Lengkapi nama sebelum meminta saran deskripsi.', ['name']],
+        'no condition' => [['condition' => null], 'Lengkapi kondisi sebelum meminta saran deskripsi.', ['condition']],
+        'no sales mode' => [['sales_mode' => null], 'Lengkapi mode jual sebelum meminta saran deskripsi.', ['sales_mode']],
+        'two missing' => [['name' => '', 'condition' => null], 'Lengkapi nama dan kondisi sebelum meminta saran deskripsi.', ['name', 'condition']],
+        'three missing' => [['category_id' => null, 'name' => '', 'condition' => null], 'Lengkapi kategori, nama, dan kondisi sebelum meminta saran deskripsi.', ['category_id', 'name', 'condition']],
     ]);
+
+    it('clears the marks once the suggestion is made', function () {
+        fakePanelGemini();
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => null, 'condition' => null]))
+            ->callAction($this->suggestAction)
+            ->assertHasFormErrors(['condition'])
+            ->fillForm(['condition' => 'live'])
+            ->callAction($this->suggestAction)
+            ->assertHasNoFormErrors();
+    });
 
     it('shows the limit message and keeps the form after 3 requests in a minute', function () {
         fakePanelGemini();
