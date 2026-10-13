@@ -5,7 +5,7 @@
     $cheapest = $product->variants->first();
 @endphp
 
-<a href="{{ url('/produk/'.$product->slug) }}" class="group flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white hover:border-teal-600">
+<a href="{{ route('products.show', $product->slug) }}" class="group flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white hover:border-teal-600">
     @if ($image)
         <img src="{{ $image->thumbnailUrl() }}" alt="{{ $product->name }}" loading="lazy" class="aspect-square w-full object-cover">
     @else

@@ -23,11 +23,15 @@ class App extends Component
      * @param  string|null  $title  the page title; the home page leaves it out
      * @param  string|null  $description  for the meta and Open Graph descriptions
      * @param  bool  $noindex  keep the page out of search results, e.g. a filtered catalog
+     * @param  string  $ogType  the Open Graph type, e.g. `product` on a product page
+     * @param  string|null  $image  an absolute image URL for link previews
      */
     public function __construct(
         public ?string $title = null,
         public ?string $description = null,
         public bool $noindex = false,
+        public string $ogType = 'website',
+        public ?string $image = null,
     ) {}
 
     /**
