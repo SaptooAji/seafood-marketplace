@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\View\Components\Layouts;
 
+use App\Livewire\Catalog;
 use App\Models\Category;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -21,10 +22,12 @@ class App extends Component
     /**
      * @param  string|null  $title  the page title; the home page leaves it out
      * @param  string|null  $description  for the meta and Open Graph descriptions
+     * @param  bool  $noindex  keep the page out of search results, e.g. a filtered catalog
      */
     public function __construct(
         public ?string $title = null,
         public ?string $description = null,
+        public bool $noindex = false,
     ) {}
 
     /**
@@ -49,6 +52,17 @@ class App extends Component
     public function canonicalUrl(): string
     {
         return url()->current();
+    }
+
+    /**
+     * The search query to show back in the header search box. The URL is
+     * untrusted, so an array or an overlong value is not shown as sent.
+     */
+    public function searchQuery(): string
+    {
+        $query = request()->query('q');
+
+        return is_string($query) ? mb_substr($query, 0, Catalog::MAX_QUERY_LENGTH) : '';
     }
 
     /**

@@ -112,6 +112,27 @@ class Product extends Model
     }
 
     /**
+     * Load what a product card shows: the store's public columns, the first
+     * photo, and the cheapest active variant. A fixed number of queries
+     * however many products are listed.
+     *
+     * @param  Builder<Product>  $query
+     */
+    #[Scope]
+    protected function withCardDetails(Builder $query): void
+    {
+        $query->with([
+            'store:id,name,slug,city',
+            'images' => fn (HasMany $images) => $images->limit(1),
+            'variants' => fn (HasMany $variants) => $variants
+                ->where('is_active', true)
+                ->reorder('price')
+                ->orderBy('id')
+                ->limit(1),
+        ]);
+    }
+
+    /**
      * Get the store that sells this product.
      *
      * @return BelongsTo<Store, $this>
