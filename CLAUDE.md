@@ -95,7 +95,7 @@ Utamakan issue kecil yang bisa dipelajari dan direview sekali duduk:
 
 | Perintah | Fungsi |
 | --- | --- |
-| `composer check` | Pint (cek), Larastan, Pest. Sama dengan CI dan hook pre-push |
+| `composer check` | Pint (cek), Larastan, Pest (paralel). Sama dengan CI dan hook pre-push |
 | `composer fix` | Pint (format), Larastan, Pest |
 | `composer format` | Format dengan Pint |
 | `composer analyse` | Larastan level 6 |

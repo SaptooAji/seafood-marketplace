@@ -84,6 +84,7 @@ Package yang disetujui pemilik repo. Menambah atau mengubah dependency composer 
 - Static analysis: **Larastan level 6**, naik bertahap.
 - Test: **Pest**. Setiap Action punya unit/feature test; setiap endpoint API punya feature test untuk sukses, validasi gagal, dan akses ditolak.
 - Database test memakai PostgreSQL (sama dengan production), bukan SQLite.
+- Suite lengkap (`composer test`, `composer check`, hook pre-push, CI) berjalan paralel dengan `php artisan test --parallel`: satu proses per core, masing-masing dengan database sendiri (`seafood_marketplace_test_test_1`, `_test_2`, ...) yang dibuat Laravel dari `DB_DATABASE` di `phpunit.xml` dan dimigrasi ulang oleh `RefreshDatabase` di awal setiap run. User database test butuh izin `CREATEDB`. Test tidak boleh bergantung pada urutan baris tanpa `ORDER BY`, urutan file test, atau state bersama di luar database (file di disk tanpa `Storage::fake`). Menjalankan satu file atau `--filter` cukup dengan `php artisan test`, tanpa paralel.
 - **Test-first.** Untuk setiap issue, test ditulis lebih dulu sebagai spesifikasi (kasus valid, kasus yang dilarang, edge case), lalu implementasi ditulis sampai test hijau. Test dan boilerplate boleh dibuat dengan bantuan Claude Code; kode domain (Actions, aturan di Enums, Models) ditulis pemilik repo.
 
 ## Android (Kotlin, Jetpack Compose)
@@ -123,7 +124,7 @@ android/app/src/main/java/.../
 - Branch selalu dibuat dari `main` terbaru; tidak ada commit langsung ke `main`. Sinkronkan dengan `git merge main`, bukan rebase, setelah branch di-push. Branch dihapus setelah di-merge.
 - Commit mengikuti **Conventional Commits** (`feat(stock): add daily stock confirmation`).
 - Satu PR = satu fitur kecil yang bisa direview; CI wajib hijau sebelum merge; merge dengan **Squash and merge** agar satu PR menjadi satu commit Conventional di `main`.
-- CI (GitHub Actions): backend (Pint, Larastan, Pest dengan service PostgreSQL) dan android (ktlint, detekt, unit test, build APK debug).
+- CI (GitHub Actions): backend (Pint, Larastan, Pest paralel dengan service PostgreSQL) dan android (ktlint, detekt, unit test, build APK debug).
 - Semua job ada di satu workflow `.github/workflows/ci.yml`. Job `changes` mendeteksi area yang berubah (`backend/`, `android/`); job area hanya jalan bila areanya berubah, dan perubahan pada `ci.yml` menjalankan semuanya. Job `CI` adalah satu-satunya status check wajib di ruleset `main`; job yang dilewati dihitung lolos. Job baru cukup ditambahkan ke `needs` job `CI`, tanpa mengubah ruleset.
 - Rahasia tidak pernah masuk repository: `.env` dan `google-services.json` di `.gitignore`, contoh di `.env.example`.
 
