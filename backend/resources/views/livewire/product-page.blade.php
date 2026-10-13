@@ -97,7 +97,7 @@
 
             <div class="rounded-lg border border-slate-200 bg-white p-3 text-sm">
                 <p class="text-slate-500">Dijual oleh</p>
-                <a href="{{ url('/toko/'.$product->store->slug) }}" class="font-medium text-teal-700 hover:underline">{{ $product->store->name }}</a>
+                <a href="{{ route('stores.show', $product->store->slug) }}" class="font-medium text-teal-700 hover:underline">{{ $product->store->name }}</a>
                 <p class="text-slate-600">{{ $product->store->city }}</p>
             </div>
         </section>

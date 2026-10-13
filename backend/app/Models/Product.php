@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\ProductCondition;
 use App\Enums\SalesMode;
 use App\Enums\StoreStatus;
+use App\Support\MetaDescription;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -17,7 +18,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -44,11 +44,6 @@ class Product extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     public const int SEO_DESCRIPTION_MAX_LENGTH = 160;
-
-    /**
-     * Search engines show about this many characters of a meta description.
-     */
-    public const int META_DESCRIPTION_LENGTH = 155;
 
     /**
      * Log the seller's name and active switch and the admin's block, only the
@@ -106,9 +101,7 @@ class Product extends Model
             return (string) $this->seo_description;
         }
 
-        $description = Str::squish((string) $this->description);
-
-        return Str::limit($description, self::META_DESCRIPTION_LENGTH - 1, '…', preserveWords: true);
+        return MetaDescription::fromText((string) $this->description);
     }
 
     /**
