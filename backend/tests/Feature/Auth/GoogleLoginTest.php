@@ -78,3 +78,19 @@ it('sends guests on protected web pages to /masuk', function () {
 
     $this->get('/_test/akun')->assertRedirect('/masuk');
 });
+
+it('gives the session a new id when the user signs in', function () {
+    Socialite::fake('google', fakeGoogleUser());
+    $this->startSession();
+    $before = session()->getId();
+    $cookie = config('session.cookie');
+
+    // Control: without a sign-in, the same session cookie keeps its id.
+    $this->withCookie($cookie, $before)->get('/');
+    expect(session()->getId())->toBe($before);
+
+    $this->withCookie($cookie, $before)->get('/auth/google/callback')->assertRedirect('/');
+
+    $this->assertAuthenticated();
+    expect(session()->getId())->not->toBe($before);
+});
