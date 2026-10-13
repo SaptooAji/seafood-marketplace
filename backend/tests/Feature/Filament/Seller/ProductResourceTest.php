@@ -6,6 +6,7 @@ use App\Enums\AttributeType;
 use App\Enums\StockMovementType;
 use App\Enums\StoreRole;
 use App\Enums\Unit;
+use App\Exceptions\ProductDescriptionUnavailable;
 use App\Filament\Seller\Resources\Products\Pages\CreateProduct;
 use App\Filament\Seller\Resources\Products\Pages\EditProduct;
 use App\Filament\Seller\Resources\Products\Pages\ListProducts;
@@ -19,11 +20,15 @@ use App\Models\ProductVariant;
 use App\Models\StockMovement;
 use App\Models\Store;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\ToggleButtons;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -239,6 +244,13 @@ describe('create', function () {
 
                 return $ids === [$this->bakau->id, $this->cumiSegar->id];
             });
+    });
+
+    it('offers the condition and the sales mode as buttons, with no condition picked yet', function () {
+        Livewire::test(CreateProduct::class)
+            ->assertFormFieldExists('condition', fn (ToggleButtons $field): bool => array_keys($field->getOptions()) === ['live', 'fresh', 'frozen', 'marinated'])
+            ->assertFormFieldExists('sales_mode', fn (ToggleButtons $field): bool => array_keys($field->getOptions()) === ['ready_stock', 'pre_order'])
+            ->assertSchemaStateSet(['condition' => null, 'sales_mode' => 'ready_stock'], 'form');
     });
 
     it('swaps the attribute fields when the category changes', function () {
@@ -480,4 +492,169 @@ describe('photos', function () {
 
         expect($this->product->images()->pluck('id')->all())->toBe([$c->id, $a->id, $b->id]);
     });
+});
+
+/**
+ * Gemini answers with the given response, or with a suggestion.
+ */
+function fakePanelGemini(mixed $response = null): void
+{
+    Http::fake(['https://generativelanguage.googleapis.com/*' => $response ?? Http::response([
+        'candidates' => [[
+            'content' => ['role' => 'model', 'parts' => [['text' => json_encode([
+                'description' => "Kepiting bakau jantan hidup, sekitar 350 g per ekor.\n\nSiap dikirim hari ini.",
+                'seo_description' => 'Kepiting bakau jantan hidup 350 g per ekor.',
+            ])]]],
+            'finishReason' => 'STOP',
+        ]],
+    ])]);
+}
+
+describe('description suggestion', function () {
+    beforeEach(function () {
+        Http::preventStrayRequests();
+
+        config([
+            'services.gemini.key' => 'AIzaFAKE-panel-test-key-789',
+            'services.gemini.model' => 'gemini-test-flash',
+            'services.gemini.fallback_models' => [],
+            'services.gemini.daily_limit' => 500,
+        ]);
+
+        $this->suggestAction = TestAction::make('suggestDescription')->schemaComponent('description', 'form');
+    });
+
+    it('fills the description and SEO summary without saving', function () {
+        fakePanelGemini();
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => null]))
+            ->callAction($this->suggestAction)
+            ->assertSchemaStateSet([
+                'description' => "Kepiting bakau jantan hidup, sekitar 350 g per ekor.\n\nSiap dikirim hari ini.",
+                'seo_description' => 'Kepiting bakau jantan hidup 350 g per ekor.',
+            ], 'form');
+
+        expect(Product::query()->count())->toBe(0);
+    });
+
+    it('fills the edit form and leaves the saved product alone', function () {
+        fakePanelGemini();
+        $product = panelBakauProduct($this->store, ['description' => 'Deskripsi lama.']);
+
+        Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()])
+            ->callAction($this->suggestAction)
+            ->assertSchemaStateSet(['seo_description' => 'Kepiting bakau jantan hidup 350 g per ekor.'], 'form');
+
+        expect($product->fresh()->description)->toBe('Deskripsi lama.');
+    });
+
+    it('lets staff use it', function () {
+        fakePanelGemini();
+        $staff = User::factory()->create();
+        $this->store->users()->attach($staff, ['role' => StoreRole::Staff->value]);
+        $this->actingAs($staff);
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => null]))
+            ->callAction($this->suggestAction)
+            ->assertSchemaStateSet(['seo_description' => 'Kepiting bakau jantan hidup 350 g per ekor.'], 'form');
+    });
+
+    it('asks for confirmation only when a description is already written', function (?string $description, bool $confirms) {
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => $description]))
+            ->assertActionExists($this->suggestAction, fn (Action $action): bool => $action->isConfirmationRequired() === $confirms);
+    })->with([
+        'empty' => [null, false],
+        'written' => ['Deskripsi saya sendiri.', true],
+    ]);
+
+    it('keeps the form as it is when the confirmation is cancelled', function () {
+        fakePanelGemini();
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => 'Deskripsi saya sendiri.']))
+            ->mountAction($this->suggestAction)
+            ->unmountAction()
+            ->assertSchemaStateSet(['description' => 'Deskripsi saya sendiri.', 'seo_description' => null], 'form');
+
+        Http::assertNothingSent();
+    });
+
+    it('shows the button only when an API key is set', function (string $key, bool $shown) {
+        config(['services.gemini.key' => $key]);
+
+        $page = Livewire::test(CreateProduct::class);
+
+        $shown ? $page->assertSee('Buat deskripsi dengan AI') : $page->assertDontSee('Buat deskripsi dengan AI');
+    })->with([
+        'with a key' => ['AIzaFAKE-panel-test-key-789', true],
+        'without a key' => ['', false],
+    ]);
+
+    it('shows the general message and keeps the form when Gemini fails', function () {
+        fakePanelGemini(Http::response(['error' => ['message' => 'API key AIzaFAKE-panel-test-key-789 not valid']], 400));
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => 'Deskripsi saya sendiri.']))
+            ->callAction($this->suggestAction)
+            ->assertNotified((new ProductDescriptionUnavailable)->getMessage())
+            ->assertSchemaStateSet(['description' => 'Deskripsi saya sendiri.', 'seo_description' => null], 'form');
+    });
+
+    it('names the missing fields and marks them before asking', function (array $overrides, string $message, array $fields) {
+        fakePanelGemini();
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => null, ...$overrides]))
+            ->callAction($this->suggestAction)
+            ->assertNotified($message)
+            ->assertHasFormErrors($fields)
+            ->assertSchemaStateSet(['description' => null], 'form');
+
+        Http::assertNothingSent();
+    })->with([
+        'no category' => [['category_id' => null], 'Lengkapi kategori sebelum meminta saran deskripsi.', ['category_id']],
+        'no name' => [['name' => '  '], 'Lengkapi nama sebelum meminta saran deskripsi.', ['name']],
+        'no condition' => [['condition' => null], 'Lengkapi kondisi sebelum meminta saran deskripsi.', ['condition']],
+        'no sales mode' => [['sales_mode' => null], 'Lengkapi mode jual sebelum meminta saran deskripsi.', ['sales_mode']],
+        'two missing' => [['name' => '', 'condition' => null], 'Lengkapi nama dan kondisi sebelum meminta saran deskripsi.', ['name', 'condition']],
+        'three missing' => [['category_id' => null, 'name' => '', 'condition' => null], 'Lengkapi kategori, nama, dan kondisi sebelum meminta saran deskripsi.', ['category_id', 'name', 'condition']],
+    ]);
+
+    it('clears the marks once the suggestion is made', function () {
+        fakePanelGemini();
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm(panelProductForm(['description' => null, 'condition' => null]))
+            ->callAction($this->suggestAction)
+            ->assertHasFormErrors(['condition'])
+            ->fillForm(['condition' => 'live'])
+            ->callAction($this->suggestAction)
+            ->assertHasNoFormErrors();
+    });
+
+    it('shows the limit message and keeps the form after 3 requests in a minute', function () {
+        fakePanelGemini();
+        $page = Livewire::test(CreateProduct::class)->fillForm(panelProductForm(['description' => null]));
+
+        $page->callAction($this->suggestAction)->callAction($this->suggestAction)->callAction($this->suggestAction);
+        $page->fillForm(['description' => 'Deskripsi saya sendiri.'])
+            ->callAction($this->suggestAction)
+            ->assertNotified('Terlalu sering meminta saran deskripsi. Tunggu sebentar lalu coba lagi.')
+            ->assertSchemaStateSet(['description' => 'Deskripsi saya sendiri.'], 'form');
+
+        Http::assertSentCount(3);
+    });
+
+    it('counts the characters of the SEO summary', function (?string $summary, string $hint) {
+        Livewire::test(CreateProduct::class)
+            ->fillForm(['seo_description' => $summary])
+            ->assertFormFieldExists('seo_description', fn (Textarea $field): bool => $field->getHint() === $hint);
+    })->with([
+        'empty' => [null, '0/160'],
+        'written' => ['Kepiting bakau hidup', '20/160'],
+        'multibyte' => ['Kepiting “super”', '16/160'],
+    ]);
 });

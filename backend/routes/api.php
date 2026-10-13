@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\Seller\DailyStockController;
 use App\Http\Controllers\Api\V1\Seller\ProductController;
+use App\Http\Controllers\Api\V1\Seller\ProductDescriptionSuggestionController;
 use App\Http\Controllers\Api\V1\Seller\ProductImageController;
 use App\Http\Controllers\Api\V1\Seller\ProductVariantController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
@@ -40,6 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('seller/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])
         ->whereNumber('shippingMethod')
         ->name('api.seller.shipping-methods.update');
+
+    Route::post('seller/products/description-suggestion', ProductDescriptionSuggestionController::class)
+        ->name('api.seller.products.description-suggestion');
 
     Route::apiResource('seller/products', ProductController::class)
         ->names('api.seller.products')

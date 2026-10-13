@@ -8,11 +8,15 @@ use App\Data\ProductDescriptionSuggestion;
 use App\Enums\AttributeType;
 use App\Enums\ProductCondition;
 use App\Enums\SalesMode;
+use App\Enums\StoreRole;
+use App\Enums\StoreStatus;
 use App\Exceptions\InvalidProductData;
+use App\Exceptions\ProductDescriptionLimitReached;
 use App\Exceptions\ProductDescriptionUnavailable;
 use App\Models\Category;
 use App\Models\CategoryAttribute;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Http\Client\Request;
 use Illuminate\Http\Request as HttpRequest;
@@ -36,6 +40,7 @@ beforeEach(function () {
         'services.gemini.model' => GEMINI_TEST_MODEL,
         'services.gemini.timeout' => 20,
         'services.gemini.fallback_models' => ['gemini-test-lite'],
+        'services.gemini.daily_limit' => 500,
     ]);
 
     $this->store = Store::factory()->active()->create([
@@ -47,6 +52,8 @@ beforeEach(function () {
         'bank_account_no' => '9876543210',
         'bank_account_name' => 'Pemilik Rahasia',
     ]);
+    $this->user = User::factory()->create();
+    $this->store->users()->attach($this->user, ['role' => StoreRole::Owner->value]);
 
     $this->kepiting = Category::factory()->create(['name' => 'Kepiting']);
     $this->bakau = Category::factory()->childOf($this->kepiting)->create(['name' => 'Bakau']);
@@ -84,9 +91,45 @@ function suggestionData(array $overrides = []): ProductData
     ], $overrides));
 }
 
-function suggestDescription(?ProductData $data = null): ProductDescriptionSuggestion
+/**
+ * Ask for a suggestion for the test store by its owner, unless given others.
+ */
+function suggestDescription(?ProductData $data = null, ?Store $store = null, ?User $user = null): ProductDescriptionSuggestion
 {
-    return app(SuggestProductDescription::class)->handle(test()->store, $data ?? suggestionData());
+    $test = test();
+
+    return app(SuggestProductDescription::class)->handle($store ?? $test->store, $user ?? $test->user, $data ?? suggestionData());
+}
+
+/**
+ * Ask the given number of times, a minute apart so the per-minute limit stays
+ * out of the way. Failed suggestions are ignored; they still count.
+ */
+function suggestSpaced(int $times, ?Store $store = null, ?User $user = null): void
+{
+    for ($i = 0; $i < $times; $i++) {
+        try {
+            suggestDescription(store: $store, user: $user);
+        } catch (ProductDescriptionUnavailable) {
+            // Counted like a successful call.
+        }
+
+        test()->travel(1)->minute();
+    }
+}
+
+/**
+ * Another active store with its own owner.
+ *
+ * @return array{Store, User}
+ */
+function otherSuggestionStore(): array
+{
+    $user = User::factory()->create();
+    $store = Store::factory()->active()->create();
+    $store->users()->attach($user, ['role' => StoreRole::Owner->value]);
+
+    return [$store, $user];
 }
 
 /**
@@ -498,5 +541,268 @@ describe('security', function () {
 
         expect(mb_strlen($seo))->toBeLessThanOrEqual(160)
             ->and($long)->toStartWith(rtrim($seo, '…'));
+    });
+});
+
+describe('limits', function () {
+    beforeEach(function () {
+        // Mid-morning, so 20 requests a minute apart stay on the same day.
+        $this->travelTo(today()->setTime(10, 0));
+    });
+
+    it('allows 20 suggestions a day for an active store', function () {
+        fakeGemini();
+
+        suggestSpaced(20);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class, 'Kuota saran deskripsi toko hari ini sudah habis.');
+        Http::assertSentCount(20);
+    });
+
+    it('shares the daily quota between the owner and staff', function () {
+        fakeGemini();
+        $staff = User::factory()->create();
+        $this->store->users()->attach($staff, ['role' => StoreRole::Staff->value]);
+
+        suggestSpaced(10);
+        suggestSpaced(10, user: $staff);
+
+        expect(fn () => suggestDescription(user: $staff))->toThrow(ProductDescriptionLimitReached::class);
+    });
+
+    it('keeps the quota of each store apart', function () {
+        fakeGemini();
+        [$otherStore, $otherOwner] = otherSuggestionStore();
+
+        suggestSpaced(20);
+
+        expect(suggestDescription(store: $otherStore, user: $otherOwner))->toBeInstanceOf(ProductDescriptionSuggestion::class);
+    });
+
+    it('allows only 5 a day for a store that is not active yet', function (StoreStatus $status) {
+        fakeGemini();
+        $this->store->forceFill(['status' => $status])->save();
+
+        suggestSpaced(5);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class);
+        Http::assertSentCount(5);
+    })->with([
+        'pending' => [StoreStatus::Pending],
+        'rejected' => [StoreStatus::Rejected],
+    ]);
+
+    it('raises the limit to 20 when the store is verified the same day, keeping what it used', function () {
+        fakeGemini();
+        $this->store->forceFill(['status' => StoreStatus::Pending])->save();
+        suggestSpaced(5);
+
+        $this->store->forceFill(['status' => StoreStatus::Active])->save();
+        suggestSpaced(15);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class);
+        Http::assertSentCount(20);
+    });
+
+    it('starts a new quota the next day', function () {
+        fakeGemini();
+        suggestSpaced(20);
+
+        $this->travelTo(today()->addDay()->setTime(10, 0));
+
+        expect(suggestDescription())->toBeInstanceOf(ProductDescriptionSuggestion::class);
+    });
+
+    it('allows 3 requests a minute for each user', function () {
+        fakeGemini();
+
+        suggestDescription();
+        suggestDescription();
+        suggestDescription();
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class, 'Terlalu sering meminta saran deskripsi.');
+        Http::assertSentCount(3);
+
+        $this->travel(1)->minute();
+
+        expect(suggestDescription())->toBeInstanceOf(ProductDescriptionSuggestion::class);
+    });
+
+    it('does not let a user blocked by the per-minute limit use the store quota', function () {
+        fakeGemini();
+        suggestDescription();
+        suggestDescription();
+        suggestDescription();
+
+        for ($i = 0; $i < 5; $i++) {
+            expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class);
+        }
+
+        $this->travel(1)->minute();
+        suggestSpaced(17);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class, 'Kuota saran deskripsi toko');
+        Http::assertSentCount(20);
+    });
+
+    it('counts failed calls', function () {
+        config(['services.gemini.fallback_models' => []]);
+        fakeGemini(Http::response(['error' => ['code' => 500]], 500));
+
+        suggestSpaced(20);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class);
+        Http::assertSentCount(20);
+    });
+
+    it('does not count a request refused before calling Gemini', function (Closure $refuse) {
+        fakeGemini();
+
+        for ($i = 0; $i < 3; $i++) {
+            try {
+                $refuse();
+            } catch (InvalidProductData|ProductDescriptionUnavailable) {
+                // Refused without a call.
+            }
+        }
+
+        config(['services.gemini.key' => GEMINI_TEST_KEY]);
+
+        expect(suggestDescription())->toBeInstanceOf(ProductDescriptionSuggestion::class);
+    })->with([
+        'no product name' => [fn () => suggestDescription(suggestionData(['name' => '']))],
+        'unknown category' => [fn () => suggestDescription(suggestionData(['categoryId' => 999_999, 'attributes' => []]))],
+        'no API key' => [function () {
+            config(['services.gemini.key' => '']);
+            suggestDescription();
+        }],
+    ]);
+
+    it('stops every store at the global daily limit', function () {
+        config(['services.gemini.daily_limit' => 2]);
+        fakeGemini();
+        [$otherStore, $otherOwner] = otherSuggestionStore();
+
+        suggestSpaced(2);
+
+        expect(fn () => suggestDescription(store: $otherStore, user: $otherOwner))
+            ->toThrow(ProductDescriptionLimitReached::class, 'Saran deskripsi sudah mencapai batas hari ini.');
+        Http::assertSentCount(2);
+    });
+
+    it('counts each call to Gemini against the global limit, including the fallback', function () {
+        config(['services.gemini.daily_limit' => 3]);
+        Http::fake([
+            GEMINI_TEST_URL => Http::sequence()
+                ->push(['error' => ['code' => 503, 'status' => 'UNAVAILABLE']], 503)
+                ->push(geminiReply()),
+            GEMINI_FALLBACK_URL => Http::response(geminiReply()),
+        ]);
+
+        suggestSpaced(2);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionLimitReached::class);
+        Http::assertSentCount(3);
+    });
+
+    it('does not call the fallback model when the global limit is used up', function () {
+        config(['services.gemini.daily_limit' => 1]);
+        Http::fake([
+            GEMINI_TEST_URL => Http::response(['error' => ['code' => 503, 'status' => 'UNAVAILABLE']], 503),
+            GEMINI_FALLBACK_URL => Http::response(geminiReply()),
+        ]);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
+
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn (Request $request) => $request->url() === GEMINI_FALLBACK_URL);
+    });
+
+    it('is a 429 with a general message and a Retry-After header', function () {
+        config(['app.debug' => false, 'services.gemini.daily_limit' => 1]);
+        fakeGemini();
+        suggestDescription();
+
+        try {
+            suggestDescription();
+            $this->fail('Expected ProductDescriptionLimitReached.');
+        } catch (ProductDescriptionLimitReached $e) {
+            $request = HttpRequest::create('/api/v1/seller/products/description-suggestion', 'POST');
+            $request->headers->set('Accept', 'application/json');
+
+            $response = app(ExceptionHandler::class)->render($request, $e);
+
+            expect($response->getStatusCode())->toBe(429)
+                ->and(json_decode((string) $response->getContent(), true))->toBe(['message' => $e->getMessage()])
+                ->and((int) $response->headers->get('Retry-After'))->toBeGreaterThan(0)->toBeLessThanOrEqual(86_400);
+        }
+    });
+});
+
+describe('usage log', function () {
+    it('logs each call with the store, the model, and the status', function () {
+        Log::spy();
+        fakeGemini();
+
+        suggestDescription();
+
+        Log::shouldHaveReceived('info')->once()->with('AI product description call.', [
+            'store_id' => $this->store->id,
+            'model' => GEMINI_TEST_MODEL,
+            'status' => 200,
+        ]);
+    });
+
+    it('logs both calls when it falls back', function () {
+        Log::spy();
+        Http::fake([
+            GEMINI_TEST_URL => Http::response(['error' => ['code' => 503, 'status' => 'UNAVAILABLE']], 503),
+            GEMINI_FALLBACK_URL => Http::response(geminiReply()),
+        ]);
+
+        suggestDescription();
+
+        Log::shouldHaveReceived('info')->twice();
+        Log::shouldHaveReceived('info')->with('AI product description call.', [
+            'store_id' => $this->store->id, 'model' => GEMINI_TEST_MODEL, 'status' => 503,
+        ]);
+        Log::shouldHaveReceived('info')->with('AI product description call.', [
+            'store_id' => $this->store->id, 'model' => 'gemini-test-lite', 'status' => 200,
+        ]);
+    });
+
+    it('logs a call that could not connect without a status', function () {
+        Log::spy();
+        fakeGemini(Http::failedConnection('cURL error 28: Operation timed out'));
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
+
+        Log::shouldHaveReceived('info')->once()->with('AI product description call.', [
+            'store_id' => $this->store->id, 'model' => GEMINI_TEST_MODEL, 'status' => null,
+        ]);
+    });
+
+    it('logs no call when none is made', function () {
+        Log::spy();
+        config(['services.gemini.key' => '']);
+
+        expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
+
+        Log::shouldNotHaveReceived('info');
+    });
+
+    it('keeps the product, the answer, and the key out of the call log', function () {
+        Log::spy();
+        fakeGemini();
+
+        suggestDescription();
+
+        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context = []) {
+            $logged = $message.json_encode($context);
+
+            return ! str_contains($logged, GEMINI_TEST_KEY)
+                && ! str_contains($logged, 'Kepiting')
+                && ! str_contains($logged, 'Toko Bahari');
+        });
     });
 });

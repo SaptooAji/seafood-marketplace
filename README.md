@@ -82,7 +82,12 @@ Penjual bisa meminta saran deskripsi produk dan ringkasan SEO dari Google Gemini
 
 1. Buat API key di [Google AI Studio](https://aistudio.google.com/apikey), lalu isi `GEMINI_API_KEY` di `.env`. Model bisa diganti lewat `GEMINI_MODEL` (default `gemini-3.8-flash`). Bila model itu sedang overload (503), permintaan dikirim sekali ke model cadangan `GEMINI_FALLBACK_MODELS` (default `gemini-3.1-flash-lite`).
 2. Di Google Cloud Console, batasi kunci hanya untuk **Generative Language API**.
-3. Pakai kunci berbeda untuk lokal dan produksi, dan pasang kuota atau budget alert di project-nya.
+3. Pakai kunci berbeda untuk lokal dan produksi.
+4. Batasi biaya di Google Cloud Console:
+   - **Kuota API (batas keras):** APIs & Services → Generative Language API → Quotas, turunkan *requests per day* dan *requests per minute*. Isi sedikit di atas `GEMINI_DAILY_LIMIT`; bila terlampaui, Google menolak dengan 429 dan fitur menjawab "tidak tersedia".
+   - **Budget alert:** Billing → Budgets & alerts. Budget hanya mengirim peringatan, tidak menghentikan tagihan.
+
+Di aplikasi, setiap pengguna dibatasi 3 permintaan per menit, setiap toko 20 per hari (5 untuk toko yang belum diverifikasi), dan seluruh platform `GEMINI_DAILY_LIMIT` panggilan per hari (default 500; permintaan yang jatuh ke model cadangan dihitung 2). Setiap panggilan ke Gemini dicatat di log dengan pesan `AI product description call.`, sehingga pemakaian harian bisa dibandingkan dengan tagihan.
 
 Di tier gratis Gemini, Google dapat memakai isi prompt untuk meningkatkan produknya. Tier gratis hanya untuk demo; produksi memakai tier berbayar. Prompt hanya berisi data produk dan nama serta kota toko, tanpa kontak, alamat, rekening, atau data pembeli.
 

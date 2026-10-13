@@ -90,7 +90,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | --- | --- | --- |
 | RATE-1 | Endpoint autentikasi dibatasi (AUTH-1) | ✅ |
 | RATE-2 | Semua endpoint API terautentikasi punya limiter umum per pengguna (mis. 60 per menit) | ❌ |
-| RATE-3 | Endpoint yang mahal (upload foto, AI) punya limiter sendiri; fitur AI dibatasi per toko, per pengguna, dan global harian | ❌ dibuat di #119 |
+| RATE-3 | Endpoint yang mahal (upload foto, AI) punya limiter sendiri; fitur AI dibatasi per toko, per pengguna, dan global harian | ⚠️ AI ✅ (#119); upload foto belum punya limiter sendiri |
 | RATE-4 | Jumlah foto per produk dan varian per request dibatasi | ✅ |
 
 ## 7. Rahasia dan konfigurasi (ASVS V14, API8)
@@ -130,10 +130,10 @@ Rincian di #118 dan #119.
 | --- | --- | --- |
 | AI-1 | Kunci API hanya di server, dikirim lewat header (`x-goog-api-key`), dibatasi ke Generative Language API | ✅ kode; pembatasan kunci di Google Cloud dijelaskan di README |
 | AI-2 | Prompt injection (LLM01): instruksi di `systemInstruction`; isian penjual dikirim sebagai blok data JSON terpisah | ✅ |
-| AI-3 | Keluaran tidak dipercaya (LLM05): divalidasi skema dan panjang, HTML dibuang, dirender ter-escape | ✅ action; render di #119 |
+| AI-3 | Keluaran tidak dipercaya (LLM05): divalidasi skema dan panjang, HTML dibuang, dirender ter-escape | ✅ action; panel mengisi `Textarea` biasa, API mengembalikan JSON teks |
 | AI-4 | Data minimal (LLM02): tanpa rekening, kontak, alamat, atau data pembeli | ✅ |
-| AI-5 | Hasil AI hanya saran; tidak ada yang tersimpan tanpa tindakan penjual (LLM06) | ❌ #119 |
-| AI-6 | Kuota per toko, per pengguna, dan global (LLM10) | ❌ #119 |
+| AI-5 | Hasil AI hanya saran; tidak ada yang tersimpan tanpa tindakan penjual (LLM06) | ✅ panel hanya mengisi form, endpoint API tidak menyimpan; menimpa deskripsi butuh konfirmasi |
+| AI-6 | Kuota per toko, per pengguna, dan global (LLM10) | ✅ 3/menit per pengguna; 20/hari per toko aktif, 5/hari untuk toko belum aktif; batas global harian menghitung panggilan ke Gemini (fallback = 2); dihitung sebelum memanggil; setiap panggilan dicatat di log; kuota API di Google Cloud dijelaskan di README |
 | AI-7 | Tier gratis Gemini hanya untuk demo; produksi memakai tier berbayar | ✅ README |
 
 ## 11. Android (Tahap 4, MASVS dasar)
