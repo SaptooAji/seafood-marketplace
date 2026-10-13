@@ -41,6 +41,38 @@
                 </select>
             </label>
 
+            <div
+                class="flex flex-col gap-1"
+                x-data="{ error: '' }"
+            >
+                <span class="text-slate-600">Jarak</span>
+                <button
+                    type="button"
+                    class="rounded-lg border border-teal-600 px-3 py-2 text-left text-teal-700 hover:bg-teal-50"
+                    x-on:click="
+                        if (! navigator.geolocation) { error = 'Browser ini tidak bisa membagikan lokasi.'; return; }
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => { error = ''; $wire.locate(position.coords.latitude, position.coords.longitude) },
+                            () => { error = 'Izin lokasi ditolak. Aktifkan lokasi di browser untuk melihat toko terdekat.' },
+                            { timeout: 10000, maximumAge: 600000 },
+                        )
+                    "
+                >
+                    {{ $located ? 'Perbarui lokasi saya' : 'Toko terdekat' }}
+                </button>
+                <p x-show="error" x-text="error" class="text-xs text-red-600" x-cloak></p>
+
+                @if ($located)
+                    <select wire:model.live="radius" aria-label="Radius" class="rounded-lg border border-slate-300 px-3 py-2">
+                        <option value="">Semua jarak</option>
+                        @foreach ($radii as $km)
+                            <option value="{{ $km }}">Dalam {{ $km }} km</option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-slate-500">Lokasi Anda hanya dipakai untuk menghitung jarak dan tidak disimpan.</p>
+                @endif
+            </div>
+
             <fieldset class="flex flex-col gap-1">
                 <legend class="text-slate-600">Harga (Rp)</legend>
                 <div class="flex items-center gap-2">
@@ -77,7 +109,7 @@
         @else
             <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4" wire:loading.class="opacity-60">
                 @foreach ($products as $product)
-                    <x-product-card :product="$product" wire:key="product-{{ $product->id }}" />
+                    <x-product-card :product="$product" :distance="$located ? $product->distance_km : null" wire:key="product-{{ $product->id }}" />
                 @endforeach
             </div>
 

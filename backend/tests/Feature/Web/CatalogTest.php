@@ -13,10 +13,10 @@ use Livewire\Livewire;
 
 /*
  * Kepiting
- *   ├─ Bakau
- *   └─ Soka
+ *   â”œâ”€ Bakau
+ *   â””â”€ Soka
  * Cumi
- *   └─ Cumi Segar
+ *   â””â”€ Cumi Segar
  */
 beforeEach(function () {
     $this->kepiting = Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
@@ -349,5 +349,108 @@ describe('queries', function () {
         $many = catalogQueryCount('/produk?kategori=kepiting&urut=termurah');
 
         expect($many)->toBe($few);
+    });
+});
+
+describe('nearest stores', function () {
+    beforeEach(function () {
+        $this->muaraAngke = Store::factory()->active()->create(['name' => 'Toko Muara Angke', 'lat' => '-6.1065', 'lng' => '106.7765']);
+        $this->cirebon = Store::factory()->active()->create(['name' => 'Toko Cirebon', 'lat' => '-6.7063', 'lng' => '108.5570']);
+
+        catalogProduct(['name' => 'Cumi Cirebon', 'created_at' => now()], store: $this->cirebon);
+        catalogProduct(['name' => 'Kepiting Muara', 'created_at' => now()->subDay()], store: $this->muaraAngke);
+    });
+
+    it('sorts by distance from the buyer and shows the distance on the card', function () {
+        Livewire::test('catalog')
+            ->call('locate', -6.1754, 106.8272)
+            ->assertSet('sort', 'terdekat')
+            ->assertSeeInOrder(['Kepiting Muara', 'Cumi Cirebon'])
+            // The buyer's point is rounded to -6.175, 106.827 before measuring.
+            ->assertSee('9,4 km')
+            ->assertSee('200,1 km');
+    });
+
+    it('rounds the location to 3 decimals', function () {
+        Livewire::test('catalog')
+            ->call('locate', -6.175412345, 106.827298765)
+            ->assertSet('lat', '-6.175')
+            ->assertSet('lng', '106.827');
+    });
+
+    it('ignores a location that is not a point on earth', function (mixed $lat, mixed $lng) {
+        Livewire::test('catalog')
+            ->call('locate', $lat, $lng)
+            ->assertOk()
+            ->assertSet('lat', null)
+            ->assertSet('lng', null)
+            ->assertSet('sort', 'terbaru')
+            ->assertDontSee('9,4 km');
+    })->with([
+        'latitude above 90' => [91, 106.8],
+        'latitude below -90' => [-90.5, 106.8],
+        'longitude above 180' => [-6.1, 181],
+        'longitude below -180' => [-6.1, -180.5],
+        'text' => ['abc', 'def'],
+        'nothing' => [null, null],
+        'an array' => [[1], [2]],
+    ]);
+
+    it('filters by radius once the location is known', function () {
+        Livewire::test('catalog')
+            ->call('locate', -6.1754, 106.8272)
+            ->set('radius', '10')
+            ->assertSee('Kepiting Muara')
+            ->assertDontSee('Cumi Cirebon')
+            ->set('radius', '5')
+            ->assertDontSee('Kepiting Muara')
+            ->assertSee('Produk tidak ditemukan');
+    });
+
+    it('ignores a radius outside the offered values or without a location', function (bool $located, string $radius) {
+        $component = Livewire::withQueryParams(['radius' => $radius])->test('catalog');
+
+        if ($located) {
+            $component->call('locate', -6.1754, 106.8272);
+        }
+
+        $component->assertSee('Kepiting Muara')->assertSee('Cumi Cirebon');
+    })->with([
+        'an unoffered radius' => [true, '7'],
+        'text as a radius' => [true, 'jauh'],
+        'a radius without a location' => [false, '10'],
+    ]);
+
+    it('falls back to the newest first when there is no location', function () {
+        $this->get('/produk?urut=terdekat')
+            ->assertOk()
+            ->assertSeeInOrder(['Cumi Cirebon', 'Kepiting Muara'])
+            ->assertDontSee('200,1 km');
+    });
+
+    it('never reads the location from the URL', function () {
+        Livewire::withQueryParams(['lat' => '-6.1754', 'lng' => '106.8272', 'urut' => 'terdekat'])
+            ->test('catalog')
+            ->assertSet('lat', null)
+            ->assertSet('lng', null)
+            ->assertDontSee('9,4 km');
+
+        $this->get('/produk?lat=-6.1754&lng=106.8272&urut=terdekat')
+            ->assertOk()
+            ->assertDontSee('9,4 km');
+    });
+
+    it('goes back to the first page when the location is set', function () {
+        Livewire::withQueryParams(['page' => 2])
+            ->test('catalog')
+            ->call('locate', -6.1754, 106.8272)
+            ->assertSet('paginators.page', 1);
+    });
+
+    it('does not show store coordinates', function () {
+        Livewire::test('catalog')
+            ->call('locate', -6.1754, 106.8272)
+            ->assertDontSee('-6.1065')
+            ->assertDontSee('108.557');
     });
 });
