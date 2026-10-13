@@ -8,6 +8,8 @@ use App\Enums\StoreRole;
 use App\Enums\StoreStatus;
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -33,6 +35,16 @@ class Store extends Model
 {
     /** @use HasFactory<StoreFactory> */
     use HasFactory, LogsActivity;
+
+    /**
+     * Great-circle distance in km from a point (bindings: lat, lat, lng) to
+     * the store. `least(1, ...)` guards asin against rounding just above 1.
+     */
+    private const string HAVERSINE_KM = '(6371 * 2 * asin(least(1, sqrt('
+        .'power(sin(radians(stores.lat - cast(? as double precision)) / 2), 2)'
+        .' + cos(radians(cast(? as double precision))) * cos(radians(stores.lat))'
+        .' * power(sin(radians(stores.lng - cast(? as double precision)) / 2), 2)'
+        .'))))';
 
     /**
      * Log status and verification changes and the public profile, only the
@@ -115,6 +127,34 @@ class Store extends Model
     public function owners(): BelongsToMany
     {
         return $this->users()->wherePivot('role', StoreRole::Owner->value);
+    }
+
+    /**
+     * Add `distance_km`: how far the store is from the given point along the
+     * earth's surface (Haversine). The point is bound, never put in the SQL.
+     *
+     * @param  Builder<Store>  $query
+     */
+    #[Scope]
+    protected function withDistanceFrom(Builder $query, string $lat, string $lng): void
+    {
+        if ($query->getQuery()->columns === null) {
+            $query->select('stores.*');
+        }
+
+        $query->selectRaw(self::HAVERSINE_KM.' as distance_km', [$lat, $lat, $lng]);
+    }
+
+    /**
+     * Keep the stores at most `$km` from the given point. PostgreSQL cannot
+     * use the `distance_km` alias in WHERE, so the point is passed again.
+     *
+     * @param  Builder<Store>  $query
+     */
+    #[Scope]
+    protected function within(Builder $query, string $lat, string $lng, string $km): void
+    {
+        $query->whereRaw(self::HAVERSINE_KM.' <= ?', [$lat, $lat, $lng, $km]);
     }
 
     /**

@@ -23,6 +23,10 @@ use Livewire\WithPagination;
  * The product catalog at `/produk`: search, filters, and sort, all kept in
  * the URL so a filtered list can be shared. Every URL value is untrusted:
  * unknown values give an empty list, invalid numbers and sorts are ignored.
+ *
+ * The buyer's location is the exception: it lives only in the component
+ * state, never in the URL, so it does not end up in access logs, browser
+ * history, or a Referer header. It is rounded to about 110 m.
  */
 class Catalog extends Component
 {
@@ -41,7 +45,12 @@ class Catalog extends Component
         'termahal' => 'Harga termahal',
     ];
 
-    private const array FILTERS = ['q', 'category', 'condition', 'store', 'minPrice', 'maxPrice', 'sort'];
+    /**
+     * Radius options in km for the nearest stores filter.
+     */
+    public const array RADII = [5, 10, 25, 50];
+
+    private const array FILTERS = ['q', 'category', 'condition', 'store', 'minPrice', 'maxPrice', 'sort', 'radius'];
 
     #[Url(except: '')]
     public string $q = '';
@@ -64,9 +73,43 @@ class Catalog extends Component
     #[Url(as: 'urut', except: 'terbaru')]
     public string $sort = 'terbaru';
 
+    #[Url(except: '')]
+    public string $radius = '';
+
+    /**
+     * The buyer's latitude, rounded; deliberately not in the URL.
+     */
+    public ?string $lat = null;
+
+    /**
+     * The buyer's longitude, rounded; deliberately not in the URL.
+     */
+    public ?string $lng = null;
+
     public function mount(): void
     {
         $this->q = $this->cutQuery($this->q);
+
+        // A shared or refreshed link carries no location to sort by.
+        if ($this->sort === 'terdekat') {
+            $this->sort = 'terbaru';
+        }
+    }
+
+    /**
+     * Take the buyer's location from the browser and sort by distance. A value
+     * that is not a point on earth is ignored.
+     */
+    public function locate(mixed $lat, mixed $lng): void
+    {
+        if (! is_numeric($lat) || ! is_numeric($lng) || abs((float) $lat) > 90 || abs((float) $lng) > 180) {
+            return;
+        }
+
+        $this->lat = number_format((float) $lat, 3, '.', '');
+        $this->lng = number_format((float) $lng, 3, '.', '');
+        $this->sort = 'terdekat';
+        $this->resetPage();
     }
 
     public function updatedQ(): void
@@ -90,10 +133,12 @@ class Catalog extends Component
 
         return view('livewire.catalog', [
             'products' => $this->products($category),
+            'located' => $this->isLocated(),
+            'radii' => self::RADII,
             'categories' => $this->categoryOptions(),
             'stores' => Store::query()->where('status', StoreStatus::Active)->orderBy('name')->get(['id', 'name', 'slug']),
             'conditions' => ProductCondition::cases(),
-            'sorts' => self::SORTS,
+            'sorts' => $this->isLocated() ? [...self::SORTS, 'terdekat' => 'Terdekat'] : self::SORTS,
         ])->layout(Layout::class, [
             'title' => $category->name ?? 'Katalog',
             'description' => 'Cari hasil laut segar dari penjual terverifikasi: kepiting, cumi, tiram, dan ikan, dengan harga dan stok terbaru.',
@@ -116,10 +161,13 @@ class Catalog extends Component
             $query->whereRaw('false');
         }
 
-        match ($this->sort) {
-            'termurah' => $query->orderBy('min_price'),
-            'termahal' => $query->orderByDesc('min_price'),
-            default => $query->latest(),
+        $this->applyDistance($query);
+
+        match (true) {
+            $this->sort === 'termurah' => $query->orderBy('min_price'),
+            $this->sort === 'termahal' => $query->orderByDesc('min_price'),
+            $this->sort === 'terdekat' && $this->isLocated() => $query->orderBy('store_distances.distance_km'),
+            default => $query->latest('products.created_at'),
         };
 
         return $query->orderByDesc('products.id')->paginate(self::PER_PAGE);
@@ -180,6 +228,33 @@ class Catalog extends Component
         }
 
         return true;
+    }
+
+    /**
+     * With a known location, add each product's store distance and keep only
+     * the stores within the chosen radius.
+     *
+     * @param  Builder<Product>  $query
+     */
+    private function applyDistance(Builder $query): void
+    {
+        if ($this->lat === null || $this->lng === null) {
+            return;
+        }
+
+        $distances = Store::query()->select('stores.id')->withDistanceFrom($this->lat, $this->lng);
+
+        $query->joinSub($distances, 'store_distances', 'store_distances.id', '=', 'products.store_id')
+            ->addSelect('store_distances.distance_km');
+
+        if (in_array((int) $this->radius, self::RADII, true) && ctype_digit($this->radius)) {
+            $query->where('store_distances.distance_km', '<=', (int) $this->radius);
+        }
+    }
+
+    private function isLocated(): bool
+    {
+        return $this->lat !== null && $this->lng !== null;
     }
 
     /**

@@ -1,4 +1,4 @@
-@props(['product'])
+@props(['product', 'distance' => null])
 
 @php
     $image = $product->images->first();
@@ -23,6 +23,11 @@
             </p>
         @endif
 
-        <p class="mt-auto truncate text-xs text-slate-500">{{ $product->store->name }} &middot; {{ $product->store->city }}</p>
+        <p class="mt-auto truncate text-xs text-slate-500">
+            {{ $product->store->name }} &middot; {{ $product->store->city }}
+            @if ($distance !== null)
+                &middot; {{ number_format((float) $distance, 1, ',', '.') }} km
+            @endif
+        </p>
     </div>
 </a>
