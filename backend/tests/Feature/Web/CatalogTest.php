@@ -366,8 +366,9 @@ describe('nearest stores', function () {
             ->call('locate', -6.1754, 106.8272)
             ->assertSet('sort', 'terdekat')
             ->assertSeeInOrder(['Kepiting Muara', 'Cumi Cirebon'])
-            ->assertSee('9,5 km')
-            ->assertSee('200,0 km');
+            // The buyer's point is rounded to -6.175, 106.827 before measuring.
+            ->assertSee('9,4 km')
+            ->assertSee('200,1 km');
     });
 
     it('rounds the location to 3 decimals', function () {
@@ -384,7 +385,7 @@ describe('nearest stores', function () {
             ->assertSet('lat', null)
             ->assertSet('lng', null)
             ->assertSet('sort', 'terbaru')
-            ->assertDontSee('9,5 km');
+            ->assertDontSee('9,4 km');
     })->with([
         'latitude above 90' => [91, 106.8],
         'latitude below -90' => [-90.5, 106.8],
@@ -424,7 +425,7 @@ describe('nearest stores', function () {
         $this->get('/produk?urut=terdekat')
             ->assertOk()
             ->assertSeeInOrder(['Cumi Cirebon', 'Kepiting Muara'])
-            ->assertDontSee('200,0 km');
+            ->assertDontSee('200,1 km');
     });
 
     it('never reads the location from the URL', function () {
@@ -432,11 +433,11 @@ describe('nearest stores', function () {
             ->test('catalog')
             ->assertSet('lat', null)
             ->assertSet('lng', null)
-            ->assertDontSee('9,5 km');
+            ->assertDontSee('9,4 km');
 
         $this->get('/produk?lat=-6.1754&lng=106.8272&urut=terdekat')
             ->assertOk()
-            ->assertDontSee('9,5 km');
+            ->assertDontSee('9,4 km');
     });
 
     it('goes back to the first page when the location is set', function () {
