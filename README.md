@@ -76,6 +76,16 @@ php artisan storage:link    # foto produk disajikan dari storage/app/public
 composer run dev
 ```
 
+### Saran deskripsi AI (opsional)
+
+Penjual bisa meminta saran deskripsi produk dan ringkasan SEO dari Google Gemini. Tanpa kunci, fitur ini menjawab "tidak tersedia" dan aplikasi lain tetap berjalan normal.
+
+1. Buat API key di [Google AI Studio](https://aistudio.google.com/apikey), lalu isi `GEMINI_API_KEY` di `.env`. Model bisa diganti lewat `GEMINI_MODEL` (default `gemini-3.8-flash`). Bila model itu sedang overload (503), permintaan dikirim sekali ke model cadangan `GEMINI_FALLBACK_MODELS` (default `gemini-3.1-flash-lite`).
+2. Di Google Cloud Console, batasi kunci hanya untuk **Generative Language API**.
+3. Pakai kunci berbeda untuk lokal dan produksi, dan pasang kuota atau budget alert di project-nya.
+
+Di tier gratis Gemini, Google dapat memakai isi prompt untuk meningkatkan produknya. Tier gratis hanya untuk demo; produksi memakai tier berbayar. Prompt hanya berisi data produk dan nama serta kota toko, tanpa kontak, alamat, rekening, atau data pembeli.
+
 ## Kualitas kode
 
 Jalankan dari `backend/`:
