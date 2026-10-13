@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\StoreRole;
 use App\Enums\StoreStatus;
+use App\Support\MetaDescription;
 use Database\Factories\StoreFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -164,10 +166,37 @@ class Store extends Model
      */
     public function whatsappUrl(?string $message = null): string
     {
-        $digits = (string) preg_replace('/\D/', '', (string) $this->phone);
-        $number = str_starts_with($digits, '0') ? '62'.substr($digits, 1) : $digits;
+        return 'https://wa.me/'.ltrim($this->internationalPhone(), '+').($message === null ? '' : '?text='.rawurlencode($message));
+    }
 
-        return 'https://wa.me/'.$number.($message === null ? '' : '?text='.rawurlencode($message));
+    /**
+     * The phone in international form for `tel:` links and JSON-LD:
+     * `0812...` and `+62812...` both become `+62812...`.
+     */
+    public function internationalPhone(): string
+    {
+        $digits = (string) preg_replace('/\D/', '', (string) $this->phone);
+
+        return '+'.(str_starts_with($digits, '0') ? '62'.substr($digits, 1) : $digits);
+    }
+
+    /**
+     * Public URL of the logo, or null when the store has none.
+     */
+    public function logoUrl(): ?string
+    {
+        return filled($this->logo) ? Storage::disk('public')->url((string) $this->logo) : null;
+    }
+
+    /**
+     * The meta description for the store page: the store's description, or a
+     * sentence with its name and city when it has none.
+     */
+    public function metaDescription(): string
+    {
+        return filled($this->description)
+            ? MetaDescription::fromText((string) $this->description)
+            : "{$this->name} menjual hasil laut segar di {$this->city}.";
     }
 
     /**

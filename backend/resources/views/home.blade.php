@@ -28,7 +28,7 @@
             <ul class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($stores as $store)
                     <li>
-                        <a href="{{ url('/toko/'.$store->slug) }}" class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 hover:border-teal-600">
+                        <a href="{{ route('stores.show', $store->slug) }}" class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 hover:border-teal-600">
                             <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-teal-50 font-semibold text-teal-700" aria-hidden="true">{{ mb_strtoupper(mb_substr($store->name, 0, 1)) }}</span>
                             <span class="min-w-0">
                                 <span class="block truncate font-medium">{{ $store->name }}</span>
