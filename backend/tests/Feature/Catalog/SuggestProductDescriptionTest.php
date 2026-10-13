@@ -270,6 +270,7 @@ describe('unavailable', function () {
     });
 
     it('fails when the API answers with an error', function (int $status) {
+        config(['services.gemini.fallback_models' => []]);
         fakeGemini(Http::response(['error' => ['code' => $status, 'message' => 'API key '.GEMINI_TEST_KEY.' rejected']], $status));
 
         expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
