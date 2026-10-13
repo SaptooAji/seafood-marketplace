@@ -9,7 +9,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Store;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class HomeController extends Controller
 {
@@ -27,15 +26,7 @@ class HomeController extends Controller
     {
         $products = Product::query()
             ->visibleInCatalog()
-            ->with([
-                'store:id,name,slug,city',
-                'images' => fn (HasMany $images) => $images->limit(1),
-                'variants' => fn (HasMany $variants) => $variants
-                    ->where('is_active', true)
-                    ->reorder('price')
-                    ->orderBy('id')
-                    ->limit(1),
-            ])
+            ->withCardDetails()
             ->latest()
             ->latest('id')
             ->limit(self::LATEST_PRODUCTS)

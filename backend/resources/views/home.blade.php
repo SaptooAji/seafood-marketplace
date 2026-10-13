@@ -7,7 +7,7 @@
     <section class="mt-8" aria-labelledby="latest-products">
         <div class="flex items-baseline justify-between">
             <h2 id="latest-products" class="text-lg font-semibold">Produk terbaru</h2>
-            <a href="{{ url('/produk') }}" class="text-sm text-teal-700 hover:underline">Lihat semua</a>
+            <a href="{{ route('catalog') }}" class="text-sm text-teal-700 hover:underline">Lihat semua</a>
         </div>
 
         @if ($products->isEmpty())

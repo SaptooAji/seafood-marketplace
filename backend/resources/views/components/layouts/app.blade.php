@@ -7,6 +7,9 @@
     <title>{{ $fullTitle() }}</title>
     <meta name="description" content="{{ $metaDescription() }}">
     <link rel="canonical" href="{{ $canonicalUrl() }}">
+    @if ($noindex)
+        <meta name="robots" content="noindex, follow">
+    @endif
 
     <meta property="og:site_name" content="{{ config('app.name') }}">
     <meta property="og:locale" content="id_ID">
@@ -25,15 +28,15 @@
         <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
             <a href="{{ url('/') }}" class="text-lg font-semibold text-teal-700">{{ config('app.name') }}</a>
 
-            <form action="{{ url('/produk') }}" method="GET" role="search" class="order-last w-full sm:order-none sm:flex-1">
+            <form action="{{ route('catalog') }}" method="GET" role="search" class="order-last w-full sm:order-none sm:flex-1">
                 <label for="search" class="sr-only">Cari produk</label>
                 <input
                     id="search"
                     type="search"
                     name="q"
-                    value="{{ request()->string('q') }}"
+                    value="{{ $searchQuery() }}"
                     placeholder="Cari kepiting, cumi, tiram..."
-                    maxlength="100"
+                    maxlength="{{ \App\Livewire\Catalog::MAX_QUERY_LENGTH }}"
                     class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none"
                 >
             </form>
@@ -45,7 +48,7 @@
                 <ul class="mx-auto flex max-w-6xl gap-4 overflow-x-auto px-4 py-2 text-sm">
                     @foreach ($categories as $category)
                         <li>
-                            <a href="{{ url('/produk') }}?kategori={{ $category->slug }}" class="whitespace-nowrap text-slate-600 hover:text-teal-700">{{ $category->name }}</a>
+                            <a href="{{ route('catalog', ['kategori' => $category->slug]) }}" class="whitespace-nowrap text-slate-600 hover:text-teal-700">{{ $category->name }}</a>
                         </li>
                     @endforeach
                 </ul>
