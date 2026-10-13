@@ -49,4 +49,18 @@ return [
         ))),
     ],
 
+    // Optional: AI product description suggestions. Without a key the feature
+    // answers "unavailable". Keep separate, restricted keys for local and production.
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.8-flash'),
+        'timeout' => (int) env('GEMINI_TIMEOUT', 20),
+        // Tried once, in place of `model`, only when `model` answers 503 (overloaded).
+        // Comma-separated; only the first is used. Empty turns the fallback off.
+        'fallback_models' => array_values(array_filter(array_map('trim', explode(
+            ',',
+            (string) env('GEMINI_FALLBACK_MODELS', 'gemini-3.1-flash-lite'),
+        )))),
+    ],
+
 ];

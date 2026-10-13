@@ -128,13 +128,13 @@ Rincian di #118 dan #119.
 
 | Kode | Aturan | Status |
 | --- | --- | --- |
-| AI-1 | Kunci API hanya di server, dikirim lewat header (`x-goog-api-key`), dibatasi ke Generative Language API | ❌ #118 |
-| AI-2 | Prompt injection (LLM01): instruksi di `systemInstruction`; isian penjual dikirim sebagai blok data JSON terpisah | ❌ #118 |
-| AI-3 | Keluaran tidak dipercaya (LLM05): divalidasi skema dan panjang, HTML dibuang, dirender ter-escape | ❌ #118 |
-| AI-4 | Data minimal (LLM02): tanpa rekening, kontak, alamat, atau data pembeli | ❌ #118 |
+| AI-1 | Kunci API hanya di server, dikirim lewat header (`x-goog-api-key`), dibatasi ke Generative Language API | ✅ kode; pembatasan kunci di Google Cloud dijelaskan di README |
+| AI-2 | Prompt injection (LLM01): instruksi di `systemInstruction`; isian penjual dikirim sebagai blok data JSON terpisah | ✅ |
+| AI-3 | Keluaran tidak dipercaya (LLM05): divalidasi skema dan panjang, HTML dibuang, dirender ter-escape | ✅ action; render di #119 |
+| AI-4 | Data minimal (LLM02): tanpa rekening, kontak, alamat, atau data pembeli | ✅ |
 | AI-5 | Hasil AI hanya saran; tidak ada yang tersimpan tanpa tindakan penjual (LLM06) | ❌ #119 |
 | AI-6 | Kuota per toko, per pengguna, dan global (LLM10) | ❌ #119 |
-| AI-7 | Tier gratis Gemini hanya untuk demo; produksi memakai tier berbayar | ❌ README |
+| AI-7 | Tier gratis Gemini hanya untuk demo; produksi memakai tier berbayar | ✅ README |
 
 ## 11. Android (Tahap 4, MASVS dasar)
 
