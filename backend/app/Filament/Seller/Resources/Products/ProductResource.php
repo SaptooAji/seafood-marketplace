@@ -128,6 +128,7 @@ class ProductResource extends FilamentResource
             storageInstructions: filled($data['storage_instructions'] ?? null) ? (string) $data['storage_instructions'] : null,
             isActive: (bool) ($data['is_active'] ?? false),
             attributes: array_map(fn (mixed $value): ?string => filled($value) ? (string) $value : null, $attributes),
+            seoDescription: filled($data['seo_description'] ?? null) ? (string) $data['seo_description'] : null,
         );
     }
 

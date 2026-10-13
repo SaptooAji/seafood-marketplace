@@ -36,6 +36,7 @@ class SaveProduct
         $category = $this->leafCategory($data->categoryId);
         $values = $this->attributeValues($category, $data->attributes);
         $this->ensureSalesModeFields($data);
+        $seoDescription = $this->seoDescription($data->seoDescription);
         $this->check(
             'is_active',
             ! $this->turnsOnBlockedProduct($product, $data),
@@ -48,6 +49,7 @@ class SaveProduct
             'category_id' => $category->id,
             'name' => $data->name,
             'description' => $data->description,
+            'seo_description' => $seoDescription,
             'condition' => $data->condition,
             'sales_mode' => $data->salesMode,
             'daily_quota' => $preOrder ? $data->dailyQuota : null,
@@ -156,6 +158,20 @@ class SaveProduct
             AttributeType::Date => "{$attribute->name} harus tanggal dengan format YYYY-MM-DD.",
             AttributeType::Text => "{$attribute->name} maksimal 255 karakter.",
         };
+    }
+
+    /**
+     * The summary for search engines, trimmed; blank means "use the description".
+     *
+     * @throws InvalidProductData when it is longer than 160 characters
+     */
+    private function seoDescription(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        $this->check('seo_description', mb_strlen($value) <= Product::SEO_DESCRIPTION_MAX_LENGTH, 'Ringkasan SEO maksimal 160 karakter.');
+
+        return $value === '' ? null : $value;
     }
 
     /**

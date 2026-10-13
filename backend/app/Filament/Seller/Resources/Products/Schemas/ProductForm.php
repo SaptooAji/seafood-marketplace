@@ -54,6 +54,12 @@ class ProductForm
                             ->maxLength(5000)
                             ->rows(5)
                             ->columnSpanFull(),
+                        Textarea::make('seo_description')
+                            ->label('Ringkasan SEO')
+                            ->helperText('Tampil di hasil pencarian Google. Kosongkan untuk memakai awal deskripsi.')
+                            ->maxLength(Product::SEO_DESCRIPTION_MAX_LENGTH)
+                            ->rows(2)
+                            ->columnSpanFull(),
                         Select::make('condition')
                             ->label('Kondisi')
                             ->options(collect(ProductCondition::cases())->mapWithKeys(

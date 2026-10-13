@@ -11,6 +11,7 @@ use App\Enums\SalesMode;
  * The product details a seller fills in. `attributes` maps a category
  * attribute id to its value as text; an empty value means "not filled in".
  * Quantities are decimal strings so no precision is lost to floats.
+ * `seoDescription` comes last with a default so older callers keep working.
  */
 readonly class ProductData
 {
@@ -30,5 +31,6 @@ readonly class ProductData
         public ?string $storageInstructions,
         public bool $isActive,
         public array $attributes,
+        public ?string $seoDescription = null,
     ) {}
 }
