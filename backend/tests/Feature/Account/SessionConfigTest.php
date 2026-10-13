@@ -13,12 +13,27 @@ it('keeps the session cookie away from scripts and cross-site posts', function (
 });
 
 it('marks the session cookie secure when SESSION_SECURE_COOKIE is on', function (string $value, bool $secure) {
+    // env() reads $_SERVER and $_ENV before getenv(), and a .env copied from
+    // .env.example (as in CI) already sets this key there.
+    $original = [$_SERVER['SESSION_SECURE_COOKIE'] ?? null, $_ENV['SESSION_SECURE_COOKIE'] ?? null, getenv('SESSION_SECURE_COOKIE')];
+    $_SERVER['SESSION_SECURE_COOKIE'] = $_ENV['SESSION_SECURE_COOKIE'] = $value;
     putenv("SESSION_SECURE_COOKIE={$value}");
 
     try {
         $config = require config_path('session.php');
     } finally {
-        putenv('SESSION_SECURE_COOKIE');
+        [$server, $env, $process] = $original;
+        if ($server === null) {
+            unset($_SERVER['SESSION_SECURE_COOKIE']);
+        } else {
+            $_SERVER['SESSION_SECURE_COOKIE'] = $server;
+        }
+        if ($env === null) {
+            unset($_ENV['SESSION_SECURE_COOKIE']);
+        } else {
+            $_ENV['SESSION_SECURE_COOKIE'] = $env;
+        }
+        putenv($process === false ? 'SESSION_SECURE_COOKIE' : "SESSION_SECURE_COOKIE={$process}");
     }
 
     expect($config['secure'])->toBe($secure);
