@@ -72,6 +72,14 @@ describe('home page', function () {
             ->assertSee('value="&lt;script&gt;alert(1)&lt;/script&gt;"', escape: false)
             ->assertSee('<link rel="canonical" href="'.url('/').'">', escape: false);
     });
+
+    it('ignores a search query sent as an array or longer than 100 characters', function () {
+        $this->get('/?q[]=bakau')->assertOk()->assertSee('value=""', escape: false);
+
+        $this->get('/?q='.str_repeat('a', 300))
+            ->assertOk()
+            ->assertSee('value="'.str_repeat('a', 100).'"', escape: false);
+    });
 });
 
 describe('layout', function () {
