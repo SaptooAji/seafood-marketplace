@@ -7,16 +7,20 @@ namespace App\Actions;
 use App\Data\ProductData;
 use App\Data\ProductDescriptionSuggestion;
 use App\Enums\SalesMode;
+use App\Enums\StoreStatus;
 use App\Exceptions\InvalidProductData;
+use App\Exceptions\ProductDescriptionLimitReached;
 use App\Exceptions\ProductDescriptionUnavailable;
 use App\Models\Category;
 use App\Models\CategoryAttribute;
 use App\Models\Product;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use JsonException;
 use Throwable;
@@ -25,6 +29,9 @@ use Throwable;
  * Asks Google Gemini to write a product description and SEO summary from the
  * details a seller has filled in. The answer is only a suggestion the seller
  * reviews before saving, so it is treated as untrusted text.
+ *
+ * Every call costs money, so requests are limited per user, per store, and
+ * for the whole platform, and each call to Gemini is logged.
  */
 class SuggestProductDescription
 {
@@ -47,6 +54,21 @@ class SuggestProductDescription
     private const int ATTRIBUTE_MAX_LENGTH = 255;
 
     /**
+     * Requests a store may make per day. A store that is not verified yet
+     * gets fewer, because new accounts are cheap to make.
+     */
+    private const int ACTIVE_STORE_DAILY_LIMIT = 20;
+
+    private const int NEW_STORE_DAILY_LIMIT = 5;
+
+    /**
+     * Requests a user may make per minute, against repeated clicks.
+     */
+    private const int USER_PER_MINUTE_LIMIT = 3;
+
+    private const int DAY_IN_SECONDS = 86_400;
+
+    /**
      * Instructions live here only; seller text is sent separately as data.
      */
     private const string SYSTEM_INSTRUCTION = <<<'TEXT'
@@ -66,13 +88,16 @@ class SuggestProductDescription
         TEXT;
 
     /**
-     * Ask for a suggestion. Nothing is sent when the product has no name or
-     * category yet, or when the feature has no API key.
+     * Ask for a suggestion on behalf of the user. Nothing is sent, and no
+     * limit is used, when the product has no name or category yet or when
+     * the feature has no API key. Who may ask is the caller's check
+     * (`ProductPolicy::suggestDescription`).
      *
      * @throws InvalidProductData on `name` or `category_id`
+     * @throws ProductDescriptionLimitReached when a limit is used up
      * @throws ProductDescriptionUnavailable when no usable suggestion can be made
      */
-    public function handle(Store $store, ProductData $data): ProductDescriptionSuggestion
+    public function handle(Store $store, User $user, ProductData $data): ProductDescriptionSuggestion
     {
         if (trim($data->name) === '') {
             throw new InvalidProductData('name', 'Isi nama produk sebelum meminta saran deskripsi.');
@@ -90,9 +115,61 @@ class SuggestProductDescription
             throw new ProductDescriptionUnavailable;
         }
 
+        $this->reserve($store, $user);
+
         [$response, $model] = $this->send($store, $key, $this->productFacts($store, $category, $data));
 
         return $this->suggestionFrom($store, $model, $response);
+    }
+
+    /**
+     * Take one request from the user's per-minute limit and the store's daily
+     * quota, after checking those and the platform's daily limit. Nothing is
+     * taken when a limit is used up. A request is counted before the call, so
+     * a failed call still counts and repeated failures cannot get around it.
+     *
+     * @throws ProductDescriptionLimitReached
+     */
+    private function reserve(Store $store, User $user): void
+    {
+        $userKey = 'product-description:user:'.$user->id;
+        $storeKey = 'product-description:store:'.$store->id.':'.today()->toDateString();
+        $storeLimit = $store->status === StoreStatus::Active ? self::ACTIVE_STORE_DAILY_LIMIT : self::NEW_STORE_DAILY_LIMIT;
+
+        if (RateLimiter::tooManyAttempts($userKey, self::USER_PER_MINUTE_LIMIT)) {
+            throw ProductDescriptionLimitReached::tooFrequent(RateLimiter::availableIn($userKey));
+        }
+
+        if (RateLimiter::tooManyAttempts($storeKey, $storeLimit)) {
+            throw ProductDescriptionLimitReached::storeQuotaUsed($this->secondsUntilTomorrow());
+        }
+
+        if ($this->dailyLimitReached()) {
+            throw ProductDescriptionLimitReached::dailyLimitReached($this->secondsUntilTomorrow());
+        }
+
+        RateLimiter::hit($userKey, 60);
+        RateLimiter::hit($storeKey, self::DAY_IN_SECONDS);
+    }
+
+    /**
+     * The platform's daily limit counts calls to Gemini, not requests, so a
+     * request that falls back to the second model uses two. That keeps a
+     * fixed ceiling on what a day can cost.
+     */
+    private function dailyLimitReached(): bool
+    {
+        return RateLimiter::tooManyAttempts($this->dailyCallsKey(), config()->integer('services.gemini.daily_limit', 500));
+    }
+
+    private function dailyCallsKey(): string
+    {
+        return 'product-description:calls:'.today()->toDateString();
+    }
+
+    private function secondsUntilTomorrow(): int
+    {
+        return max(1, (int) ceil(now()->diffInSeconds(today()->addDay())));
     }
 
     /**
@@ -172,7 +249,8 @@ class SuggestProductDescription
 
     /**
      * Send the request to the main model. Only when it is overloaded (503) is
-     * the same request sent once to the first fallback model. Timeouts, quota
+     * the same request sent once to the first fallback model, and only while
+     * the platform's daily limit has room for another call. Timeouts, quota
      * errors (429), and other failures are not retried, so one suggestion
      * never costs more than two calls or waits for more than one timeout.
      *
@@ -192,6 +270,13 @@ class SuggestProductDescription
         }
 
         foreach ($models as $attempt => $model) {
+            // The first call was checked with the other limits in reserve().
+            if ($attempt > 0 && $this->dailyLimitReached()) {
+                $this->fail($store, 'daily_limit', $model);
+            }
+
+            RateLimiter::hit($this->dailyCallsKey(), self::DAY_IN_SECONDS);
+
             try {
                 // The key goes in a header: a `?key=` URL would end up in logs and error reports.
                 $response = Http::withHeaders(['x-goog-api-key' => $key])
@@ -199,8 +284,11 @@ class SuggestProductDescription
                     ->acceptJson()
                     ->post(sprintf(self::ENDPOINT, $model), $payload);
             } catch (ConnectionException $e) {
+                $this->logCall($store, $model, null);
                 $this->fail($store, 'connection', $model, previous: $e);
             }
+
+            $this->logCall($store, $model, $response->status());
 
             if ($response->status() === 503 && $attempt < count($models) - 1) {
                 $this->log($store, 'overloaded_fallback', $model, 503);
@@ -301,6 +389,19 @@ class SuggestProductDescription
         $this->log($store, $reason, $model, $status);
 
         throw new ProductDescriptionUnavailable($previous);
+    }
+
+    /**
+     * Log one call to Gemini, so the calls of a day can be counted and
+     * compared with the bill. Without the prompt, the answer, or the key.
+     */
+    private function logCall(Store $store, string $model, ?int $status): void
+    {
+        Log::info('AI product description call.', [
+            'store_id' => $store->id,
+            'model' => $model,
+            'status' => $status,
+        ]);
     }
 
     /**

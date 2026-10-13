@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Enums\StoreStatus;
 use App\Models\Product;
 use App\Models\Store;
 use App\Models\User;
@@ -40,6 +41,16 @@ class ProductPolicy
     public function create(User $user, Store $store): bool
     {
         return $user->roleIn($store) !== null;
+    }
+
+    /**
+     * Members may ask for an AI description suggestion while writing a
+     * product, also before the store is verified, but not while it is
+     * suspended: a suspended store cannot sell.
+     */
+    public function suggestDescription(User $user, Store $store): bool
+    {
+        return $store->status !== StoreStatus::Suspended && $user->roleIn($store) !== null;
     }
 
     public function update(User $user, Product $product): bool

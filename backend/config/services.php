@@ -61,6 +61,8 @@ return [
             ',',
             (string) env('GEMINI_FALLBACK_MODELS', 'gemini-3.1-flash-lite'),
         )))),
+        // Calls to Gemini per day for the whole platform, as a ceiling on the bill.
+        'daily_limit' => (int) env('GEMINI_DAILY_LIMIT', 500),
     ],
 
 ];
