@@ -50,6 +50,7 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
+            'seo_description' => $this->seo_description,
             'condition' => [
                 'value' => $this->condition->value,
                 'label' => $this->condition->label(),

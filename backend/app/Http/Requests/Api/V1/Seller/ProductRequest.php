@@ -9,6 +9,7 @@ use App\Data\VariantData;
 use App\Enums\ProductCondition;
 use App\Enums\SalesMode;
 use App\Enums\Unit;
+use App\Models\Product;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -57,6 +58,7 @@ class ProductRequest extends FormRequest
             'category_id' => ['required', 'integer'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
+            'seo_description' => ['nullable', 'string', 'max:'.Product::SEO_DESCRIPTION_MAX_LENGTH],
             'condition' => ['required', Rule::enum(ProductCondition::class)],
             'sales_mode' => ['required', Rule::enum(SalesMode::class)],
             // Bounds keep values inside the decimal(10,3) and small integer columns.
@@ -108,6 +110,7 @@ class ProductRequest extends FormRequest
             storageInstructions: $this->filled('storage_instructions') ? $this->string('storage_instructions')->toString() : null,
             isActive: $this->boolean('is_active', true),
             attributes: $attributes,
+            seoDescription: $this->filled('seo_description') ? $this->string('seo_description')->toString() : null,
         );
     }
 

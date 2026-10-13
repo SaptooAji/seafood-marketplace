@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -28,18 +29,26 @@ use Spatie\Activitylog\Support\LogOptions;
  *
  * @property ProductCondition $condition
  * @property SalesMode $sales_mode
+ * @property string|null $seo_description
  * @property string|null $daily_quota
  * @property bool $is_active
  * @property Carbon|null $blocked_at
  */
 #[Fillable([
-    'category_id', 'name', 'slug', 'description', 'condition', 'sales_mode', 'daily_quota',
+    'category_id', 'name', 'slug', 'description', 'seo_description', 'condition', 'sales_mode', 'daily_quota',
     'lead_time_days', 'cutoff_time', 'shelf_life_days', 'storage_instructions', 'is_active',
 ])]
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
+
+    public const int SEO_DESCRIPTION_MAX_LENGTH = 160;
+
+    /**
+     * Search engines show about this many characters of a meta description.
+     */
+    public const int META_DESCRIPTION_LENGTH = 155;
 
     /**
      * Log the seller's name and active switch and the admin's block, only the
@@ -85,6 +94,21 @@ class Product extends Model
             ->whereNull('blocked_at')
             ->whereHas('store', fn (Builder $store) => $store->where('status', StoreStatus::Active->value))
             ->whereHas('variants', fn (Builder $variant) => $variant->where('is_active', true));
+    }
+
+    /**
+     * The meta description for the product page: the seller's SEO summary, or
+     * else the description on one line, cut at a word to fit with an ellipsis.
+     */
+    public function metaDescription(): string
+    {
+        if (filled($this->seo_description)) {
+            return (string) $this->seo_description;
+        }
+
+        $description = Str::squish((string) $this->description);
+
+        return Str::limit($description, self::META_DESCRIPTION_LENGTH - 1, '…', preserveWords: true);
     }
 
     /**
