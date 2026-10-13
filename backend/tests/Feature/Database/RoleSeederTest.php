@@ -20,3 +20,11 @@ it('can run more than once without duplicating roles', function () {
 
     expect(Role::query()->count())->toBe(count(PlatformRole::cases()));
 });
+
+it('lets only the super admin manage roles', function () {
+    $this->seed(RoleSeeder::class);
+    $roleAbilities = ['ViewAny:Role', 'View:Role', 'Create:Role', 'Update:Role', 'Delete:Role'];
+
+    expect(Role::findByName(PlatformRole::SuperAdmin->value)->hasAllPermissions($roleAbilities))->toBeTrue()
+        ->and(Role::findByName(PlatformRole::Admin->value)->hasAnyPermission($roleAbilities))->toBeFalse();
+});
