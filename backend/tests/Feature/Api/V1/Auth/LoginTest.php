@@ -83,3 +83,18 @@ it('limits login attempts per email, not for every email on the same IP', functi
     $this->postJson('/api/v1/auth/login', loginPayload(['email' => 'lain@mail.com']))
         ->assertUnprocessable();
 });
+
+it('answers an unknown email, a wrong password, and a Google user without a password identically', function () {
+    User::factory()->withoutPassword()->create(['email' => 'sari@gmail.com']);
+
+    $responses = collect([
+        'unknown email' => loginPayload(['email' => 'tidakada@mail.com']),
+        'wrong password' => loginPayload(['password' => 'salah12345']),
+        'Google user without a password' => loginPayload(['email' => 'sari@gmail.com', 'password' => 'apasaja123']),
+    ])->map(fn (array $payload) => $this->postJson('/api/v1/auth/login', $payload));
+
+    $responses->each(fn ($response) => $response->assertUnprocessable());
+
+    expect($responses->map(fn ($response) => $response->json())->unique()->all())->toHaveCount(1)
+        ->and($responses['unknown email']->json('errors.email.0'))->toBe(__('auth.failed'));
+});
