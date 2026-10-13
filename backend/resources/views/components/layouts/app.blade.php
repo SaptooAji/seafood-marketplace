@@ -13,10 +13,13 @@
 
     <meta property="og:site_name" content="{{ config('app.name') }}">
     <meta property="og:locale" content="id_ID">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{{ $ogType }}">
     <meta property="og:title" content="{{ $fullTitle() }}">
     <meta property="og:description" content="{{ $metaDescription() }}">
     <meta property="og:url" content="{{ $canonicalUrl() }}">
+    @if ($image)
+        <meta property="og:image" content="{{ $image }}">
+    @endif
 
     @stack('head')
 

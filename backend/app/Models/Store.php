@@ -158,6 +158,19 @@ class Store extends Model
     }
 
     /**
+     * A WhatsApp chat link to the store's phone, in the international form
+     * wa.me expects (`0812...` and `+62812...` both become `62812...`), with an
+     * optional prefilled message.
+     */
+    public function whatsappUrl(?string $message = null): string
+    {
+        $digits = (string) preg_replace('/\D/', '', (string) $this->phone);
+        $number = str_starts_with($digits, '0') ? '62'.substr($digits, 1) : $digits;
+
+        return 'https://wa.me/'.$number.($message === null ? '' : '?text='.rawurlencode($message));
+    }
+
+    /**
      * A Google Maps link to the store's coordinates.
      */
     public function googleMapsUrl(): string
