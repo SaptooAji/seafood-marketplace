@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Support\Sleep;
+use Illuminate\Support\Timebox;
 
 /**
  * @param  array<string, mixed>  $overrides  Use null to drop a field from the payload.
@@ -97,4 +99,53 @@ it('answers an unknown email, a wrong password, and a Google user without a pass
 
     expect($responses->map(fn ($response) => $response->json())->unique()->all())->toHaveCount(1)
         ->and($responses['unknown email']->json('errors.email.0'))->toBe(__('auth.failed'));
+});
+
+/**
+ * Swap in a Timebox that records the minimum duration it was given. Sleep is
+ * faked, so the test does not wait.
+ */
+function recordingTimebox(): Timebox
+{
+    Sleep::fake();
+
+    $timebox = new class extends Timebox
+    {
+        public ?int $microseconds = null;
+
+        public function call(callable $callback, int $microseconds)
+        {
+            $this->microseconds = $microseconds;
+
+            return parent::call($callback, $microseconds);
+        }
+    };
+
+    app()->instance(Timebox::class, $timebox);
+
+    return $timebox;
+}
+
+it('pads every failed sign-in to the same minimum time', function (Closure $payload) {
+    User::factory()->withoutPassword()->create(['email' => 'sari@gmail.com']);
+    $timebox = recordingTimebox();
+
+    $this->postJson('/api/v1/auth/login', $payload())->assertUnprocessable();
+
+    expect($timebox->microseconds)->toBeGreaterThanOrEqual(400_000)
+        ->and($timebox->earlyReturn)->toBeFalse();
+    Sleep::assertSleptTimes(1);
+})->with([
+    'unknown email' => [fn () => loginPayload(['email' => 'tidakada@mail.com'])],
+    'wrong password' => [fn () => loginPayload(['password' => 'salah12345'])],
+    'Google user without a password' => [fn () => loginPayload(['email' => 'sari@gmail.com', 'password' => 'apasaja123'])],
+]);
+
+it('does not delay a successful sign-in', function () {
+    $timebox = recordingTimebox();
+
+    $this->postJson('/api/v1/auth/login', loginPayload())->assertOk();
+
+    expect($timebox->earlyReturn)->toBeTrue();
+    Sleep::assertNeverSlept();
 });
