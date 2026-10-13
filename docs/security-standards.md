@@ -31,7 +31,7 @@ Aturan ⚠️ dan ❌ menjadi bahan audit Tahap 1–3. Status diperbarui di PR y
 | --- | --- | --- |
 | AUTH-1 | Login email + password dibatasi per kombinasi email dan IP (`throttle:login`); register dan login Google dibatasi per IP | ✅ |
 | AUTH-2 | Password minimal 8 karakter, di-hash bcrypt (cast `hashed`), tidak pernah tampil di respons atau log | ✅ |
-| AUTH-3 | Pesan gagal login sama untuk email tidak terdaftar, password salah, dan akun Google tanpa password | ⚠️ kasus email tidak terdaftar belum dites |
+| AUTH-3 | Pesan gagal login sama untuk email tidak terdaftar, password salah, dan akun Google tanpa password | ✅ API dan panel `/admin`, `/seller` (termasuk akun tanpa akses panel), dites (#143) |
 | AUTH-4 | Token Google diverifikasi: `aud` termasuk client id yang diizinkan, `iss` Google, belum kedaluwarsa, email terverifikasi | ✅ |
 | AUTH-5 | Password dicek terhadap daftar password bocor (`Password::uncompromised()`) | ❌ |
 | AUTH-6 | Pembeli web hanya login dengan Google; tidak ada form password di web pembeli | ✅ |
@@ -43,8 +43,8 @@ Aturan ⚠️ dan ❌ menjadi bahan audit Tahap 1–3. Status diperbarui di PR y
 | SES-1 | Token Sanctum punya masa berlaku (`sanctum.expiration`) dan prefix untuk secret scanning (`SANCTUM_TOKEN_PREFIX`) | ❌ keduanya kosong |
 | SES-2 | Logout mencabut token yang sedang dipakai saja; token perangkat lain tetap | ✅ |
 | SES-3 | Token diberi nama perangkat, sehingga bisa dicabut per perangkat | ✅ |
-| SES-4 | Cookie sesi web: `http_only`, `same_site=lax`, `secure` di produksi | ⚠️ `secure` belum diatur untuk produksi |
-| SES-5 | Sesi web diregenerasi setelah login (mencegah session fixation); `Auth::login` melakukannya | ⚠️ belum dites |
+| SES-4 | Cookie sesi web: `http_only`, `same_site=lax`, `secure` di produksi | ✅ `secure` dari `SESSION_SECURE_COOKIE` (tercantum di `.env.example`, wajib `true` di produksi, lihat CONF-4), dites (#143) |
+| SES-5 | Sesi web diregenerasi setelah login (mencegah session fixation); `Auth::login` melakukannya | ✅ dites di login Google web (#143) |
 
 ## 3. Kontrol akses (ASVS V4, API1, API3, API5)
 
