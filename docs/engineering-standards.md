@@ -124,7 +124,8 @@ android/app/src/main/java/.../
 - Branch selalu dibuat dari `main` terbaru; tidak ada commit langsung ke `main`. Sinkronkan dengan `git merge main`, bukan rebase, setelah branch di-push. Branch dihapus setelah di-merge.
 - Commit mengikuti **Conventional Commits** (`feat(stock): add daily stock confirmation`).
 - Satu PR = satu fitur kecil yang bisa direview; CI wajib hijau sebelum merge; merge dengan **Squash and merge** agar satu PR menjadi satu commit Conventional di `main`.
-- CI (GitHub Actions): backend (Pint, Larastan, Pest paralel dengan service PostgreSQL) dan android (ktlint, detekt, unit test, build APK debug).
+- CI (GitHub Actions): backend (`composer audit`, `npm audit`, Pint, Larastan, Pest paralel dengan service PostgreSQL) dan android (ktlint, detekt, unit test, build APK debug). Audit hanya di CI, tidak di hook pre-push. Token workflow hanya `contents: read`.
+- Dependabot (`.github/dependabot.yml`) membuka PR mingguan `chore(deps): ...` untuk composer, npm, dan GitHub Actions; update minor dan patch digabung dalam satu PR per ekosistem. PR ini direview dan di-merge seperti PR lain setelah CI hijau.
 - Semua job ada di satu workflow `.github/workflows/ci.yml`. Job `changes` mendeteksi area yang berubah (`backend/`, `android/`); job area hanya jalan bila areanya berubah, dan perubahan pada `ci.yml` menjalankan semuanya. Job `CI` adalah satu-satunya status check wajib di ruleset `main`; job yang dilewati dihitung lolos. Job baru cukup ditambahkan ke `needs` job `CI`, tanpa mengubah ruleset.
 - Rahasia tidak pernah masuk repository: `.env` dan `google-services.json` di `.gitignore`, contoh di `.env.example`.
 

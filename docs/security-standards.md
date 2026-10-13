@@ -99,7 +99,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | --- | --- | --- |
 | CONF-1 | Rahasia hanya di `.env` (di-ignore git); `.env.example` berisi nama variabel dengan nilai kosong | ✅ |
 | CONF-2 | Rahasia tidak pernah di URL, log, pesan exception, fixture test, atau aplikasi Android | ⚠️ ID token Google dikirim sebagai query `tokeninfo` (bentuk resmi endpoint itu); pastikan URL-nya tidak ikut tercatat saat gagal |
-| CONF-3 | Secret scanning dan push protection GitHub aktif | ❌ #123 |
+| CONF-3 | Secret scanning dan push protection GitHub aktif | ⚠️ diaktifkan pemilik repo di Settings → Code security (#123) |
 | CONF-4 | Produksi: `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL` minimal `warning`, HTTPS dengan HSTS, `SESSION_SECURE_COOKIE=true` | ❌ Tahap 7 |
 | CONF-5 | Header keamanan web: `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options` (kecuali yang dibutuhkan), CSP di Tahap 7 | ❌ |
 | CONF-6 | CORS tidak dibuka untuk API karena Android tidak memakai browser; bila dibutuhkan, origin dibatasi eksplisit | ✅ tidak ada `config/cors.php` |
@@ -109,8 +109,8 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 
 | Kode | Aturan | Status |
 | --- | --- | --- |
-| DEP-1 | `composer audit` dan `npm audit` di CI | ❌ #123 |
-| DEP-2 | Dependabot untuk composer, npm, dan GitHub Actions | ❌ #123 |
+| DEP-1 | `composer audit` dan `npm audit` di CI | ✅ job Backend: `composer audit --locked` (gagal pada advisory apa pun) dan `npm audit --audit-level=high`; pengecualian hanya lewat `config.audit.ignore` dengan alasan dan tanggal tinjau ulang |
+| DEP-2 | Dependabot untuk composer, npm, dan GitHub Actions | ✅ `.github/dependabot.yml`, mingguan; alerts dan security updates diaktifkan di Settings |
 | DEP-3 | Package baru butuh persetujuan pemilik repo; dicek reputasi, perawatan, dan lisensinya | ✅ |
 | DEP-4 | Memanggil API pihak ketiga dengan `Http` dan timeout; respons divalidasi, bukan dipercaya | ✅ |
 
