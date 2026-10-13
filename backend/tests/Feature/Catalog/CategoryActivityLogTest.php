@@ -70,7 +70,7 @@ it('records the creation and deletion of a category', function () {
 
     $category->delete();
 
-    expect(Activity::query()->where('subject_type', $category->getMorphClass())->where('subject_id', $id)->pluck('event')->all())
+    expect(Activity::query()->where('subject_type', $category->getMorphClass())->where('subject_id', $id)->orderBy('id')->pluck('event')->all())
         ->toBe(['created', 'deleted']);
 });
 
