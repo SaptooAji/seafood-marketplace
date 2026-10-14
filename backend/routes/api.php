@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Seller\ProductVariantController;
 use App\Http\Controllers\Api\V1\Seller\ShippingMethodController;
 use App\Http\Controllers\Api\V1\Seller\StockMovementController;
 use App\Http\Controllers\Api\V1\Seller\StoreController;
+use App\Http\Middleware\EnsureStoreIsNotSuspended;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,44 +32,49 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     Route::post('seller/store', [StoreController::class, 'store'])->name('api.seller.store.store');
     Route::get('seller/store', [StoreController::class, 'show'])->name('api.seller.store.show');
-    Route::put('seller/store', [StoreController::class, 'update'])->name('api.seller.store.update');
 
-    Route::get('seller/stock/today', [DailyStockController::class, 'index'])->name('api.seller.stock.today');
-    Route::post('seller/stock/confirm', [DailyStockController::class, 'confirm'])->name('api.seller.stock.confirm');
+    // Every other seller route refuses a suspended store (AC-7). Seeing the
+    // store stays open, so the app can show the seller why.
+    Route::middleware(EnsureStoreIsNotSuspended::class)->group(function () {
+        Route::put('seller/store', [StoreController::class, 'update'])->name('api.seller.store.update');
 
-    Route::get('seller/shipping-methods', [ShippingMethodController::class, 'index'])->name('api.seller.shipping-methods.index');
-    Route::post('seller/shipping-methods', [ShippingMethodController::class, 'store'])->name('api.seller.shipping-methods.store');
-    Route::put('seller/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])
-        ->whereNumber('shippingMethod')
-        ->name('api.seller.shipping-methods.update');
+        Route::get('seller/stock/today', [DailyStockController::class, 'index'])->name('api.seller.stock.today');
+        Route::post('seller/stock/confirm', [DailyStockController::class, 'confirm'])->name('api.seller.stock.confirm');
 
-    Route::post('seller/products/description-suggestion', ProductDescriptionSuggestionController::class)
-        ->name('api.seller.products.description-suggestion');
+        Route::get('seller/shipping-methods', [ShippingMethodController::class, 'index'])->name('api.seller.shipping-methods.index');
+        Route::post('seller/shipping-methods', [ShippingMethodController::class, 'store'])->name('api.seller.shipping-methods.store');
+        Route::put('seller/shipping-methods/{shippingMethod}', [ShippingMethodController::class, 'update'])
+            ->whereNumber('shippingMethod')
+            ->name('api.seller.shipping-methods.update');
 
-    Route::apiResource('seller/products', ProductController::class)
-        ->names('api.seller.products')
-        ->whereNumber('product');
+        Route::post('seller/products/description-suggestion', ProductDescriptionSuggestionController::class)
+            ->name('api.seller.products.description-suggestion');
 
-    Route::post('seller/products/{product}/images', [ProductImageController::class, 'store'])
-        ->whereNumber('product')
-        ->name('api.seller.products.images.store');
-    Route::put('seller/products/{product}/images/order', [ProductImageController::class, 'reorder'])
-        ->whereNumber('product')
-        ->name('api.seller.products.images.reorder');
-    Route::delete('seller/products/{product}/images/{image}', [ProductImageController::class, 'destroy'])
-        ->whereNumber(['product', 'image'])
-        ->name('api.seller.products.images.destroy');
+        Route::apiResource('seller/products', ProductController::class)
+            ->names('api.seller.products')
+            ->whereNumber('product');
 
-    Route::post('seller/products/{product}/variants', [ProductVariantController::class, 'store'])
-        ->whereNumber('product')
-        ->name('api.seller.products.variants.store');
-    Route::put('seller/variants/{variant}', [ProductVariantController::class, 'update'])
-        ->whereNumber('variant')
-        ->name('api.seller.variants.update');
-    Route::delete('seller/variants/{variant}', [ProductVariantController::class, 'destroy'])
-        ->whereNumber('variant')
-        ->name('api.seller.variants.destroy');
+        Route::post('seller/products/{product}/images', [ProductImageController::class, 'store'])
+            ->whereNumber('product')
+            ->name('api.seller.products.images.store');
+        Route::put('seller/products/{product}/images/order', [ProductImageController::class, 'reorder'])
+            ->whereNumber('product')
+            ->name('api.seller.products.images.reorder');
+        Route::delete('seller/products/{product}/images/{image}', [ProductImageController::class, 'destroy'])
+            ->whereNumber(['product', 'image'])
+            ->name('api.seller.products.images.destroy');
 
-    Route::get('seller/stock-movements', [StockMovementController::class, 'index'])->name('api.seller.stock-movements.index');
-    Route::post('seller/stock-movements', [StockMovementController::class, 'store'])->name('api.seller.stock-movements.store');
+        Route::post('seller/products/{product}/variants', [ProductVariantController::class, 'store'])
+            ->whereNumber('product')
+            ->name('api.seller.products.variants.store');
+        Route::put('seller/variants/{variant}', [ProductVariantController::class, 'update'])
+            ->whereNumber('variant')
+            ->name('api.seller.variants.update');
+        Route::delete('seller/variants/{variant}', [ProductVariantController::class, 'destroy'])
+            ->whereNumber('variant')
+            ->name('api.seller.variants.destroy');
+
+        Route::get('seller/stock-movements', [StockMovementController::class, 'index'])->name('api.seller.stock-movements.index');
+        Route::post('seller/stock-movements', [StockMovementController::class, 'store'])->name('api.seller.stock-movements.store');
+    });
 });
