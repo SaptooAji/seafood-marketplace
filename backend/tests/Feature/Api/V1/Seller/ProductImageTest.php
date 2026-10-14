@@ -125,6 +125,26 @@ describe('POST /seller/products/{id}/images', function () {
             ->and(Storage::disk('public')->allFiles())->toHaveCount(16);
     });
 
+    it('refuses the eleventh photo in a minute with 429 and stores nothing', function () {
+        config(['catalog.max_photos' => 100]);
+
+        foreach (range(1, 10) as $_) {
+            $this->post(productImagesUrl($this->product), [
+                'photo' => UploadedFile::fake()->image('tuna.jpg', 64, 48),
+            ], ['Accept' => 'application/json'])->assertCreated();
+        }
+
+        $this->post(productImagesUrl($this->product), [
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 64, 48),
+        ], ['Accept' => 'application/json'])
+            ->assertTooManyRequests()
+            ->assertHeader('Retry-After')
+            ->assertJsonPath('message', 'Terlalu sering mengunggah foto. Tunggu sebentar lalu coba lagi.');
+
+        expect($this->product->images()->count())->toBe(10)
+            ->and(Storage::disk('public')->allFiles())->toHaveCount(20);
+    });
+
     it('returns 404 for a product of another store', function () {
         $other = Product::factory()->create();
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\AddProductImage;
 use App\Enums\AttributeType;
 use App\Enums\StockMovementType;
 use App\Enums\StoreRole;
@@ -468,6 +469,22 @@ describe('photos', function () {
             ->assertHasActionErrors(['photo']);
 
         expect($this->product->images()->count())->toBe(8);
+    });
+
+    it('shows the upload limit on the photo field and stores nothing', function () {
+        config(['catalog.max_photos' => 100]);
+        foreach (range(1, 10) as $_) {
+            app(AddProductImage::class)->handle($this->product, UploadedFile::fake()->image('tuna.jpg', 64, 48), $this->user);
+        }
+
+        Livewire::test(ImagesRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
+            ->callAction(TestAction::make('create')->table(), data: [
+                'photo' => UploadedFile::fake()->image('tuna.jpg', 64, 48),
+            ])
+            ->assertHasActionErrors(['photo']);
+
+        expect($this->product->images()->count())->toBe(10)
+            ->and(Storage::disk('public')->allFiles('products'))->toHaveCount(20);
     });
 
     it('deletes a photo with its files and moves the later photos up', function () {

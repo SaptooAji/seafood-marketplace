@@ -9,8 +9,10 @@ use App\Actions\RemoveProductImage;
 use App\Actions\ReorderProductImages;
 use App\Exceptions\InvalidProductData;
 use App\Exceptions\InvalidProductPhoto;
+use App\Exceptions\ProductPhotoLimitReached;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\User;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\FileUpload;
@@ -72,9 +74,12 @@ class ImagesRelationManager extends RelationManager
                         /** @var UploadedFile $photo */
                         $photo = $data['photo'];
 
+                        /** @var User $user */
+                        $user = auth()->user();
+
                         try {
-                            return app(AddProductImage::class)->handle($product, $photo);
-                        } catch (InvalidProductData|InvalidProductPhoto $e) {
+                            return app(AddProductImage::class)->handle($product, $photo, $user);
+                        } catch (InvalidProductData|InvalidProductPhoto|ProductPhotoLimitReached $e) {
                             throw ValidationException::withMessages([
                                 "mountedActions.{$action->getNestingIndex()}.data.photo" => $e->getMessage(),
                             ]);

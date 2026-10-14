@@ -8,8 +8,10 @@ use App\Actions\RemoveProductImage;
 use App\Actions\ReorderProductImages;
 use App\Exceptions\InvalidProductData;
 use App\Exceptions\InvalidProductPhoto;
+use App\Exceptions\ProductPhotoLimitReached;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -18,11 +20,12 @@ beforeEach(function () {
     Storage::fake('public');
 
     $this->product = Product::factory()->create();
+    $this->uploader = User::factory()->create();
 });
 
-function addPhoto(?Product $product = null, string $name = 'tuna.jpg'): ProductImage
+function addPhoto(?Product $product = null, string $name = 'tuna.jpg', ?User $by = null): ProductImage
 {
-    return app(AddProductImage::class)->handle($product ?? test()->product, UploadedFile::fake()->image($name, 640, 480));
+    return app(AddProductImage::class)->handle($product ?? test()->product, UploadedFile::fake()->image($name, 640, 480), $by ?? test()->uploader);
 }
 
 /**
@@ -80,12 +83,109 @@ describe('adding', function () {
     it('writes nothing for a file that is not an image', function () {
         $file = UploadedFile::fake()->createWithContent('katalog.pdf', '%PDF-1.4 not an image');
 
-        expect(fn () => app(AddProductImage::class)->handle($this->product, $file))
+        expect(fn () => app(AddProductImage::class)->handle($this->product, $file, $this->uploader))
             ->toThrow(InvalidProductPhoto::class);
 
         expect(ProductImage::query()->count())->toBe(0)
             ->and(Storage::disk('public')->allFiles())->toBe([]);
     });
+});
+
+/*
+ * RATE-3: resizing a photo is expensive, so uploads are limited per user
+ * (10 a minute) and per store (200 a day, shared by its members), for the
+ * API and the panel alike. Only a stored photo counts.
+ */
+describe('limits', function () {
+    beforeEach(function () {
+        $this->travelTo(now()->setTime(0, 10));
+        config(['catalog.max_photos' => 1000]);
+    });
+
+    it('accepts ten photos from one user in a minute and refuses the eleventh', function () {
+        foreach (range(1, 10) as $_) {
+            addPhoto();
+        }
+
+        expect(fn () => addPhoto())->toThrow(function (ProductPhotoLimitReached $e) {
+            expect($e->getStatusCode())->toBe(429)
+                ->and($e->getHeaders()['Retry-After'])->toBeBetween(1, 60);
+        });
+
+        expect($this->product->images()->count())->toBe(10)
+            ->and(Storage::disk('public')->allFiles())->toHaveCount(20);
+    });
+
+    it('counts each user on their own', function () {
+        foreach (range(1, 10) as $_) {
+            addPhoto();
+        }
+
+        expect(addPhoto(by: User::factory()->create())->sort_order)->toBe(11);
+    });
+
+    it('allows the user again after a minute', function () {
+        foreach (range(1, 10) as $_) {
+            addPhoto();
+        }
+
+        $this->travel(61)->seconds();
+
+        expect(addPhoto()->sort_order)->toBe(11);
+    });
+
+    it('shares 200 photos a day between the members of a store', function () {
+        $owner = $this->uploader;
+        $staff = User::factory()->create();
+
+        foreach (range(1, 200) as $i) {
+            app(AddProductImage::class)->handle($this->product, UploadedFile::fake()->image('kecil.jpg', 8, 8), $i % 2 === 0 ? $owner : $staff);
+
+            if ($i % 20 === 0) {
+                $this->travel(1)->minutes();
+            }
+        }
+
+        expect(fn () => addPhoto(by: User::factory()->create()))->toThrow(ProductPhotoLimitReached::class);
+        expect($this->product->images()->count())->toBe(200);
+
+        // Another store has its own quota, and the next day starts a new one.
+        expect(addPhoto(Product::factory()->create(), by: User::factory()->create()))->toBeInstanceOf(ProductImage::class);
+
+        $this->travelTo(now()->addDay()->startOfDay());
+        expect(addPhoto(by: User::factory()->create()))->toBeInstanceOf(ProductImage::class);
+    });
+
+    it('does not count an upload that is refused', function (Closure $refused, string $exception) {
+        foreach (range(1, 10) as $_) {
+            expect($refused)->toThrow($exception);
+        }
+
+        foreach (range(1, 10) as $_) {
+            addPhoto();
+        }
+
+        expect($this->product->images()->count())->toBe(10);
+    })->with([
+        'not an image' => [
+            fn () => app(AddProductImage::class)->handle(test()->product, UploadedFile::fake()->createWithContent('tuna.jpg', 'not an image'), test()->uploader),
+            InvalidProductPhoto::class,
+        ],
+        'beyond the maximum' => [
+            function () {
+                $full = Product::factory()->create();
+                ProductImage::factory()->for($full)->create(['sort_order' => 1]);
+                config(['catalog.max_photos' => 1]);
+
+                try {
+                    addPhoto($full);
+                } finally {
+                    config(['catalog.max_photos' => 1000]);
+                }
+            },
+            InvalidProductData::class,
+        ],
+    ]);
 });
 
 describe('urls', function () {

@@ -39,7 +39,9 @@ class ProductImageController extends Controller
 
         /** @var UploadedFile $photo */
         $photo = $request->file('photo');
-        $image = $addProductImage->handle($product, $photo);
+        /** @var User $user */
+        $user = $request->user();
+        $image = $addProductImage->handle($product, $photo, $user);
 
         return (new ProductImageResource($image))->response()->setStatusCode(Response::HTTP_CREATED);
     }

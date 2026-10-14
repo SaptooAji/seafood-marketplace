@@ -89,8 +89,8 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | Kode | Aturan | Status |
 | --- | --- | --- |
 | RATE-1 | Endpoint autentikasi dibatasi (AUTH-1) | ✅ |
-| RATE-2 | Semua endpoint API terautentikasi punya limiter umum per pengguna (mis. 60 per menit) | ❌ |
-| RATE-3 | Endpoint yang mahal (upload foto, AI) punya limiter sendiri; fitur AI dibatasi per toko, per pengguna, dan global harian | ⚠️ AI ✅ (#119); upload foto belum punya limiter sendiri |
+| RATE-2 | Semua endpoint API terautentikasi punya limiter umum per pengguna (mis. 60 per menit) | ✅ limiter `api` 60 per menit per pengguna di grup `auth:sanctum`; test penjaga memastikan setiap route API punya limiter (#148) |
+| RATE-3 | Endpoint yang mahal (upload foto, AI) punya limiter sendiri; fitur AI dibatasi per toko, per pengguna, dan global harian | ✅ AI (#119); upload foto 10 per menit per pengguna dan 200 per hari per toko, dicek di `AddProductImage` sehingga API dan panel berbagi aturan; hanya foto yang tersimpan yang dihitung (#148) |
 | RATE-4 | Jumlah foto per produk dan varian per request dibatasi | ✅ |
 
 ## 7. Rahasia dan konfigurasi (ASVS V14, API8)
