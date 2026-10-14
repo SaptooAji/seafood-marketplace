@@ -2,13 +2,15 @@
 # Format staged PHP files in backend/ with Pint, then re-stage them.
 ROOT="$(git rev-parse --show-toplevel)"
 . "$ROOT/.githooks/_composer.sh"
-cd "$ROOT/backend" || exit 0
 
-FILES=$(git diff --cached --name-only --diff-filter=ACMR --relative -- '*.php')
+# Git commands run from the root: in a linked worktree Git hands hooks a
+# GIT_DIR without a work tree, so Git takes the current directory as the root.
+cd "$ROOT" || exit 0
+FILES=$(git diff --cached --name-only --diff-filter=ACMR -- 'backend/*.php')
 [ -z "$FILES" ] && exit 0
 
 echo "pre-commit: formatting staged PHP files with Pint"
-# shellcheck disable=SC2086
-composer_run exec --quiet pint -- $FILES || exit 1
+# shellcheck disable=SC2046,SC2086
+(cd backend && composer_run exec --quiet pint -- $(echo $FILES | sed 's#backend/##g')) || exit 1
 # shellcheck disable=SC2086
 git add $FILES

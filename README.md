@@ -87,7 +87,7 @@ Penjual bisa meminta saran deskripsi produk dan ringkasan SEO dari Google Gemini
    - **Kuota API (batas keras):** APIs & Services → Generative Language API → Quotas, turunkan *requests per day* dan *requests per minute*. Isi sedikit di atas `GEMINI_DAILY_LIMIT`; bila terlampaui, Google menolak dengan 429 dan fitur menjawab "tidak tersedia".
    - **Budget alert:** Billing → Budgets & alerts. Budget hanya mengirim peringatan, tidak menghentikan tagihan.
 
-Di aplikasi, setiap pengguna dibatasi 3 permintaan per menit, setiap toko 20 per hari (5 untuk toko yang belum diverifikasi), dan seluruh platform `GEMINI_DAILY_LIMIT` panggilan per hari (default 500; permintaan yang jatuh ke model cadangan dihitung 2). Setiap panggilan ke Gemini dicatat di log dengan pesan `AI product description call.`, sehingga pemakaian harian bisa dibandingkan dengan tagihan.
+Di aplikasi, setiap pengguna dibatasi 3 permintaan per menit, setiap toko 20 per hari (5 untuk toko yang belum diverifikasi), dan seluruh platform `GEMINI_DAILY_LIMIT` panggilan per hari (default 500; permintaan yang jatuh ke model cadangan dihitung 2). Setiap panggilan ke Gemini dicatat di `storage/logs/ai-usage-<tanggal>.log` (channel `ai_usage`, level info, disimpan 30 hari, tidak terpengaruh `LOG_LEVEL`) dengan pesan `AI product description call.`, sehingga pemakaian harian bisa dibandingkan dengan tagihan.
 
 Di tier gratis Gemini, Google dapat memakai isi prompt untuk meningkatkan produknya. Tier gratis hanya untuk demo; produksi memakai tier berbayar. Prompt hanya berisi data produk dan nama serta kota toko, tanpa kontak, alamat, rekening, atau data pembeli.
 
