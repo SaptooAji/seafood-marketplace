@@ -22,6 +22,8 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Http\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Mockery\MockInterface;
+use Psr\Log\LoggerInterface;
 
 const GEMINI_TEST_KEY = 'AIzaFAKE-test-key-123';
 const GEMINI_TEST_MODEL = 'gemini-test-flash';
@@ -370,7 +372,7 @@ describe('unavailable', function () {
 
 describe('fallback', function () {
     it('asks the fallback model once when the main model is overloaded', function () {
-        Log::spy();
+        spyOnLogs();
         Http::fake([
             GEMINI_TEST_URL => Http::response(['error' => ['code' => 503, 'status' => 'UNAVAILABLE']], 503),
             GEMINI_FALLBACK_URL => Http::response(geminiReply(['description' => 'Dari model cadangan.'])),
@@ -455,7 +457,7 @@ describe('fallback', function () {
 
 describe('security', function () {
     it('keeps the API key out of the exception and the log', function () {
-        Log::spy();
+        spyOnLogs();
         fakeGemini(Http::response(['error' => ['message' => 'API key '.GEMINI_TEST_KEY.' not valid']], 400));
 
         try {
@@ -739,14 +741,33 @@ describe('limits', function () {
     });
 });
 
+/**
+ * Spy on the default log and on the `ai_usage` channel, which a plain
+ * Log::spy() would answer with null. Returns the channel's spy.
+ */
+function spyOnLogs(): MockInterface
+{
+    Log::spy();
+    $usageLog = Mockery::spy(LoggerInterface::class);
+    Log::shouldReceive('channel')->with('ai_usage')->andReturn($usageLog);
+
+    return $usageLog;
+}
+
 describe('usage log', function () {
+    // The calls go to their own `ai_usage` channel, kept at info level while
+    // the default log is warning or higher in production (CONF-4).
+    beforeEach(function () {
+        $this->usageLog = spyOnLogs();
+    });
+
     it('logs each call with the store, the model, and the status', function () {
-        Log::spy();
         fakeGemini();
 
         suggestDescription();
 
-        Log::shouldHaveReceived('info')->once()->with('AI product description call.', [
+        Log::shouldNotHaveReceived('info');
+        $this->usageLog->shouldHaveReceived('info')->once()->with('AI product description call.', [
             'store_id' => $this->store->id,
             'model' => GEMINI_TEST_MODEL,
             'status' => 200,
@@ -754,7 +775,6 @@ describe('usage log', function () {
     });
 
     it('logs both calls when it falls back', function () {
-        Log::spy();
         Http::fake([
             GEMINI_TEST_URL => Http::response(['error' => ['code' => 503, 'status' => 'UNAVAILABLE']], 503),
             GEMINI_FALLBACK_URL => Http::response(geminiReply()),
@@ -762,47 +782,53 @@ describe('usage log', function () {
 
         suggestDescription();
 
-        Log::shouldHaveReceived('info')->twice();
-        Log::shouldHaveReceived('info')->with('AI product description call.', [
+        $this->usageLog->shouldHaveReceived('info')->twice();
+        $this->usageLog->shouldHaveReceived('info')->with('AI product description call.', [
             'store_id' => $this->store->id, 'model' => GEMINI_TEST_MODEL, 'status' => 503,
         ]);
-        Log::shouldHaveReceived('info')->with('AI product description call.', [
+        $this->usageLog->shouldHaveReceived('info')->with('AI product description call.', [
             'store_id' => $this->store->id, 'model' => 'gemini-test-lite', 'status' => 200,
         ]);
     });
 
     it('logs a call that could not connect without a status', function () {
-        Log::spy();
         fakeGemini(Http::failedConnection('cURL error 28: Operation timed out'));
 
         expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
 
-        Log::shouldHaveReceived('info')->once()->with('AI product description call.', [
+        $this->usageLog->shouldHaveReceived('info')->once()->with('AI product description call.', [
             'store_id' => $this->store->id, 'model' => GEMINI_TEST_MODEL, 'status' => null,
         ]);
     });
 
     it('logs no call when none is made', function () {
-        Log::spy();
         config(['services.gemini.key' => '']);
 
         expect(fn () => suggestDescription())->toThrow(ProductDescriptionUnavailable::class);
 
-        Log::shouldNotHaveReceived('info');
+        $this->usageLog->shouldNotHaveReceived('info');
     });
 
     it('keeps the product, the answer, and the key out of the call log', function () {
-        Log::spy();
         fakeGemini();
 
         suggestDescription();
 
-        Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context = []) {
+        $this->usageLog->shouldHaveReceived('info')->withArgs(function (string $message, array $context = []) {
             $logged = $message.json_encode($context);
 
             return ! str_contains($logged, GEMINI_TEST_KEY)
                 && ! str_contains($logged, 'Kepiting')
                 && ! str_contains($logged, 'Toko Bahari');
         });
+    });
+
+    it('keeps the usage channel at info level for 30 days, whatever LOG_LEVEL is', function () {
+        expect(config('logging.channels.ai_usage'))->toMatchArray([
+            'driver' => 'daily',
+            'path' => storage_path('logs/ai-usage.log'),
+            'level' => 'info',
+            'max_files' => 30,
+        ]);
     });
 });
