@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Category;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     config(['app.name' => 'Seafood Marketplace']);
@@ -116,5 +118,75 @@ describe('layout', function () {
             BLADE);
 
         expect($html)->toContain('<script type="application/ld+json">{"@type":"Product"}</script>');
+    });
+
+    it('starts with a skip link to the main content', function () {
+        $html = $this->get('/')->assertOk()->getContent();
+
+        expect($html)->toMatch('#<body[^>]*>\s*<a href="\#konten"[^>]*>Lewati ke konten</a>#')
+            ->toContain('<main id="konten"');
+    });
+
+    it('renders no category queries in the bare layout used by error pages', function () {
+        Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+        $queries = 0;
+        DB::listen(function () use (&$queries) {
+            $queries++;
+        });
+
+        $html = Blade::render('<x-layouts.app title="Galat" :bare="true">Isi</x-layouts.app>');
+
+        expect($queries)->toBe(0)
+            ->and($html)->not->toContain('Kepiting')
+            ->toContain('Isi');
+    });
+});
+
+describe('category navigation', function () {
+    beforeEach(function () {
+        Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting', 'sort_order' => 1]);
+        Category::factory()->create(['name' => 'Cumi', 'slug' => 'cumi', 'sort_order' => 2]);
+    });
+
+    it('marks the category being browsed as the current page', function () {
+        $this->get('/produk?kategori=kepiting')
+            ->assertOk()
+            ->assertSee('href="'.url('/produk').'?kategori=kepiting" aria-current="page"', escape: false)
+            ->assertDontSee('href="'.url('/produk').'?kategori=cumi" aria-current="page"', escape: false)
+            ->assertDontSee('href="'.url('/produk').'" aria-current="page"', escape: false);
+    });
+
+    it('marks "Semua" as current on the catalog without a category', function () {
+        $this->get('/produk')
+            ->assertOk()
+            ->assertSee('href="'.url('/produk').'" aria-current="page"', escape: false);
+    });
+
+    it('marks nothing as current outside the catalog', function () {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Semua')
+            ->assertDontSee('aria-current="page"', escape: false);
+    });
+
+    it('ignores a category sent as an array', function () {
+        $this->get('/produk?kategori[]=kepiting')
+            ->assertOk()
+            ->assertDontSee('?kategori=kepiting" aria-current="page"', escape: false);
+    });
+});
+
+describe('footer', function () {
+    it('links to the catalog, the root categories, and opening a store', function () {
+        Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+
+        $footer = Str::after($this->get('/')->assertOk()->getContent(), '<footer');
+
+        expect($footer)
+            ->toContain('href="'.url('/produk').'"')
+            ->toContain('href="'.url('/produk').'?kategori=kepiting"')
+            ->toContain('href="'.url('/seller').'"')
+            ->toContain('Buka lapak')
+            ->toContain('&copy; '.now()->year.' Seafood Marketplace');
     });
 });
