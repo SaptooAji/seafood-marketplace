@@ -97,6 +97,21 @@ Satuan harga ("/ kg") ditulis kecil dengan warna `muted` setelah angka harga.
 - Target sentuh minimal 44 px.
 - Tanpa bayangan: kartu putih di atas pasir sudah cukup memisahkan.
 
+## Komponen Blade
+
+Komponen anonim di `backend/resources/views/components/`. Atribut tambahan seperti `class`, `wire:model`, dan `inputmode` diteruskan lewat `$attributes->merge()`. Semua teks dicetak dengan `{{ }}`.
+
+| Komponen | Pakai untuk | Contoh |
+| --- | --- | --- |
+| `<x-button>` | Tombol pill: `primary` (hijau, satu per layar), `secondary` (garis `ink`), `ghost` (teks hijau). Dengan `href` menjadi tautan. `disabled` menonaktifkan; tautan nonaktif kehilangan `href` dan diberi `aria-disabled` | `<x-button href="/produk" variant="secondary">Lihat katalog</x-button>` |
+| `<x-input>` | Kolom isian berlabel. `help` dan `error` dihubungkan lewat `aria-describedby`. Bila `error` tidak diisi, error validasi untuk `name` dipakai | `<x-input name="qty" label="Jumlah (kg)" help="Minimal 1 kg" inputmode="decimal" />` |
+| `<x-select>` | Pilihan berlabel; opsi ada di slot | `<x-select name="kondisi" label="Kondisi">…</x-select>` |
+| `<x-price>` | Harga rupiah `Rp185.000` dengan satuan opsional `/ kg`. Tidak ada `number_format` harga di view | `<x-price :amount="$variant->price" :unit="$variant->unit->label()" />` |
+| `<x-badge>` | Label kecil: `neutral` (kondisi), `ink` (jam stok dicek), `success` (siap kirim), `warning` (stok belum dikonfirmasi), `danger` (stok habis) | `<x-badge variant="warning">Belum dikonfirmasi</x-badge>` |
+| `<x-empty-state>` | Saat tidak ada isi, dengan aksi opsional (`action` dan `href`). `compact` untuk bingkai foto kosong | `<x-empty-state title="Belum ada produk" action="Hapus semua filter" href="/produk" />` |
+| `<x-product-card>` | Kartu produk di beranda, katalog, dan halaman toko | `<x-product-card :product="$product" :distance="$product->distance_km" />` |
+| `<x-logo>` | Tanda dan nama aplikasi di header | `<x-logo />` |
+
 ## Latar
 
 - **Utama:** pasir polos (`surface`).
