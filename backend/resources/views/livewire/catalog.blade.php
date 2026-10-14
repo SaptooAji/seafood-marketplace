@@ -4,13 +4,13 @@
 
         <div class="mt-4 flex flex-col gap-3 text-sm">
             <label class="flex flex-col gap-1">
-                <span class="text-slate-600">Cari</span>
-                <input type="search" wire:model.live.debounce.400ms="q" maxlength="{{ \App\Livewire\Catalog::MAX_QUERY_LENGTH }}" placeholder="Nama produk" class="rounded-lg border border-slate-300 px-3 py-2">
+                <span class="text-muted">Cari</span>
+                <input type="search" wire:model.live.debounce.400ms="q" maxlength="{{ \App\Livewire\Catalog::MAX_QUERY_LENGTH }}" placeholder="Nama produk" class="rounded-lg border border-line-strong px-3 py-2">
             </label>
 
             <label class="flex flex-col gap-1">
-                <span class="text-slate-600">Kategori</span>
-                <select wire:model.live="category" class="rounded-lg border border-slate-300 px-3 py-2">
+                <span class="text-muted">Kategori</span>
+                <select wire:model.live="category" class="rounded-lg border border-line-strong px-3 py-2">
                     <option value="">Semua kategori</option>
                     @foreach ($categories as $root)
                         <option value="{{ $root->slug }}">{{ $root->name }}</option>
@@ -22,8 +22,8 @@
             </label>
 
             <label class="flex flex-col gap-1">
-                <span class="text-slate-600">Kondisi</span>
-                <select wire:model.live="condition" class="rounded-lg border border-slate-300 px-3 py-2">
+                <span class="text-muted">Kondisi</span>
+                <select wire:model.live="condition" class="rounded-lg border border-line-strong px-3 py-2">
                     <option value="">Semua kondisi</option>
                     @foreach ($conditions as $option)
                         <option value="{{ $option->value }}">{{ $option->label() }}</option>
@@ -32,8 +32,8 @@
             </label>
 
             <label class="flex flex-col gap-1">
-                <span class="text-slate-600">Toko</span>
-                <select wire:model.live="store" class="rounded-lg border border-slate-300 px-3 py-2">
+                <span class="text-muted">Toko</span>
+                <select wire:model.live="store" class="rounded-lg border border-line-strong px-3 py-2">
                     <option value="">Semua toko</option>
                     @foreach ($stores as $option)
                         <option value="{{ $option->slug }}">{{ $option->name }}</option>
@@ -45,10 +45,10 @@
                 class="flex flex-col gap-1"
                 x-data="{ error: '' }"
             >
-                <span class="text-slate-600">Jarak</span>
+                <span class="text-muted">Jarak</span>
                 <button
                     type="button"
-                    class="rounded-lg border border-teal-600 px-3 py-2 text-left text-teal-700 hover:bg-teal-50"
+                    class="rounded-lg border border-primary-600 px-3 py-2 text-left text-primary-700 hover:bg-primary-50"
                     x-on:click="
                         if (! navigator.geolocation) { error = 'Browser ini tidak bisa membagikan lokasi.'; return; }
                         navigator.geolocation.getCurrentPosition(
@@ -60,25 +60,25 @@
                 >
                     {{ $located ? 'Perbarui lokasi saya' : 'Toko terdekat' }}
                 </button>
-                <p x-show="error" x-text="error" class="text-xs text-red-600" x-cloak></p>
+                <p x-show="error" x-text="error" class="text-xs text-danger-700" x-cloak></p>
 
                 @if ($located)
-                    <select wire:model.live="radius" aria-label="Radius" class="rounded-lg border border-slate-300 px-3 py-2">
+                    <select wire:model.live="radius" aria-label="Radius" class="rounded-lg border border-line-strong px-3 py-2">
                         <option value="">Semua jarak</option>
                         @foreach ($radii as $km)
                             <option value="{{ $km }}">Dalam {{ $km }} km</option>
                         @endforeach
                     </select>
-                    <p class="text-xs text-slate-500">Lokasi Anda hanya dipakai untuk menghitung jarak dan tidak disimpan.</p>
+                    <p class="text-xs text-muted">Lokasi Anda hanya dipakai untuk menghitung jarak dan tidak disimpan.</p>
                 @endif
             </div>
 
             <fieldset class="flex flex-col gap-1">
-                <legend class="text-slate-600">Harga (Rp)</legend>
+                <legend class="text-muted">Harga (Rp)</legend>
                 <div class="flex items-center gap-2">
-                    <input type="number" min="0" step="1000" inputmode="numeric" wire:model.live.debounce.500ms="minPrice" placeholder="Min" aria-label="Harga minimum" class="w-full rounded-lg border border-slate-300 px-3 py-2">
-                    <span class="text-slate-400">&ndash;</span>
-                    <input type="number" min="0" step="1000" inputmode="numeric" wire:model.live.debounce.500ms="maxPrice" placeholder="Maks" aria-label="Harga maksimum" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                    <input type="number" min="0" step="1000" inputmode="numeric" wire:model.live.debounce.500ms="minPrice" placeholder="Min" aria-label="Harga minimum" class="w-full rounded-lg border border-line-strong px-3 py-2">
+                    <span class="text-muted">&ndash;</span>
+                    <input type="number" min="0" step="1000" inputmode="numeric" wire:model.live.debounce.500ms="maxPrice" placeholder="Maks" aria-label="Harga maksimum" class="w-full rounded-lg border border-line-strong px-3 py-2">
                 </div>
             </fieldset>
         </div>
@@ -86,10 +86,10 @@
 
     <section class="flex-1" aria-label="Daftar produk">
         <div class="flex items-center justify-between gap-3">
-            <p class="text-sm text-slate-600">{{ $products->total() }} produk</p>
+            <p class="text-sm text-muted">{{ $products->total() }} produk</p>
             <label class="flex items-center gap-2 text-sm">
-                <span class="text-slate-600">Urutkan</span>
-                <select wire:model.live="sort" class="rounded-lg border border-slate-300 px-3 py-2">
+                <span class="text-muted">Urutkan</span>
+                <select wire:model.live="sort" class="rounded-lg border border-line-strong px-3 py-2">
                     @foreach ($sorts as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
@@ -98,12 +98,12 @@
         </div>
 
         @if ($products->isEmpty())
-            <div class="mt-6 rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
+            <div class="mt-6 rounded-lg border border-dashed border-line-strong bg-white p-8 text-center">
                 <p class="font-medium">Produk tidak ditemukan</p>
                 @if ($q !== '')
-                    <p class="mt-1 text-sm text-slate-500">Tidak ada produk yang cocok dengan &ldquo;{{ $q }}&rdquo;. Coba kata lain atau hapus filter.</p>
+                    <p class="mt-1 text-sm text-muted">Tidak ada produk yang cocok dengan &ldquo;{{ $q }}&rdquo;. Coba kata lain atau hapus filter.</p>
                 @else
-                    <p class="mt-1 text-sm text-slate-500">Coba ubah atau hapus filter.</p>
+                    <p class="mt-1 text-sm text-muted">Coba ubah atau hapus filter.</p>
                 @endif
             </div>
         @else

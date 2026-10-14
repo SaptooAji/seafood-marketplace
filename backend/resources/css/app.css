@@ -3,7 +3,49 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/*
+ * Visual identity "Bakau dan Kepiting": role tokens from design/tokens.json,
+ * documented in docs/ui-guidelines.md (a test keeps the three in sync).
+ * Pages use these roles (`text-muted`, `bg-primary-700`), never Tailwind's
+ * own palette.
+ */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Schibsted Grotesk', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Mangrove green: primary buttons, selected options, links. */
+    --color-primary-50: #E3EEE7;
+    --color-primary-100: #CFE3D7;
+    --color-primary-600: #3A6E55;
+    --color-primary-700: #2F5D46;
+    --color-primary-800: #244A38;
+
+    /* Crab orange: the logo dot and stock warnings, never a button. */
+    --color-accent-50: #FBEEE5;
+    --color-accent-500: #D9733C;
+    --color-accent-700: #97461C;
+
+    /* Text, the sand background, and borders. */
+    --color-ink: #1B2E25;
+    --color-muted: #575C52;
+    --color-surface: #F6F3EC;
+    --color-subtle: #ECE6DA;
+    --color-line: #E5DFD3;
+    --color-line-strong: #878C80;
+    --color-pattern: #DCCFB6;
+
+    /* Status: positive is the brand green, warning is crab orange. */
+    --color-success-50: #E3EEE7;
+    --color-success-700: #2F5D46;
+    --color-success-800: #244A38;
+    --color-warning-50: #FBEEE5;
+    --color-warning-200: #E9C2A6;
+    --color-warning-700: #97461C;
+    --color-danger-50: #FCE9E6;
+    --color-danger-700: #A8321F;
+
+    --radius-photo: 1rem;
+    --radius-option: 1.125rem;
+    --radius-card: 1.375rem;
+    --radius-feature: 1.75rem;
 }

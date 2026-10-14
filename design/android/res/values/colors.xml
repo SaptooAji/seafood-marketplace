@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bakau dan Kepiting palette, from design/tokens.json. Compose code uses ui/theme/Color.kt;
+     these are for XML resources such as the launcher icon and the splash screen. -->
+<resources>
+    <color name="brand_primary_50">#FFE3EEE7</color>
+    <color name="brand_primary_100">#FFCFE3D7</color>
+    <color name="brand_primary_600">#FF3A6E55</color>
+    <color name="brand_primary_700">#FF2F5D46</color>
+    <color name="brand_primary_800">#FF244A38</color>
+    <color name="brand_accent_50">#FFFBEEE5</color>
+    <color name="brand_accent_500">#FFD9733C</color>
+    <color name="brand_accent_700">#FF97461C</color>
+    <color name="brand_ink">#FF1B2E25</color>
+    <color name="brand_muted">#FF575C52</color>
+    <color name="brand_surface">#FFF6F3EC</color>
+    <color name="brand_subtle">#FFECE6DA</color>
+    <color name="brand_line">#FFE5DFD3</color>
+    <color name="brand_line_strong">#FF878C80</color>
+    <color name="brand_danger_50">#FFFCE9E6</color>
+    <color name="brand_danger_700">#FFA8321F</color>
+    <color name="brand_pattern">#FFDCCFB6</color>
+    <color name="ic_launcher_background">#FF2F5D46</color>
+</resources>
