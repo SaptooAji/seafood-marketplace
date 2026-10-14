@@ -23,7 +23,7 @@ Route::post('auth/register', [AuthController::class, 'register'])->middleware('t
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('api.auth.login');
 Route::post('auth/google', [AuthController::class, 'google'])->middleware('throttle:google-login')->name('api.auth.google');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
     Route::get('me', [AuthController::class, 'me'])->name('api.me');
 

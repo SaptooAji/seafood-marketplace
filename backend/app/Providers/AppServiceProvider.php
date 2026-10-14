@@ -63,5 +63,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('google-login', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
 
         RateLimiter::for('register', fn (Request $request) => Limit::perMinute(10)->by((string) $request->ip()));
+
+        // Every signed-in API route (RATE-2), counted per user: many mobile
+        // users share one IP. Sign-in routes keep their own limiters above.
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip())));
     }
 }

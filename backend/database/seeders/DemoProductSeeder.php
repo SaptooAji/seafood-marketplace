@@ -68,7 +68,7 @@ class DemoProductSeeder extends Seeder
 
                 if (! $product->images()->exists()) {
                     $path = database_path('seeders/images/'.$demo['photo']);
-                    $this->addProductImage->handle($product, new UploadedFile($path, $demo['photo'], 'image/jpeg', null, true));
+                    $this->addProductImage->handle($product, new UploadedFile($path, $demo['photo'], 'image/jpeg', null, true), $owner);
                 }
             }
 

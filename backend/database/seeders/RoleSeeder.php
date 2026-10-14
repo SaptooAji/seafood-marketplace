@@ -33,6 +33,22 @@ class RoleSeeder extends Seeder
     ];
 
     /**
+     * Shield permissions only the super admin gets (PRD: roles are managed by
+     * the super admin alone). Granted explicitly instead of through Shield's
+     * `define_via_gate`, which would also let the super admin past the
+     * seller-only abilities in the policies.
+     *
+     * @var list<string>
+     */
+    private const array SUPER_ADMIN_PERMISSIONS = [
+        'ViewAny:Role',
+        'View:Role',
+        'Create:Role',
+        'Update:Role',
+        'Delete:Role',
+    ];
+
+    /**
      * Create every platform role and grant it the admin panel permissions.
      * Safe to run more than once.
      */
@@ -40,7 +56,7 @@ class RoleSeeder extends Seeder
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        foreach (self::ADMIN_PERMISSIONS as $permission) {
+        foreach ([...self::ADMIN_PERMISSIONS, ...self::SUPER_ADMIN_PERMISSIONS] as $permission) {
             Permission::findOrCreate($permission, 'web');
         }
 
@@ -52,5 +68,7 @@ class RoleSeeder extends Seeder
         foreach (PlatformRole::cases() as $role) {
             Role::findOrCreate($role->value, 'web')->givePermissionTo(self::ADMIN_PERMISSIONS);
         }
+
+        Role::findByName(PlatformRole::SuperAdmin->value, 'web')->givePermissionTo(self::SUPER_ADMIN_PERMISSIONS);
     }
 }
