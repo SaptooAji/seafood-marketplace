@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Finder\SplFileInfo;
 
 /*
- * The visual identity (#166): colour and font tokens in resources/css/app.css,
- * documented for the Android app in docs/ui-guidelines.md, the logo, and the
- * icons. Pages use the role tokens, not Tailwind's own palette.
+ * The visual identity "Bakau dan Kepiting" (#166): colour and font tokens in
+ * resources/css/app.css, kept in sync with design/tokens.json, the Android
+ * colours, and docs/ui-guidelines.md; the logo, the icons, and the manifest.
+ * Pages use the role tokens, not Tailwind's own palette.
  */
 
 /**
@@ -30,6 +32,14 @@ function themeColors(): array
     preg_match_all('/--color-([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6});/', (string) file_get_contents(resource_path('css/app.css')), $matches, PREG_SET_ORDER);
 
     return collect($matches)->mapWithKeys(fn (array $match) => [$match[1] => strtoupper($match[2])])->all();
+}
+
+/**
+ * A file of the monorepo outside backend/, such as design/tokens.json.
+ */
+function repoFile(string $path): string
+{
+    return (string) file_get_contents(base_path('../'.$path));
 }
 
 /**
@@ -59,17 +69,41 @@ function contrastRatio(string $foreground, string $background): float
 describe('tokens', function () {
     it('defines every colour role', function () {
         expect(array_keys(themeColors()))->toContain(
-            'primary-50', 'primary-600', 'primary-700', 'accent-500', 'accent-700',
-            'ink', 'muted', 'surface', 'subtle', 'line', 'line-strong',
-            'success-50', 'success-700', 'warning-50', 'warning-700', 'danger-50', 'danger-700',
+            'primary-50', 'primary-100', 'primary-600', 'primary-700', 'primary-800',
+            'accent-50', 'accent-500', 'accent-700',
+            'ink', 'muted', 'surface', 'subtle', 'line', 'line-strong', 'pattern',
+            'success-50', 'success-700', 'success-800', 'warning-50', 'warning-200', 'warning-700', 'danger-50', 'danger-700',
         );
     });
 
-    it('documents the same colours for the Android app', function () {
-        preg_match_all('/^\| `([a-z0-9-]+)` \| `(#[0-9A-F]{6})` \|/m', (string) file_get_contents(base_path('../docs/ui-guidelines.md')), $matches, PREG_SET_ORDER);
+    it('uses mangrove green as primary, crab orange as accent, and sand as the page', function () {
+        expect(themeColors())
+            ->toMatchArray(['primary-700' => '#2F5D46', 'accent-500' => '#D9733C', 'surface' => '#F6F3EC', 'ink' => '#1B2E25']);
+    });
+
+    it('matches design/tokens.json', function () {
+        $tokens = collect(json_decode(repoFile('design/tokens.json'), true, flags: JSON_THROW_ON_ERROR)['color'])
+            ->map(fn (array $token) => strtoupper($token['$value']))
+            ->all();
+
+        expect($tokens)->toEqual(themeColors());
+    });
+
+    it('documents the same colours in docs/ui-guidelines.md', function () {
+        preg_match_all('/^\| `([a-z0-9-]+)` \| `(#[0-9A-F]{6})` \|/m', repoFile('docs/ui-guidelines.md'), $matches, PREG_SET_ORDER);
         $documented = collect($matches)->mapWithKeys(fn (array $match) => [$match[1] => $match[2]])->all();
 
         expect($documented)->toEqual(themeColors());
+    });
+
+    it('gives the Android app the same colours', function () {
+        preg_match_all('/<color name="brand_([a-z0-9_]+)">#FF([0-9A-F]{6})<\/color>/', repoFile('design/android/res/values/colors.xml'), $matches, PREG_SET_ORDER);
+        $android = collect($matches)->mapWithKeys(fn (array $match) => [str_replace('_', '-', $match[1]) => '#'.$match[2]])->all();
+
+        // Status colours are aliases on the web; Android uses the Material roles in Theme.kt instead.
+        $web = collect(themeColors())->reject(fn (string $hex, string $name) => Str::startsWith($name, ['success-', 'warning-']))->all();
+
+        expect($android)->toEqual($web);
     });
 
     it('keeps text readable on the colours it is used on (WCAG AA)', function (string $foreground, string $background, float $minimum) {
@@ -78,32 +112,31 @@ describe('tokens', function () {
         expect(contrastRatio($colors[$foreground], $colors[$background]))->toBeGreaterThanOrEqual($minimum);
     })->with([
         'body text on white' => ['ink', 'white', 4.5],
-        'body text on the page' => ['ink', 'surface', 4.5],
+        'body text on the sand page' => ['ink', 'surface', 4.5],
         'secondary text on white' => ['muted', 'white', 4.5],
-        'secondary text on the page' => ['muted', 'surface', 4.5],
+        'secondary text on the sand page' => ['muted', 'surface', 4.5],
         'secondary text on a placeholder' => ['muted', 'subtle', 4.5],
-        'secondary text on a selected option' => ['muted', 'primary-50', 4.5],
         'links on white' => ['primary-700', 'white', 4.5],
-        'links on the page' => ['primary-700', 'surface', 4.5],
-        'links on a selected option' => ['primary-700', 'primary-50', 4.5],
+        'links on the sand page' => ['primary-700', 'surface', 4.5],
         'primary button' => ['white', 'primary-700', 4.5],
-        'primary button hover' => ['white', 'primary-600', 4.5],
-        'call-to-action button' => ['white', 'accent-700', 4.5],
+        'primary button pressed' => ['white', 'primary-800', 4.5],
+        'active chip and stock time label' => ['white', 'ink', 4.5],
+        'ready to ship label' => ['primary-800', 'primary-50', 4.5],
+        'stock not confirmed label' => ['accent-700', 'accent-50', 4.5],
         'WhatsApp button' => ['white', 'success-700', 4.5],
-        'WhatsApp button hover' => ['white', 'success-800', 4.5],
-        'stock fresh badge' => ['success-700', 'success-50', 4.5],
-        'stock not confirmed badge' => ['warning-700', 'warning-50', 4.5],
         'error text on white' => ['danger-700', 'white', 4.5],
-        'error badge' => ['danger-700', 'danger-50', 4.5],
+        'out of stock label' => ['danger-700', 'danger-50', 4.5],
         // WCAG 1.4.11: the edge of a form field needs 3:1.
-        'form field border' => ['line-strong', 'white', 3.0],
+        'form field border on white' => ['line-strong', 'white', 3.0],
+        'form field border on the sand page' => ['line-strong', 'surface', 3.0],
     ]);
 
-    it('loads the theme font through Vite, from this site', function () {
+    it('loads Schibsted Grotesk through Vite, from this site', function () {
         preg_match("/--font-sans:\s*'([^']+)'/", (string) file_get_contents(resource_path('css/app.css')), $match);
 
-        expect($match[1] ?? null)->toBe('Plus Jakarta Sans')
-            ->and((string) file_get_contents(base_path('vite.config.js')))->toContain("bunny('Plus Jakarta Sans'");
+        expect($match[1] ?? null)->toBe('Schibsted Grotesk')
+            ->and((string) file_get_contents(base_path('vite.config.js')))->toContain("bunny('Schibsted Grotesk'")
+            ->and(json_decode(repoFile('design/tokens.json'), true)['font']['family']['$value'])->toBe('Schibsted Grotesk');
     });
 
     it('keeps Tailwind palettes out of the buyer pages', function () {
@@ -121,12 +154,13 @@ describe('tokens', function () {
 });
 
 describe('logo and icons', function () {
-    it('links the icons and the theme colour from the layout', function () {
+    it('links the icons, the manifest, and the theme colour from the layout', function () {
         $this->get('/')
             ->assertOk()
             ->assertSee('<link rel="icon" href="'.asset('favicon.ico').'" sizes="48x48">', escape: false)
             ->assertSee('<link rel="icon" href="'.asset('favicon.svg').'" type="image/svg+xml">', escape: false)
             ->assertSee('<link rel="apple-touch-icon" href="'.asset('apple-touch-icon.png').'">', escape: false)
+            ->assertSee('<link rel="manifest" href="'.asset('site.webmanifest').'">', escape: false)
             ->assertSee('<meta name="theme-color" content="'.themeColors()['primary-700'].'">', escape: false);
     });
 
@@ -136,14 +170,14 @@ describe('logo and icons', function () {
         expect($html)->toMatch('#<a href="'.preg_quote(url('/'), '#').'"[^>]*>\s*<svg[^>]*aria-hidden="true"[^>]*>.*?</svg>\s*<span[^>]*>Seafood Marketplace</span>#s');
     });
 
-    it('ships an SVG icon drawn in the theme colours', function () {
+    it('ships the logo mark from design/logo as the SVG favicon', function () {
         $svg = simplexml_load_file(public_path('favicon.svg'));
 
         expect($svg)->not->toBeFalse()
             ->and($svg->getName())->toBe('svg')
             ->and((string) $svg['viewBox'])->toBe('0 0 64 64')
-            ->and(strtoupper((string) file_get_contents(public_path('favicon.svg'))))
-            ->toContain(themeColors()['primary-700'], themeColors()['accent-500']);
+            ->and(file_get_contents(public_path('favicon.svg')))->toBe(repoFile('design/logo/logo-mark.svg'))
+            ->and(strtoupper((string) file_get_contents(public_path('favicon.svg'))))->toContain(themeColors()['ink'], themeColors()['accent-500']);
     });
 
     it('ships favicon.ico with 16, 32, and 48 pixel images', function () {
@@ -158,11 +192,35 @@ describe('logo and icons', function () {
             ->and($sizes)->toBe([16, 32, 48]);
     });
 
-    it('ships a 180 pixel apple-touch-icon', function () {
-        $info = getimagesize(public_path('apple-touch-icon.png'));
+    it('ships the square PNG icons at their sizes', function (string $file, int $size) {
+        $info = getimagesize(public_path($file));
 
         expect($info)->not->toBeFalse()
-            ->and([$info[0], $info[1], $info[2]])->toBe([180, 180, IMAGETYPE_PNG]);
+            ->and([$info[0], $info[1], $info[2]])->toBe([$size, $size, IMAGETYPE_PNG]);
+    })->with([
+        'apple-touch-icon' => ['apple-touch-icon.png', 180],
+        'Android Chrome 192' => ['android-chrome-192.png', 192],
+        'Android Chrome 512' => ['android-chrome-512.png', 512],
+    ]);
+
+    it('describes the site in a web manifest with the brand colours and icons', function () {
+        $manifest = json_decode((string) file_get_contents(public_path('site.webmanifest')), true, flags: JSON_THROW_ON_ERROR);
+
+        expect($manifest)
+            ->toMatchArray(['name' => 'Seafood Marketplace', 'lang' => 'id', 'start_url' => '/'])
+            ->and($manifest['theme_color'])->toBe(themeColors()['primary-700'])
+            ->and($manifest['background_color'])->toBe(themeColors()['surface'])
+            ->and(collect($manifest['icons'])->pluck('src')->all())->toBe(['/android-chrome-192.png', '/android-chrome-512.png']);
+
+        foreach ($manifest['icons'] as $icon) {
+            expect(public_path(ltrim($icon['src'], '/')))->toBeFile();
+        }
+    });
+
+    it('ships the optional sea pattern from design/pattern in the pattern colour', function () {
+        expect(file_get_contents(public_path('images/pola-laut.svg')))
+            ->toBe(repoFile('design/pattern/pola-laut.svg'))
+            ->toContain('stroke="'.themeColors()['pattern'].'"');
     });
 });
 
