@@ -33,7 +33,7 @@ Aturan ⚠️ dan ❌ menjadi bahan audit Tahap 1–3. Status diperbarui di PR y
 | AUTH-2 | Password minimal 8 karakter, di-hash bcrypt (cast `hashed`), tidak pernah tampil di respons atau log | ✅ |
 | AUTH-3 | Pesan gagal login sama untuk email tidak terdaftar, password salah, dan akun Google tanpa password | ✅ API dan panel `/admin`, `/seller` (termasuk akun tanpa akses panel), dites (#143) |
 | AUTH-4 | Token Google diverifikasi: `aud` termasuk client id yang diizinkan, `iss` Google, belum kedaluwarsa, email terverifikasi | ✅ |
-| AUTH-5 | Password dicek terhadap daftar password bocor (`Password::uncompromised()`) | ❌ |
+| AUTH-5 | Password dicek terhadap daftar password bocor (`Password::uncompromised()`) | ❌ temuan rendah, #161 (Tahap 7) |
 | AUTH-6 | Pembeli web hanya login dengan Google; tidak ada form password di web pembeli | ✅ |
 
 ## 2. Sesi dan token (ASVS V3, API2)
@@ -81,7 +81,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | DATA-2 | Data sensitif toko (rekening) hanya untuk owner; tidak pernah di web publik, JSON-LD, atau log | ✅ API dan web: halaman, JSON-LD, dan sitemap (#145) |
 | DATA-3 | Data pembeli (HP, alamat) hanya untuk toko yang menerima pesanan, hanya selama pesanan berjalan (Tahap 5) | ❌ belum dibuat |
 | DATA-4 | Koordinat toko tampil dengan presisi yang dibutuhkan (peta toko); koordinat pembeli tidak pernah disimpan dari browser, hanya dipakai untuk menghitung jarak | ✅ koordinat toko tampil apa adanya (titik ambil publik); koordinat pembeli dibulatkan 3 desimal dan tidak masuk database, sesi, atau cookie (#145) |
-| DATA-5 | Pesan error di produksi umum (`APP_DEBUG=false`); detail hanya di log | ⚠️ belum ada konfigurasi produksi |
+| DATA-5 | Pesan error di produksi umum (`APP_DEBUG=false`); detail hanya di log | ⚠️ respons 500 umum dengan `APP_DEBUG=false` dites (#146); konfigurasi produksi di Tahap 7 (CONF-4) |
 | DATA-6 | Paginasi dengan batas atas di semua daftar API (mencegah dump data) | ✅ |
 
 ## 6. Rate limit dan biaya (API4, API6, LLM10)
@@ -101,7 +101,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | CONF-2 | Rahasia tidak pernah di URL, log, pesan exception, fixture test, atau aplikasi Android | ✅ log, exception, dan respons error dites tanpa token, password, kunci, atau rekening (#146); ID token Google tetap dikirim sebagai query `tokeninfo` (bentuk resmi endpoint itu) dan dites tidak ikut tercatat saat gagal |
 | CONF-3 | Secret scanning dan push protection GitHub aktif | ✅ Settings → Advanced Security (#123); berlaku di semua branch, bukan lewat ruleset |
 | CONF-4 | Produksi: `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL` minimal `warning`, HTTPS dengan HSTS, `SESSION_SECURE_COOKIE=true` | ❌ Tahap 7 |
-| CONF-5 | Header keamanan web: `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options` (kecuali yang dibutuhkan), CSP di Tahap 7 | ❌ |
+| CONF-5 | Header keamanan web: `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options` (kecuali yang dibutuhkan), CSP di Tahap 7 | ❌ temuan sedang, #160 (Tahap 4); CSP tetap Tahap 7 |
 | CONF-6 | CORS tidak dibuka untuk API karena Android tidak memakai browser; bila dibutuhkan, origin dibatasi eksplisit | ✅ tidak ada `config/cors.php` |
 | CONF-7 | Perintah artisan destruktif dilarang di produksi (`DB::prohibitDestructiveCommands`); `Model::shouldBeStrict` di luar produksi | ✅ |
 
