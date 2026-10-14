@@ -70,17 +70,17 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | VAL-3 | Query database memakai binding; `whereRaw`/`selectRaw` hanya dengan placeholder `?` | ✅ |
 | VAL-4 | Upload foto: ekstensi dan ukuran divalidasi, lalu **di-decode dan di-encode ulang** ke WebP (metadata EXIF/GPS terbuang, file palsu ditolak); nama file UUID, bukan nama dari pengguna | ✅ |
 | VAL-5 | File unggahan disimpan di luar web root dan disajikan lewat disk `public` hanya untuk foto produk; bukti transfer (Tahap 5) di disk privat dengan URL bertanda tangan | ✅ foto; Tahap 5 belum |
-| VAL-6 | Teks dari pengguna dirender ter-escape (`{{ }}`); markdown (standar kualitas) dirender dengan HTML mentah dimatikan | ⚠️ web belum dibuat |
-| VAL-7 | JSON-LD dan data yang disisipkan ke `<script>` memakai `Js::from` atau `JSON_HEX_TAG` | ❌ web belum dibuat |
+| VAL-6 | Teks dari pengguna dirender ter-escape (`{{ }}`); markdown (standar kualitas) dirender dengan HTML mentah dimatikan | ✅ semua halaman web pembeli dan sitemap, dites lintas halaman (#145) |
+| VAL-7 | JSON-LD dan data yang disisipkan ke `<script>` memakai `Js::from` atau `JSON_HEX_TAG` | ✅ JSON-LD halaman produk dan toko memakai `JSON_HEX_TAG`, satu blok per halaman (#145) |
 
 ## 5. Eksposur data (ASVS V8, API3)
 
 | Kode | Aturan | Status |
 | --- | --- | --- |
 | DATA-1 | Respons API selalu lewat API Resource dengan field eksplisit; model tidak pernah dikembalikan langsung | ✅ |
-| DATA-2 | Data sensitif toko (rekening) hanya untuk owner; tidak pernah di web publik, JSON-LD, atau log | ✅ API; web belum |
+| DATA-2 | Data sensitif toko (rekening) hanya untuk owner; tidak pernah di web publik, JSON-LD, atau log | ✅ API dan web: halaman, JSON-LD, dan sitemap (#145) |
 | DATA-3 | Data pembeli (HP, alamat) hanya untuk toko yang menerima pesanan, hanya selama pesanan berjalan (Tahap 5) | ❌ belum dibuat |
-| DATA-4 | Koordinat toko tampil dengan presisi yang dibutuhkan (peta toko); koordinat pembeli tidak pernah disimpan dari browser, hanya dipakai untuk menghitung jarak | ⚠️ web belum dibuat |
+| DATA-4 | Koordinat toko tampil dengan presisi yang dibutuhkan (peta toko); koordinat pembeli tidak pernah disimpan dari browser, hanya dipakai untuk menghitung jarak | ✅ koordinat toko tampil apa adanya (titik ambil publik); koordinat pembeli dibulatkan 3 desimal dan tidak masuk database, sesi, atau cookie (#145) |
 | DATA-5 | Pesan error di produksi umum (`APP_DEBUG=false`); detail hanya di log | ⚠️ belum ada konfigurasi produksi |
 | DATA-6 | Paginasi dengan batas atas di semua daftar API (mencegah dump data) | ✅ |
 
