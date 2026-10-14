@@ -98,7 +98,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | Kode | Aturan | Status |
 | --- | --- | --- |
 | CONF-1 | Rahasia hanya di `.env` (di-ignore git); `.env.example` berisi nama variabel dengan nilai kosong | ✅ |
-| CONF-2 | Rahasia tidak pernah di URL, log, pesan exception, fixture test, atau aplikasi Android | ⚠️ ID token Google dikirim sebagai query `tokeninfo` (bentuk resmi endpoint itu); pastikan URL-nya tidak ikut tercatat saat gagal |
+| CONF-2 | Rahasia tidak pernah di URL, log, pesan exception, fixture test, atau aplikasi Android | ✅ log, exception, dan respons error dites tanpa token, password, kunci, atau rekening (#146); ID token Google tetap dikirim sebagai query `tokeninfo` (bentuk resmi endpoint itu) dan dites tidak ikut tercatat saat gagal |
 | CONF-3 | Secret scanning dan push protection GitHub aktif | ✅ Settings → Advanced Security (#123); berlaku di semua branch, bukan lewat ruleset |
 | CONF-4 | Produksi: `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL` minimal `warning`, HTTPS dengan HSTS, `SESSION_SECURE_COOKIE=true` | ❌ Tahap 7 |
 | CONF-5 | Header keamanan web: `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options` (kecuali yang dibutuhkan), CSP di Tahap 7 | ❌ |
@@ -118,9 +118,9 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 
 | Kode | Aturan | Status |
 | --- | --- | --- |
-| LOG-1 | Perubahan oleh admin dan data master tercatat di activity log (toko, kategori, atribut); produk ditambah saat moderasi (#97) | ⚠️ |
+| LOG-1 | Perubahan oleh admin dan data master tercatat di activity log (toko, kategori, atribut); produk ditambah saat moderasi (#97) | ✅ toko, kategori, atribut, dan blokir produk dengan pelaku dan alasannya, dites (#146) |
 | LOG-2 | Stok punya jejak lengkap di `stock_movements`, termasuk siapa yang mencatat | ✅ |
-| LOG-3 | Log tidak memuat password, token, kunci API, nomor rekening, atau isi prompt AI | ⚠️ perlu dicek |
+| LOG-3 | Log tidak memuat password, token, kunci API, nomor rekening, atau isi prompt AI | ✅ jalur gagal login, register, login Google, Gemini, dan error 500 dites (#146) |
 
 ## 10. Fitur AI (LLM Top 10)
 
@@ -133,7 +133,7 @@ Rincian di #118 dan #119.
 | AI-3 | Keluaran tidak dipercaya (LLM05): divalidasi skema dan panjang, HTML dibuang, dirender ter-escape | ✅ action; panel mengisi `Textarea` biasa, API mengembalikan JSON teks |
 | AI-4 | Data minimal (LLM02): tanpa rekening, kontak, alamat, atau data pembeli | ✅ |
 | AI-5 | Hasil AI hanya saran; tidak ada yang tersimpan tanpa tindakan penjual (LLM06) | ✅ panel hanya mengisi form, endpoint API tidak menyimpan; menimpa deskripsi butuh konfirmasi |
-| AI-6 | Kuota per toko, per pengguna, dan global (LLM10) | ✅ 3/menit per pengguna; 20/hari per toko aktif, 5/hari untuk toko belum aktif; batas global harian menghitung panggilan ke Gemini (fallback = 2); dihitung sebelum memanggil; setiap panggilan dicatat di log; kuota API di Google Cloud dijelaskan di README |
+| AI-6 | Kuota per toko, per pengguna, dan global (LLM10) | ✅ 3/menit per pengguna; 20/hari per toko aktif, 5/hari untuk toko belum aktif; batas global harian menghitung panggilan ke Gemini (fallback = 2); dihitung sebelum memanggil; setiap panggilan dicatat di channel log `ai_usage` (level info, 30 hari) agar tetap ada saat `LOG_LEVEL` produksi minimal warning (#146); kuota API di Google Cloud dijelaskan di README |
 | AI-7 | Tier gratis Gemini hanya untuk demo; produksi memakai tier berbayar | ✅ README |
 
 ## 11. Android (Tahap 4, MASVS dasar)
