@@ -46,10 +46,7 @@
                         <input type="radio" wire:model.live="variantId" value="{{ $variant->id }}" class="mt-1">
                         <span class="flex-1">
                             <span class="block font-medium">{{ $variant->name }}</span>
-                            <span class="block text-sm">
-                                <span class="font-semibold">Rp{{ number_format($variant->price, 0, ',', '.') }}</span>
-                                <span class="text-muted">/ {{ $variant->unit->label() }}</span>
-                            </span>
+                            <x-price :amount="$variant->price" :unit="$variant->unit->label()" class="block text-sm" />
                             <span class="block text-xs text-muted">
                                 Stok {{ \App\Livewire\ProductPage::quantity($variant->stock) }} {{ $variant->unit->label() }}
                                 &middot;
