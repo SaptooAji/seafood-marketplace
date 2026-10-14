@@ -40,7 +40,7 @@ Aturan ⚠️ dan ❌ menjadi bahan audit Tahap 1–3. Status diperbarui di PR y
 
 | Kode | Aturan | Status |
 | --- | --- | --- |
-| SES-1 | Token Sanctum punya masa berlaku (`sanctum.expiration`) dan prefix untuk secret scanning (`SANCTUM_TOKEN_PREFIX`) | ❌ keduanya kosong |
+| SES-1 | Token Sanctum punya masa berlaku (`sanctum.expiration`) dan prefix untuk secret scanning (`SANCTUM_TOKEN_PREFIX`) | ✅ 90 hari (`SANCTUM_EXPIRATION`), prefix `sfm_`, token kedaluwarsa dihapus harian lewat `sanctum:prune-expired` (#149) |
 | SES-2 | Logout mencabut token yang sedang dipakai saja; token perangkat lain tetap | ✅ |
 | SES-3 | Token diberi nama perangkat, sehingga bisa dicabut per perangkat | ✅ |
 | SES-4 | Cookie sesi web: `http_only`, `same_site=lax`, `secure` di produksi | ✅ `secure` dari `SESSION_SECURE_COOKIE` (tercantum di `.env.example`, wajib `true` di produksi, lihat CONF-4), dites (#143) |
