@@ -52,7 +52,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // 90 days: a seller who has not opened the app for that long signs in again.
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 60 * 24 * 90),
 
     /*
     |--------------------------------------------------------------------------
@@ -67,7 +68,8 @@ return [
     |
     */
 
-    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
+    // Defaults to a prefix, not Laravel's empty one, so a leaked token is recognizable even when the env is unset.
+    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', 'sfm_'),
 
     /*
     |--------------------------------------------------------------------------
