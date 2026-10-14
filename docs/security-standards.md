@@ -58,7 +58,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | AC-4 | Peran toko dibedakan: staff tidak melihat rekening dan tidak mengelola member (PRD) | ✅ rekening; kelola member belum ada, dicek lagi saat fiturnya dibuat (#144) |
 | AC-5 | Panel `/admin` hanya untuk role platform; panel `/seller` hanya untuk anggota toko aktif; tenant dicek ulang di setiap request (`canAccessTenant`) | ✅ |
 | AC-6 | Field yang tidak boleh diubah pengguna tidak bisa dikirim lewat request: `store_id`, `stock`, `blocked_at`, `status` toko. Input dibaca lewat Form Request dan DTO, bukan `$request->all()` | ✅ |
-| AC-7 | Toko `suspended` tidak bisa memakai fitur seller di API (panel sudah memblokirnya lewat `canAccessTenant`) | ❌ temuan tinggi, #153 |
+| AC-7 | Toko `suspended` tidak bisa memakai fitur seller di API (panel sudah memblokirnya lewat `canAccessTenant`) | ✅ middleware `EnsureStoreIsNotSuspended` di semua route `api.seller.*` kecuali melihat dan membuka toko; dicek per permintaan, 403 (#153) |
 | AC-8 | Super Admin dan Admin dibedakan di Policy, bukan hanya di menu | ✅ roles dan activity log khusus Super Admin lewat Policy; setiap resource panel `/admin` wajib masuk daftar test (#144) |
 
 ## 4. Validasi input dan file (ASVS V5, V12)
