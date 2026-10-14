@@ -1,17 +1,17 @@
 <x-layouts.app>
     <section>
         <h1 class="text-2xl font-semibold">{{ config('app.name') }}</h1>
-        <p class="mt-1 text-slate-600">Hasil laut segar langsung dari penjual.</p>
+        <p class="mt-1 text-muted">Hasil laut segar langsung dari penjual.</p>
     </section>
 
     <section class="mt-8" aria-labelledby="latest-products">
         <div class="flex items-baseline justify-between">
             <h2 id="latest-products" class="text-lg font-semibold">Produk terbaru</h2>
-            <a href="{{ route('catalog') }}" class="text-sm text-teal-700 hover:underline">Lihat semua</a>
+            <a href="{{ route('catalog') }}" class="text-sm text-primary-700 hover:underline">Lihat semua</a>
         </div>
 
         @if ($products->isEmpty())
-            <p class="mt-3 text-sm text-slate-500">Belum ada produk.</p>
+            <p class="mt-3 text-sm text-muted">Belum ada produk.</p>
         @else
             <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 @foreach ($products as $product)
@@ -28,11 +28,11 @@
             <ul class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($stores as $store)
                     <li>
-                        <a href="{{ route('stores.show', $store->slug) }}" class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 hover:border-teal-600">
-                            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-teal-50 font-semibold text-teal-700" aria-hidden="true">{{ mb_strtoupper(mb_substr($store->name, 0, 1)) }}</span>
+                        <a href="{{ route('stores.show', $store->slug) }}" class="flex items-center gap-3 rounded-lg border border-line bg-white p-3 hover:border-primary-600">
+                            <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-50 font-semibold text-primary-700" aria-hidden="true">{{ mb_strtoupper(mb_substr($store->name, 0, 1)) }}</span>
                             <span class="min-w-0">
                                 <span class="block truncate font-medium">{{ $store->name }}</span>
-                                <span class="block truncate text-xs text-slate-500">{{ $store->city }}</span>
+                                <span class="block truncate text-xs text-muted">{{ $store->city }}</span>
                             </span>
                         </a>
                     </li>
