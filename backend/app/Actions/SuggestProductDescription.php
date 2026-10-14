@@ -394,10 +394,11 @@ class SuggestProductDescription
     /**
      * Log one call to Gemini, so the calls of a day can be counted and
      * compared with the bill. Without the prompt, the answer, or the key.
+     * Written to the `ai_usage` channel, which keeps info level in production.
      */
     private function logCall(Store $store, string $model, ?int $status): void
     {
-        Log::info('AI product description call.', [
+        Log::channel('ai_usage')->info('AI product description call.', [
             'store_id' => $store->id,
             'model' => $model,
             'status' => $status,

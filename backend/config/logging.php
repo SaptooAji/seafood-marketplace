@@ -75,6 +75,16 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Every call to Gemini, kept apart from LOG_LEVEL (warning or higher
+        // in production) so the calls can still be compared with the bill.
+        'ai_usage' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/ai-usage.log'),
+            'level' => 'info',
+            'max_files' => 30,
+            'replace_placeholders' => true,
+        ],
+
         'monthly' => [
             'driver' => 'monthly',
             'path' => storage_path('logs/laravel.log'),
