@@ -278,7 +278,7 @@ describe('category chips', function () {
         homeProduct(['category_id' => $cumi->id]);
         homeProduct(['category_id' => $bakau->id]);
 
-        $chips = Str::between(homeSection('baru-judul'), 'aria-label="Kategori"', '</nav>');
+        $chips = Str::between(homeSection('baru-judul'), 'role="group" aria-label="Kategori"', '</div>');
 
         expect($chips)
             ->toMatch('/Semua.*Kepiting.*Cumi/s')
