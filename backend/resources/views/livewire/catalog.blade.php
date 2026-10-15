@@ -47,6 +47,7 @@
             >
                 <span class="text-muted">Jarak</span>
                 <button
+                    id="toko-terdekat"
                     type="button"
                     class="rounded-lg border border-primary-600 px-3 py-2 text-left text-primary-700 hover:bg-primary-50"
                     x-on:click="

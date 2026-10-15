@@ -67,7 +67,7 @@
 
     </header>
 
-    <main id="konten" class="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+    <main id="konten" @class(['w-full flex-1', 'mx-auto max-w-6xl px-4 py-6' => ! $fullWidth])>
         {{ $slot }}
     </main>
 
