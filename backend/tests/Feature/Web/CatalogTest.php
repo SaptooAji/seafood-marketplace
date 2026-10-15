@@ -9,6 +9,7 @@ use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 /*
@@ -575,8 +576,11 @@ describe('filter panel and results', function () {
     it('counts the active filters on the panel button, leaving out the sort', function () {
         catalogFixture();
 
-        expect($this->get('/produk?kategori=kepiting&kondisi=live&urut=termurah')->assertOk()->getContent())
-            ->toMatch('/aria-controls="panel-filter"[^>]*>\s*Filter\s*<span[^>]*>\s*2\s*<\/span>/');
+        $html = $this->get('/produk?kategori=kepiting&kondisi=live&urut=termurah')->assertOk()->getContent();
+
+        expect(Str::between($html, 'aria-controls="panel-filter"', '</button>'))
+            ->toContain('Filter')
+            ->toMatch('/<span[^>]*>\s*2\s*<\/span>/');
     });
 
     it('shows the total number of results, not only this page', function () {
