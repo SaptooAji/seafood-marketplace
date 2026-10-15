@@ -25,6 +25,9 @@ class App extends Component
      * @param  bool  $noindex  keep the page out of search results, e.g. a filtered catalog
      * @param  string  $ogType  the Open Graph type, e.g. `product` on a product page
      * @param  string|null  $image  an absolute image URL for link previews
+     * @param  bool  $bare  leave out the footer category links and the sign-in
+     *                      link, so the page runs no queries; for error pages,
+     *                      which must render even when the database is down
      */
     public function __construct(
         public ?string $title = null,
@@ -32,6 +35,7 @@ class App extends Component
         public bool $noindex = false,
         public string $ogType = 'website',
         public ?string $image = null,
+        public bool $bare = false,
     ) {}
 
     /**
@@ -70,12 +74,17 @@ class App extends Component
     }
 
     /**
-     * Root categories for the header, in their admin order.
+     * Root categories for the footer, in their admin order; none in the bare
+     * layout.
      *
      * @return Collection<int, Category>
      */
     public function rootCategories(): Collection
     {
+        if ($this->bare) {
+            return new Collection;
+        }
+
         return Category::query()
             ->whereNull('parent_id')
             ->orderBy('sort_order')
