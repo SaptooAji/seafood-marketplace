@@ -16,6 +16,7 @@ Test `backend/tests/Feature/Web/VisualIdentityTest.php` gagal bila tabel warna d
 - **Pakai peran, bukan nama warna.** Tulis `bg-primary-700` atau `text-muted`, jangan `bg-green-800`. Palet bawaan Tailwind dilarang di view pembeli (dicek test).
 - **Hijau bakau untuk aksi, oranye kepiting untuk peringatan.**
   - Satu layar paling banyak punya satu tombol hijau penuh.
+  - Pengecualian: di atas foto hero beranda, tombol utama berwarna putih dengan teks `primary-800`, karena tombol hijau tenggelam di atas foto yang gelap.
   - Oranye hanya dipakai untuk titik logo dan label stok, tidak pernah untuk tombol.
 - **Kontras minimal WCAG AA:**
   - 4.5:1 untuk teks;
@@ -63,6 +64,7 @@ Kartu, header, dan teks di atas tombol berwarna memakai putih (`#FFFFFF`).
 | `primary-700` | putih, `surface` | 4.5 | Tautan |
 | putih | `primary-700`, `primary-800` | 4.5 | Tombol utama |
 | putih | `ink` | 4.5 | Chip aktif, label jam stok |
+| `primary-800` | putih | 4.5 | Tombol putih di atas foto hero |
 | `primary-800` | `primary-50` | 4.5 | Label "Siap kirim hari ini" |
 | `accent-700` | `accent-50` | 4.5 | Label "Belum dikonfirmasi" |
 | `danger-700` | putih, `danger-50` | 4.5 | Pesan error, stok habis |

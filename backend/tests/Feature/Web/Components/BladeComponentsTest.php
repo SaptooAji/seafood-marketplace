@@ -215,6 +215,16 @@ describe('x-product-card', function () {
             ->assertSee('Jakarta Utara, 2,4 km');
     });
 
+    it('shows a label over the photo', function () {
+        $this->blade('<x-product-card :product="$product" label="Dicek 06.30" />', ['product' => cardProduct()])
+            ->assertSeeInOrder(['Dicek 06.30', 'Kepiting Bakau Super']);
+    });
+
+    it('shows no label by default', function () {
+        $this->blade('<x-product-card :product="$product" />', ['product' => cardProduct()])
+            ->assertDontSee('Dicek');
+    });
+
     it('fills a product without photos with the compact empty state', function () {
         $this->blade('<x-product-card :product="$product" />', ['product' => cardProduct()])
             ->assertSee('Belum ada foto')

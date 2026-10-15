@@ -28,6 +28,8 @@ class App extends Component
      * @param  bool  $bare  leave out the footer category links and the sign-in
      *                      link, so the page runs no queries; for error pages,
      *                      which must render even when the database is down
+     * @param  bool  $fullWidth  let the page lay out its own full-width sections,
+     *                           e.g. the home page hero photo
      */
     public function __construct(
         public ?string $title = null,
@@ -36,6 +38,7 @@ class App extends Component
         public string $ogType = 'website',
         public ?string $image = null,
         public bool $bare = false,
+        public bool $fullWidth = false,
     ) {}
 
     /**

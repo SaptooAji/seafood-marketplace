@@ -121,6 +121,7 @@ describe('tokens', function () {
         'primary button' => ['white', 'primary-700', 4.5],
         'primary button pressed' => ['white', 'primary-800', 4.5],
         'active chip and stock time label' => ['white', 'ink', 4.5],
+        'white button on the photo hero' => ['primary-800', 'white', 4.5],
         'ready to ship label' => ['primary-800', 'primary-50', 4.5],
         'stock not confirmed label' => ['accent-700', 'accent-50', 4.5],
         'WhatsApp button' => ['white', 'success-700', 4.5],
