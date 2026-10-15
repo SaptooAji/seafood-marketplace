@@ -388,7 +388,7 @@ describe('layout', function () {
 
         $html = productPage()->assertOk()->getContent();
 
-        expect(substr_count($html, 'aria-label="Foto '))->toBe(3)
+        expect(preg_match_all('#aria-label="Foto \d+ dari 3"#', $html))->toBe(3)
             ->and($html)
             ->toMatch('#<button[^>]*aria-label="Foto 1 dari 3"[^>]*aria-pressed="true"#s')
             ->toMatch('#<button[^>]*aria-label="Foto 2 dari 3"[^>]*aria-pressed="false"#s')
