@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use App\Models\Category;
+use App\Models\User;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     config(['app.name' => 'Seafood Marketplace']);
@@ -22,21 +25,20 @@ function renderLayout(array $props = []): string
     ]);
 }
 
-describe('home page', function () {
-    it('uses the layout with the app name, search box, and root categories', function () {
-        $kepiting = Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting', 'sort_order' => 1]);
-        Category::factory()->create(['name' => 'Cumi', 'slug' => 'cumi', 'sort_order' => 2]);
-        Category::factory()->childOf($kepiting)->create(['name' => 'Bakau Subkategori']);
+/** The page's header element, so links in the footer do not count. */
+function headerOf(string $html): string
+{
+    return Str::between($html, '<header', '</header>');
+}
 
+describe('home page', function () {
+    it('uses the layout with the app name and search box', function () {
         $this->get('/')
             ->assertOk()
             ->assertSee('<html lang="id"', escape: false)
             ->assertSee('Seafood Marketplace')
             ->assertSee('action="'.url('/produk').'"', escape: false)
-            ->assertSee('name="q"', escape: false)
-            ->assertSeeInOrder(['Kepiting', 'Cumi'])
-            ->assertSee('href="'.url('/produk').'?kategori=kepiting"', escape: false)
-            ->assertDontSee('Bakau Subkategori');
+            ->assertSee('name="q"', escape: false);
     });
 
     it('works without categories', function () {
@@ -116,5 +118,76 @@ describe('layout', function () {
             BLADE);
 
         expect($html)->toContain('<script type="application/ld+json">{"@type":"Product"}</script>');
+    });
+
+    it('starts with a skip link to the main content', function () {
+        $html = $this->get('/')->assertOk()->getContent();
+
+        expect($html)->toMatch('#<body[^>]*>\s*<a href="\#konten"[^>]*>Lewati ke konten</a>#')
+            ->toContain('<main id="konten"');
+    });
+
+    it('runs no queries in the bare layout used by error pages, even for a signed-in buyer', function () {
+        Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+        $this->actingAs(User::factory()->create());
+        $queries = 0;
+        DB::listen(function () use (&$queries) {
+            $queries++;
+        });
+
+        $html = Blade::render('<x-layouts.app title="Galat" :bare="true">Isi</x-layouts.app>');
+
+        expect($queries)->toBe(0)
+            ->and($html)->not->toContain('Kepiting')
+            ->toContain('Isi');
+    });
+});
+
+describe('header', function () {
+    it('has no category links on any page', function (string $url) {
+        Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+
+        expect(headerOf($this->get($url)->assertOk()->getContent()))
+            ->not->toContain('?kategori=')
+            ->not->toContain('aria-label="Kategori"');
+    })->with([
+        'home page' => ['/'],
+        'catalog' => ['/produk'],
+        'catalog filtered by a category' => ['/produk?kategori=kepiting'],
+    ]);
+
+    it('links guests to Google sign-in', function () {
+        expect(headerOf($this->get('/')->assertOk()->getContent()))
+            ->toContain('href="'.route('login').'"')
+            ->toContain('Masuk');
+    });
+
+    it('hides the sign-in link from a signed-in buyer', function () {
+        $html = $this->actingAs(User::factory()->create())->get('/')->assertOk()->getContent();
+
+        expect(headerOf($html))->not->toContain('href="'.route('login').'"');
+    });
+
+    it('leaves the sign-in link out of the bare layout used by error pages', function () {
+        $html = Blade::render('<x-layouts.app title="Galat" :bare="true">Isi</x-layouts.app>');
+
+        expect(headerOf($html))
+            ->toContain('href="'.route('catalog').'"')
+            ->not->toContain('href="'.route('login').'"');
+    });
+});
+
+describe('footer', function () {
+    it('links to the catalog, the root categories, and opening a store', function () {
+        Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+
+        $footer = Str::after($this->get('/')->assertOk()->getContent(), '<footer');
+
+        expect($footer)
+            ->toContain('href="'.url('/produk').'"')
+            ->toContain('href="'.url('/produk').'?kategori=kepiting"')
+            ->toContain('href="'.url('/seller').'"')
+            ->toContain('Buka lapak')
+            ->toContain('&copy; '.now()->year.' Seafood Marketplace');
     });
 });

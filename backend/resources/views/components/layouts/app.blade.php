@@ -34,46 +34,62 @@
     @livewireStyles
 </head>
 <body class="flex min-h-screen flex-col bg-surface font-sans text-ink antialiased">
+    <a href="#konten" class="sr-only rounded-full bg-ink px-4 py-2 font-bold text-white focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50">Lewati ke konten</a>
+    @php($categories = $rootCategories())
+
     <header class="border-b border-line bg-white">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
             <x-logo />
 
-            <form action="{{ route('catalog') }}" method="GET" role="search" class="order-last w-full sm:order-none sm:flex-1">
+            <form action="{{ route('catalog') }}" method="GET" role="search" class="order-last flex h-12 w-full items-center gap-2 rounded-full border-[1.5px] border-muted bg-surface pr-1.5 pl-4 focus-within:border-primary-600 sm:order-0 sm:w-auto sm:flex-1">
                 <label for="search" class="sr-only">Cari produk</label>
+                <svg class="size-4.5 shrink-0 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
                 <input
                     id="search"
                     type="search"
                     name="q"
                     value="{{ $searchQuery() }}"
-                    placeholder="Cari kepiting, cumi, tiram..."
+                    placeholder="Cari kepiting, cumi, kerang"
                     maxlength="{{ \App\Livewire\Catalog::MAX_QUERY_LENGTH }}"
-                    class="w-full rounded-lg border border-line-strong px-3 py-2 text-sm focus:border-primary-600 focus:outline-none"
+                    class="min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-muted focus:outline-none"
                 >
+                <button type="submit" class="h-9 shrink-0 rounded-full bg-primary-700 px-4 text-sm font-bold text-white hover:bg-primary-800">Cari</button>
             </form>
+
+            <nav aria-label="Utama" class="ml-auto flex items-center gap-5 text-sm font-semibold sm:ml-0">
+                <a href="{{ route('catalog') }}" class="hover:text-primary-700">Katalog</a>
+                {{-- The bare layout skips the auth check: a signed-in session would query the users table. --}}
+                @if (! $bare && auth()->guest())
+                    <a href="{{ route('login') }}" class="flex h-11 items-center rounded-full border-[1.5px] border-ink px-4 hover:bg-surface">Masuk</a>
+                @endif
+            </nav>
         </div>
 
-        @php($categories = $rootCategories())
-        @if ($categories->isNotEmpty())
-            <nav aria-label="Kategori" class="border-t border-line">
-                <ul class="mx-auto flex max-w-6xl gap-4 overflow-x-auto px-4 py-2 text-sm">
-                    @foreach ($categories as $category)
-                        <li>
-                            <a href="{{ route('catalog', ['kategori' => $category->slug]) }}" class="whitespace-nowrap text-muted hover:text-primary-700">{{ $category->name }}</a>
-                        </li>
-                    @endforeach
-                </ul>
-            </nav>
-        @endif
     </header>
 
-    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+    <main id="konten" class="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         {{ $slot }}
     </main>
 
-    <footer class="border-t border-line bg-white">
-        <div class="mx-auto max-w-6xl px-4 py-6 text-sm text-muted">
-            &copy; {{ now()->year }} {{ config('app.name') }}. Hasil laut segar langsung dari penjual.
+    <footer class="bg-ink text-white">
+        <div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:flex-row sm:justify-between">
+            <div class="flex max-w-sm flex-col gap-2">
+                <span class="text-lg font-extrabold tracking-tight">{{ config('app.name') }}</span>
+                <p class="text-sm text-white/80">Hasil laut segar dari lapak terdekat, dengan stok yang dicek setiap pagi.</p>
+            </div>
+            <nav aria-label="Tautan bawah" class="flex flex-wrap gap-x-10 gap-y-4 text-sm">
+                <ul class="flex flex-col gap-2">
+                    <li><a href="{{ route('catalog') }}" class="hover:underline">Katalog</a></li>
+                    @foreach ($categories as $category)
+                        <li><a href="{{ route('catalog', ['kategori' => $category->slug]) }}" class="hover:underline">{{ $category->name }}</a></li>
+                    @endforeach
+                </ul>
+                <ul class="flex flex-col gap-2">
+                    <li><a href="{{ url('/seller') }}" class="hover:underline">Buka lapak</a></li>
+                </ul>
+            </nav>
         </div>
+        <p class="mx-auto max-w-6xl border-t border-white/15 px-4 py-4 text-xs text-white/70">&copy; {{ now()->year }} {{ config('app.name') }}</p>
     </footer>
 
     @livewireScripts
