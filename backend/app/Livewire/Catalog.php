@@ -52,6 +52,12 @@ class Catalog extends Component
 
     private const array FILTERS = ['q', 'category', 'condition', 'store', 'minPrice', 'maxPrice', 'sort', 'radius'];
 
+    /**
+     * The filters a chip can remove: all but the sort, which is a choice of
+     * order rather than a filter.
+     */
+    private const array REMOVABLE_FILTERS = ['q', 'category', 'condition', 'store', 'minPrice', 'maxPrice', 'radius'];
+
     #[Url(except: '')]
     public string $q = '';
 
@@ -112,6 +118,34 @@ class Catalog extends Component
         $this->resetPage();
     }
 
+    /**
+     * Remove one filter, from its chip. Any other name is ignored, so the
+     * request cannot reset the location, the sort, or the page.
+     */
+    public function removeFilter(string $filter): void
+    {
+        if (! in_array($filter, self::REMOVABLE_FILTERS, true)) {
+            return;
+        }
+
+        $this->{$filter} = '';
+        $this->resetPage();
+    }
+
+    /**
+     * Remove every filter and go back to the default sort. The location
+     * stays, so the buyer can still sort by distance without asking again.
+     */
+    public function clearFilters(): void
+    {
+        foreach (self::REMOVABLE_FILTERS as $filter) {
+            $this->{$filter} = '';
+        }
+
+        $this->sort = 'terbaru';
+        $this->resetPage();
+    }
+
     public function updatedQ(): void
     {
         $this->q = $this->cutQuery($this->q);
@@ -130,13 +164,16 @@ class Catalog extends Component
     public function render(): View
     {
         $category = $this->selectedCategory();
+        $stores = Store::query()->where('status', StoreStatus::Active)->orderBy('name')->get(['id', 'name', 'slug']);
 
         return view('livewire.catalog', [
             'products' => $this->products($category),
             'located' => $this->isLocated(),
             'radii' => self::RADII,
             'categories' => $this->categoryOptions(),
-            'stores' => Store::query()->where('status', StoreStatus::Active)->orderBy('name')->get(['id', 'name', 'slug']),
+            'stores' => $stores,
+            'activeFilters' => $this->activeFilters($category, $stores),
+            'filtered' => $this->isFiltered() || $this->radius !== '',
             'conditions' => ProductCondition::cases(),
             'sorts' => $this->isLocated() ? [...self::SORTS, 'terdekat' => 'Terdekat'] : self::SORTS,
         ])->layout(Layout::class, [
@@ -292,6 +329,40 @@ class Catalog extends Component
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name', 'slug']);
+    }
+
+    /**
+     * The filters in effect, each with the label of its chip. A value that
+     * names nothing known (it already empties the list) has no chip.
+     *
+     * @param  Collection<int, Store>  $stores  the active stores offered in the filter
+     * @return list<array{name: string, label: string}>
+     */
+    private function activeFilters(?Category $category, Collection $stores): array
+    {
+        $minPrice = $this->price($this->minPrice);
+        $maxPrice = $this->price($this->maxPrice);
+        $radius = (int) $this->radius;
+
+        $labels = [
+            'q' => $this->q !== '' ? '“'.$this->q.'”' : null,
+            'category' => $category?->name,
+            'condition' => ProductCondition::tryFrom($this->condition)?->label(),
+            'store' => $this->store !== '' ? $stores->firstWhere('slug', $this->store)?->name : null,
+            'minPrice' => $minPrice !== null ? 'Mulai Rp'.number_format($minPrice, 0, ',', '.') : null,
+            'maxPrice' => $maxPrice !== null ? 'Sampai Rp'.number_format($maxPrice, 0, ',', '.') : null,
+            'radius' => $this->isLocated() && ctype_digit($this->radius) && in_array($radius, self::RADII, true) ? "Dalam {$radius} km" : null,
+        ];
+
+        $filters = [];
+
+        foreach ($labels as $name => $label) {
+            if ($label !== null) {
+                $filters[] = ['name' => $name, 'label' => $label];
+            }
+        }
+
+        return $filters;
     }
 
     /**

@@ -9,6 +9,7 @@ use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 /*
@@ -452,5 +453,178 @@ describe('nearest stores', function () {
             ->call('locate', -6.1754, 106.8272)
             ->assertDontSee('-6.1065')
             ->assertDontSee('108.557');
+    });
+});
+
+describe('active filters', function () {
+    it('shows each valid filter as a chip that removes it', function () {
+        catalogFixture();
+
+        Livewire::withQueryParams(['q' => 'bakau', 'kategori' => 'kepiting', 'kondisi' => 'live', 'toko' => 'toko-bahari', 'harga_min' => '1000', 'harga_maks' => '200000'])
+            ->test('catalog')
+            ->assertSeeHtml('aria-label="Hapus filter “bakau”"')
+            ->assertSeeHtml('aria-label="Hapus filter Kepiting"')
+            ->assertSeeHtml('aria-label="Hapus filter Hidup"')
+            ->assertSeeHtml('aria-label="Hapus filter Toko Bahari"')
+            ->assertSeeHtml('aria-label="Hapus filter Mulai Rp1.000"')
+            ->assertSeeHtml('aria-label="Hapus filter Sampai Rp200.000"')
+            ->assertSeeHtml('wire:click="removeFilter(&#039;category&#039;)"');
+    });
+
+    it('removes only the filter whose chip is pressed', function () {
+        catalogFixture();
+
+        Livewire::withQueryParams(['kategori' => 'kepiting', 'kondisi' => 'live'])
+            ->test('catalog')
+            ->call('removeFilter', 'category')
+            ->assertSet('category', '')
+            ->assertSet('condition', 'live')
+            ->assertDontSeeHtml('aria-label="Hapus filter Kepiting"')
+            ->assertSeeHtml('aria-label="Hapus filter Hidup"')
+            ->assertSee('Kepiting Bakau Super')
+            ->assertDontSee('Cumi Segar Pagi');
+    });
+
+    it('goes back to the first page when a filter is removed', function () {
+        foreach (range(1, 30) as $number) {
+            catalogProduct(['name' => "Pengisi {$number}"]);
+        }
+
+        Livewire::withQueryParams(['page' => 2, 'q' => 'Pengisi'])
+            ->test('catalog')
+            ->call('removeFilter', 'q')
+            ->assertSet('paginators.page', 1);
+    });
+
+    it('shows the radius as a chip once the location is known', function () {
+        Livewire::test('catalog')
+            ->call('locate', -6.1754, 106.8272)
+            ->set('radius', '10')
+            ->assertSeeHtml('aria-label="Hapus filter Dalam 10 km"')
+            ->call('removeFilter', 'radius')
+            ->assertSet('radius', '')
+            ->assertSet('lat', '-6.175');
+    });
+
+    it('shows no chip for a value it does not know', function (string $query) {
+        catalogFixture();
+
+        $this->get('/produk?'.$query)->assertOk()->assertDontSee('aria-label="Filter aktif"', escape: false);
+    })->with([
+        'unknown condition' => ['kondisi=xyz'],
+        'unknown category' => ['kategori=paus'],
+        'unknown store' => ['toko=toko-hantu'],
+        'price that is not a number' => ['harga_min=abc'],
+        'radius without a location' => ['radius=10'],
+        'only a sort' => ['urut=termurah'],
+    ]);
+
+    it('ignores a remove request for anything that is not a filter', function (string $name) {
+        Livewire::test('catalog')
+            ->call('locate', -6.1754, 106.8272)
+            ->call('removeFilter', $name)
+            ->assertSet('lat', '-6.175')
+            ->assertSet('lng', '106.827')
+            ->assertSet('sort', 'terdekat');
+    })->with(['lat', 'lng', 'sort', 'paginators', 'unknown']);
+
+    it('clears every filter and the sort but keeps the location', function () {
+        catalogFixture();
+
+        Livewire::withQueryParams(['q' => 'bakau', 'kategori' => 'kepiting', 'kondisi' => 'live', 'toko' => 'toko-bahari', 'harga_min' => '1000', 'harga_maks' => '200000', 'urut' => 'termurah'])
+            ->test('catalog')
+            ->call('locate', -6.1754, 106.8272)
+            ->set('radius', '50')
+            ->call('clearFilters')
+            ->assertSet('q', '')
+            ->assertSet('category', '')
+            ->assertSet('condition', '')
+            ->assertSet('store', '')
+            ->assertSet('minPrice', '')
+            ->assertSet('maxPrice', '')
+            ->assertSet('radius', '')
+            ->assertSet('sort', 'terbaru')
+            ->assertSet('lat', '-6.175')
+            ->assertSee('Cumi Segar Pagi')
+            ->assertDontSeeHtml('aria-label="Filter aktif"');
+    });
+
+    it('offers to clear all filters only when a filter is set', function () {
+        catalogFixture();
+
+        $this->get('/produk?kondisi=live')->assertOk()->assertSee('wire:click="clearFilters"', escape: false);
+        $this->get('/produk')->assertOk()->assertDontSee('wire:click="clearFilters"', escape: false);
+    });
+
+    it('escapes the search query in its chip', function () {
+        $this->get('/produk?q='.urlencode('<script>alert(1)</script>'))
+            ->assertOk()
+            ->assertDontSee('<script>alert(1)</script>', escape: false)
+            ->assertSee('Hapus filter “&lt;script&gt;alert(1)&lt;/script&gt;”', escape: false);
+    });
+});
+
+describe('filter panel and results', function () {
+    it('has a button that opens the filter panel on a phone', function () {
+        $this->get('/produk')
+            ->assertOk()
+            ->assertSee('aria-controls="panel-filter"', escape: false)
+            ->assertSee('aria-expanded="false"', escape: false)
+            ->assertSee('id="panel-filter"', escape: false);
+    });
+
+    it('counts the active filters on the panel button, leaving out the sort', function () {
+        catalogFixture();
+
+        $html = $this->get('/produk?kategori=kepiting&kondisi=live&urut=termurah')->assertOk()->getContent();
+
+        expect(Str::between($html, 'aria-controls="panel-filter"', '</button>'))
+            ->toContain('Filter')
+            ->toMatch('/<span[^>]*>\s*2\s*<\/span>/');
+    });
+
+    it('shows the total number of results, not only this page', function () {
+        foreach (range(1, 30) as $number) {
+            catalogProduct(['name' => "Pengisi {$number}"]);
+        }
+
+        $this->get('/produk')->assertOk()->assertSee('30 produk');
+    });
+
+    it('announces loading while the list updates', function () {
+        $this->get('/produk')
+            ->assertOk()
+            ->assertSee('wire:loading', escape: false)
+            ->assertSee('Memuat produk');
+    });
+
+    it('shows the empty state with a way to clear the filters', function () {
+        catalogFixture();
+
+        $this->get('/produk?kondisi=marinated')
+            ->assertOk()
+            ->assertSee('Produk tidak ditemukan')
+            ->assertSee('Hapus semua filter');
+    });
+});
+
+describe('pagination', function () {
+    it('marks the current page and links to the others by number', function () {
+        foreach (range(1, 50) as $number) {
+            catalogProduct(['name' => "Pengisi {$number}"]);
+        }
+
+        expect($this->get('/produk?page=2')->assertOk()->getContent())
+            ->toMatch('/<span[^>]*aria-current="page"[^>]*>\s*2\s*<\/span>/')
+            ->toContain('aria-label="Halaman 1"')
+            ->toContain('aria-label="Halaman 3"')
+            ->toContain('Sebelumnya')
+            ->toContain('Berikutnya');
+    });
+
+    it('shows no pagination for a single page', function () {
+        catalogProduct();
+
+        $this->get('/produk')->assertOk()->assertDontSee('aria-label="Halaman', escape: false);
     });
 });
