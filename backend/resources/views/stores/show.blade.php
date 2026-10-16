@@ -8,46 +8,60 @@
         <script type="application/ld+json">{!! json_encode($jsonLd, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) !!}</script>
     @endpush
 
-    <section class="flex flex-col gap-4 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-start">
-        @if ($store->logoUrl())
-            <img src="{{ $store->logoUrl() }}" alt="Logo {{ $store->name }}" class="size-20 shrink-0 rounded-full object-cover">
-        @else
-            <span class="flex size-20 shrink-0 items-center justify-center rounded-full bg-primary-50 text-2xl font-semibold text-primary-700" aria-hidden="true">{{ mb_strtoupper(mb_substr($store->name, 0, 1)) }}</span>
-        @endif
-
-        <div class="min-w-0 flex-1">
-            <h1 class="text-2xl font-semibold">{{ $store->name }}</h1>
-            <p class="text-sm text-muted">{{ $store->city }}</p>
-
-            @if ($store->description)
-                <p class="mt-3 whitespace-pre-line text-ink">{{ $store->description }}</p>
+    <div class="flex flex-col gap-8 lg:gap-10">
+        <section aria-labelledby="nama-toko" class="flex flex-col gap-5 rounded-feature bg-white p-5 sm:flex-row sm:items-start sm:gap-6 lg:p-7">
+            @if ($store->logoUrl())
+                <img src="{{ $store->logoUrl() }}" alt="Logo {{ $store->name }}" class="size-20 shrink-0 rounded-card object-cover lg:size-24">
+            @else
+                <span class="flex size-20 shrink-0 items-center justify-center rounded-card bg-primary-50 text-3xl font-extrabold text-primary-700 lg:size-24" aria-hidden="true">{{ mb_strtoupper(mb_substr($store->name, 0, 1)) }}</span>
             @endif
 
-            <p class="mt-3 text-sm text-muted">{{ $store->address }}</p>
+            <div class="flex min-w-0 flex-1 flex-col gap-3">
+                <div>
+                    <h1 id="nama-toko" class="text-[1.75rem] leading-tight font-extrabold tracking-tight lg:text-[2.125rem]">{{ $store->name }}</h1>
+                    <p class="mt-1 text-muted">{{ $store->city }}</p>
+                </div>
 
-            <div class="mt-4 flex flex-wrap gap-2 text-sm">
-                <a href="{{ $store->whatsappUrl('Halo '.$store->name.', saya ingin bertanya tentang produk Anda.') }}" target="_blank" rel="noopener noreferrer" class="rounded-lg bg-success-700 px-4 py-2 font-medium text-white hover:bg-success-800">WhatsApp</a>
-                <a href="tel:{{ $store->internationalPhone() }}" class="rounded-lg border border-line-strong px-4 py-2 hover:bg-surface">Telepon</a>
-                <a href="{{ $store->googleMapsUrl() }}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-line-strong px-4 py-2 hover:bg-surface">Lihat di Google Maps</a>
+                @if ($store->description)
+                    <p class="max-w-prose leading-relaxed whitespace-pre-line">{{ $store->description }}</p>
+                @endif
+
+                <p class="text-sm text-muted">{{ $store->address }}</p>
+
+                <div class="mt-1 flex flex-wrap gap-2">
+                    <x-button :href="$store->whatsappUrl('Halo '.$store->name.', saya ingin bertanya tentang produk Anda.')" target="_blank" rel="noopener noreferrer">WhatsApp</x-button>
+                    <x-button variant="secondary" :href="'tel:'.$store->internationalPhone()">Telepon</x-button>
+                    <x-button variant="secondary" :href="$store->googleMapsUrl()" target="_blank" rel="noopener noreferrer">Lihat di Google Maps</x-button>
+                </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section class="mt-8" aria-labelledby="store-products">
-        <h2 id="store-products" class="text-lg font-semibold">Produk</h2>
-
-        @if ($products->isEmpty())
-            <p class="mt-3 text-sm text-muted">Toko ini belum punya produk yang dijual.</p>
-        @else
-            <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                @foreach ($products as $product)
-                    <x-product-card :product="$product" />
-                @endforeach
+        <section aria-labelledby="produk-toko" class="flex flex-col gap-4">
+            <div class="flex items-baseline justify-between gap-4">
+                <h2 id="produk-toko" class="text-[1.375rem] font-extrabold tracking-tight lg:text-[1.75rem]">Produk</h2>
+                @if ($products->total() > 0)
+                    <p class="text-sm font-bold">{{ $products->total() }} produk</p>
+                @endif
             </div>
 
-            <div class="mt-6">
-                {{ $products->links() }}
-            </div>
-        @endif
-    </section>
+            @if ($products->isEmpty())
+                <x-empty-state
+                    title="Toko ini belum punya produk yang dijual"
+                    text="Lihat produk dari toko lain di katalog."
+                    action="Lihat katalog"
+                    :href="route('catalog')"
+                />
+            @else
+                <ul class="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5 lg:gap-y-7">
+                    @foreach ($products as $product)
+                        <li>
+                            <x-product-card :product="$product" />
+                        </li>
+                    @endforeach
+                </ul>
+
+                {{ $products->links('pagination') }}
+            @endif
+        </section>
+    </div>
 </x-layouts.app>

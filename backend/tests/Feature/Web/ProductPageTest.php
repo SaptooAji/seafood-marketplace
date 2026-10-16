@@ -351,3 +351,97 @@ describe('security', function () {
             ->not->toContain((string) $this->store->lng);
     });
 });
+
+describe('layout', function () {
+    it('leads with a breadcrumb to the category and its parent', function () {
+        productPage()
+            ->assertOk()
+            ->assertSee('<nav aria-label="Breadcrumb"', escape: false)
+            ->assertSeeInOrder([
+                'href="'.route('home').'"',
+                'href="'.e(route('catalog', ['kategori' => $this->kepiting->slug])).'"',
+                'Kepiting',
+                'href="'.e(route('catalog', ['kategori' => $this->bakau->slug])).'"',
+                'Bakau',
+                'aria-current="page"',
+                'Kepiting Bakau Super',
+            ], escape: false);
+    });
+
+    it('leaves the parent out of the breadcrumb for a root category', function () {
+        $this->product->update(['category_id' => $this->kepiting->id]);
+
+        $html = productPage()->assertOk()->getContent();
+        $breadcrumb = Str::between($html, '<nav aria-label="Breadcrumb"', '</nav>');
+
+        expect($breadcrumb)
+            ->toContain(e(route('catalog', ['kategori' => $this->kepiting->slug])))
+            ->not->toContain(e(route('catalog', ['kategori' => $this->bakau->slug])));
+    });
+
+    it('picks a photo with buttons that say which photo they show', function () {
+        ProductImage::factory()->for($this->product)->count(3)->sequence(
+            ['sort_order' => 1],
+            ['sort_order' => 2],
+            ['sort_order' => 3],
+        )->create();
+
+        $html = productPage()->assertOk()->getContent();
+
+        expect(preg_match_all('#aria-label="Foto \d+ dari 3"#', $html))->toBe(3)
+            ->and($html)
+            ->toMatch('#<button[^>]*aria-label="Foto 1 dari 3"[^>]*aria-pressed="true"#s')
+            ->toMatch('#<button[^>]*aria-label="Foto 2 dari 3"[^>]*aria-pressed="false"#s')
+            ->toContain('x-bind:aria-pressed');
+    });
+
+    it('shows a single photo without thumbnails', function () {
+        ProductImage::factory()->for($this->product)->create();
+
+        productPage()
+            ->assertOk()
+            ->assertDontSee('aria-label="Foto 1 dari 1"', escape: false)
+            ->assertDontSee('aria-pressed', escape: false);
+    });
+
+    it('fills a product without photos with the empty state', function () {
+        productPage()
+            ->assertOk()
+            ->assertSee('Belum ada foto')
+            ->assertDontSee('aria-pressed', escape: false);
+    });
+
+    it('marks a stale variant with the warning badge', function () {
+        $html = productPage()->assertOk()->getContent();
+
+        expect($html)->toMatch('#<span[^>]*bg-warning-50[^>]*>\s*Stok belum dikonfirmasi\s*</span>#');
+    });
+
+    it('shows the condition and sales mode as badges above the name', function () {
+        productPage()
+            ->assertOk()
+            ->assertSeeInOrder([ProductCondition::Live->label(), SalesMode::ReadyStock->label(), '<h1', 'Kepiting Bakau Super'], escape: false);
+    });
+
+    it('shows the price of the chosen variant next to the name', function () {
+        Livewire::test('product-page', ['slug' => 'kepiting-bakau-super'])
+            ->assertSeeHtmlInOrder(['<h1', 'Kepiting Bakau Super', 'Rp185.000', 'Pilih varian'])
+            ->set('variantId', $this->stale->id)
+            ->assertSeeHtmlInOrder(['<h1', 'Kepiting Bakau Super', 'Rp240.000', 'Pilih varian']);
+    });
+
+    it('links the store from the seller card', function () {
+        productPage()
+            ->assertOk()
+            ->assertSeeInOrder(['Dijual oleh', 'Toko Bahari', 'Jakarta Utara', 'Lihat toko']);
+    });
+
+    it('opens every new tab with noopener noreferrer', function () {
+        $html = productPage()->assertOk()->getContent();
+
+        preg_match_all('#<a\s[^>]*target="_blank"[^>]*>#', $html, $links);
+
+        expect($links[0])->not->toBeEmpty()
+            ->each->toContain('rel="noopener noreferrer"');
+    });
+});

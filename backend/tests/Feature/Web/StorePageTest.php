@@ -249,3 +249,52 @@ describe('security', function () {
             ->and(storeJsonLdOf($html)['name'])->toBe('Toko </script><script>alert(1)</script>');
     });
 });
+
+describe('layout', function () {
+    it('heads the page with the name, city, and contact links', function () {
+        $this->get('/toko/toko-bahari')
+            ->assertOk()
+            ->assertSeeInOrder(['<h1', 'Toko Bahari', 'Jakarta Utara', 'https://wa.me/', 'tel:', e($this->store->googleMapsUrl())], escape: false);
+    });
+
+    it('lists the products with the product card and their count', function () {
+        storePageProduct($this->store, ['name' => 'Kepiting Bakau Super']);
+        storePageProduct($this->store, ['name' => 'Cumi Segar']);
+
+        $this->get('/toko/toko-bahari')
+            ->assertOk()
+            ->assertSee('2 produk')
+            ->assertSee('Mulai')
+            ->assertSee('<ul', escape: false);
+    });
+
+    it('shows the empty state when there are no products', function () {
+        $this->get('/toko/toko-bahari')
+            ->assertOk()
+            ->assertSee('Toko ini belum punya produk')
+            ->assertSee('href="'.route('catalog').'"', escape: false);
+    });
+
+    it('pages with numbered links', function () {
+        foreach (range(1, 25) as $number) {
+            storePageProduct($this->store);
+        }
+
+        $this->get('/toko/toko-bahari')
+            ->assertOk()
+            ->assertSee('<nav aria-label="Halaman"', escape: false)
+            ->assertSee('aria-current="page"', escape: false)
+            ->assertSee('aria-label="Halaman 2"', escape: false)
+            ->assertSee('href="'.e(url('/toko/toko-bahari?page=2')).'"', escape: false)
+            ->assertDontSee('wire:click', escape: false);
+    });
+
+    it('opens every new tab with noopener noreferrer', function () {
+        $html = $this->get('/toko/toko-bahari')->assertOk()->getContent();
+
+        preg_match_all('#<a\s[^>]*target="_blank"[^>]*>#', $html, $links);
+
+        expect($links[0])->toHaveCount(2)
+            ->each->toContain('rel="noopener noreferrer"');
+    });
+});

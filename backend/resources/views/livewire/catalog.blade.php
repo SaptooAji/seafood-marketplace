@@ -148,7 +148,7 @@
                     @endforeach
                 </ul>
 
-                {{ $products->links('livewire.pagination') }}
+                {{ $products->links('pagination', ['livewire' => true]) }}
             @endif
         </section>
     </div>

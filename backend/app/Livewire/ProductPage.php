@@ -123,8 +123,9 @@ class ProductPage extends Component
     public function render(): View
     {
         $product = $this->product->load([
-            'store:id,name,slug,city,phone',
-            'category:id,name',
+            'store:id,name,slug,city,phone,logo',
+            'category:id,name,slug,parent_id',
+            'category.parent:id,name,slug',
             'images',
             'attributeValues' => fn (HasMany $values) => $values
                 ->with('categoryAttribute:id,name,unit')
