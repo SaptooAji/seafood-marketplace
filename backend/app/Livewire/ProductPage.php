@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Enums\SalesMode;
+use App\Enums\StoreStatus;
+use App\Enums\Unit;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Models\Store;
 use App\View\Components\Layouts\App as Layout;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -27,10 +31,16 @@ use Livewire\Component;
  *
  * @property-read Collection<int, ProductVariant> $variants
  * @property-read ProductVariant|null $selectedVariant
+ * @property-read Collection<int, Product> $similarProducts
+ * @property-read Collection<int, Store> $otherStores
  */
 class ProductPage extends Component
 {
     public const int MAX_QTY = 9999;
+
+    public const int SIMILAR_PRODUCTS = 4;
+
+    public const int OTHER_STORES = 3;
 
     /**
      * How far up the category tree to look for a quality standard.
@@ -82,6 +92,68 @@ class ProductPage extends Component
     public function selectedVariant(): ?ProductVariant
     {
         return $this->variants->firstWhere('id', $this->variantId);
+    }
+
+    /**
+     * Up to four other products buyers can see from the same category,
+     * filled up from the sibling categories, the same category first and
+     * newest first. A root category has no siblings to fill up from.
+     *
+     * @return Collection<int, Product>
+     */
+    #[Computed]
+    public function similarProducts(): Collection
+    {
+        $categoryId = $this->product->category_id;
+        $parentId = $this->product->category->parent_id;
+
+        return Product::query()
+            ->visibleInCatalog()
+            ->withCardDetails()
+            ->whereKeyNot($this->product->id)
+            ->when(
+                $parentId === null,
+                fn (Builder $query) => $query->where('category_id', $categoryId),
+                fn (Builder $query) => $query->whereIn('category_id', Category::query()->select('id')->where('parent_id', $parentId)),
+            )
+            ->orderByRaw('category_id = ? desc', [$categoryId])
+            ->latest()
+            ->latest('id')
+            ->limit(self::SIMILAR_PRODUCTS)
+            ->get(['id', 'store_id', 'name', 'slug', 'created_at']);
+    }
+
+    /**
+     * Up to three other active stores selling a product buyers can see in
+     * the same category, each with its cheapest active variant there as
+     * `from_price` and `from_unit`, cheapest first. Only public columns.
+     *
+     * @return Collection<int, Store>
+     */
+    #[Computed]
+    public function otherStores(): Collection
+    {
+        // One row per store: its cheapest active variant in this category (Postgres DISTINCT ON).
+        $cheapest = ProductVariant::query()
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->where('product_variants.is_active', true)
+            ->where('products.category_id', $this->product->category_id)
+            ->where('products.store_id', '!=', $this->product->store_id)
+            ->whereIn('products.id', Product::query()->visibleInCatalog()->select('id'))
+            ->selectRaw('distinct on (products.store_id) products.store_id, product_variants.price, product_variants.unit')
+            ->orderBy('products.store_id')
+            ->orderBy('product_variants.price')
+            ->orderBy('product_variants.id');
+
+        return Store::query()
+            ->joinSub($cheapest, 'cheapest', 'cheapest.store_id', '=', 'stores.id')
+            ->where('stores.status', StoreStatus::Active)
+            ->select(['stores.id', 'stores.name', 'stores.slug', 'stores.city', 'stores.logo', 'cheapest.price as from_price', 'cheapest.unit as from_unit'])
+            ->withCasts(['from_price' => 'integer', 'from_unit' => Unit::class])
+            ->orderBy('cheapest.price')
+            ->orderBy('stores.id')
+            ->limit(self::OTHER_STORES)
+            ->get();
     }
 
     /**

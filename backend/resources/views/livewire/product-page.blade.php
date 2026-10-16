@@ -185,4 +185,49 @@
             </section>
         @endif
     </div>
+
+    {{-- An island renders once with the page and is skipped when a variant is chosen, so these lists are not looked up again. --}}
+    @island(name: 'terkait')
+        <div class="flex flex-col gap-10 lg:gap-12">
+            @if ($this->similarProducts->isNotEmpty())
+                <section aria-labelledby="produk-serupa" class="flex flex-col gap-4">
+                    <h2 id="produk-serupa" class="text-[1.375rem] font-extrabold tracking-tight lg:text-[1.75rem]">Produk serupa</h2>
+                    <ul class="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
+                        @foreach ($this->similarProducts as $similar)
+                            <li wire:key="serupa-{{ $similar->id }}">
+                                <x-product-card :product="$similar" />
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
+            @if ($this->otherStores->isNotEmpty())
+                <section aria-labelledby="lapak-lain" class="flex flex-col gap-4">
+                    <h2 id="lapak-lain" class="text-[1.375rem] font-extrabold tracking-tight lg:text-[1.75rem]">Lapak lain yang menjual {{ $product->category->name }}</h2>
+                    <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+                        @foreach ($this->otherStores as $other)
+                            <li wire:key="lapak-{{ $other->id }}">
+                                <a href="{{ route('stores.show', $other->slug) }}" class="group flex items-center gap-3.5 rounded-card bg-white p-3.5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+                                    @if ($other->logoUrl())
+                                        <img src="{{ $other->logoUrl() }}" alt="" loading="lazy" class="size-16 shrink-0 rounded-photo object-cover">
+                                    @else
+                                        <span class="flex size-16 shrink-0 items-center justify-center rounded-photo bg-primary-50 text-2xl font-extrabold text-primary-700" aria-hidden="true">{{ mb_strtoupper(mb_substr($other->name, 0, 1)) }}</span>
+                                    @endif
+                                    <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                        <span class="truncate font-bold group-hover:text-primary-700">{{ $other->name }}</span>
+                                        <span class="truncate text-sm text-muted">{{ $other->city }}</span>
+                                    </span>
+                                    <span class="flex shrink-0 flex-col items-end text-sm">
+                                        <span class="text-xs text-muted">Mulai</span>
+                                        <x-price :amount="$other->from_price" :unit="$other->from_unit->label()" />
+                                    </span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+        </div>
+    @endisland
 </div>
