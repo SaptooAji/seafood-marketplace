@@ -8,6 +8,7 @@ use App\Exceptions\InvalidProductPhoto;
 use App\Exceptions\InvalidShippingMethod;
 use App\Exceptions\InvalidStockMovement;
 use App\Exceptions\UserAlreadyOwnsStore;
+use App\Http\Middleware\AddSecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,6 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Global, not only the web group, so API responses and 404s get the headers too.
+        $middleware->append(AddSecurityHeaders::class);
+
         // API guests get a JSON 401 instead of a redirect, even without an Accept header.
         $middleware->redirectGuestsTo(
             fn (Request $request) => $request->is('api/*') ? null : route('login'),
