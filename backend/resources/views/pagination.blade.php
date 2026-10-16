@@ -1,9 +1,11 @@
 {{--
-    Numbered pagination for Livewire lists. Each page is a real link, so it
-    works without JavaScript and search engines can follow it; Livewire
-    takes the click and loads the page in place.
+    Numbered pagination. Each page is a real link, so it works without
+    JavaScript and search engines can follow it. Pass ['livewire' => true]
+    from a Livewire list so Livewire takes the click and loads the page in
+    place.
 --}}
 @php
+    $livewire = $livewire ?? false;
     $pageName = $paginator->getPageName();
     $item = 'flex size-11 items-center justify-center rounded-full text-sm font-bold';
     $link = $item.' hover:bg-subtle focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600';
@@ -15,7 +17,7 @@
         @if ($paginator->onFirstPage())
             <span class="{{ $step }} text-muted" aria-disabled="true">Sebelumnya</span>
         @else
-            <a href="{{ $paginator->previousPageUrl() }}" rel="prev" wire:click.prevent="{{ "previousPage('".$pageName."')" }}" x-on:click="window.scrollTo({ top: 0 })" class="{{ $step }} hover:bg-subtle">Sebelumnya</a>
+            <a href="{{ $paginator->previousPageUrl() }}" rel="prev" @if ($livewire) wire:click.prevent="{{ "previousPage('".$pageName."')" }}" x-on:click="window.scrollTo({ top: 0 })" @endif class="{{ $step }} hover:bg-subtle">Sebelumnya</a>
         @endif
 
         @foreach ($elements as $element)
@@ -28,14 +30,14 @@
                     @if ($page === $paginator->currentPage())
                         <span aria-current="page" wire:key="halaman-{{ $page }}" class="{{ $item }} bg-ink text-white">{{ $page }}</span>
                     @else
-                        <a href="{{ $url }}" wire:key="halaman-{{ $page }}" wire:click.prevent="{{ 'gotoPage('.$page.", '".$pageName."')" }}" x-on:click="window.scrollTo({ top: 0 })" aria-label="Halaman {{ $page }}" class="{{ $link }}">{{ $page }}</a>
+                        <a href="{{ $url }}" wire:key="halaman-{{ $page }}" @if ($livewire) wire:click.prevent="{{ 'gotoPage('.$page.", '".$pageName."')" }}" x-on:click="window.scrollTo({ top: 0 })" @endif aria-label="Halaman {{ $page }}" class="{{ $link }}">{{ $page }}</a>
                     @endif
                 @endforeach
             @endif
         @endforeach
 
         @if ($paginator->hasMorePages())
-            <a href="{{ $paginator->nextPageUrl() }}" rel="next" wire:click.prevent="{{ "nextPage('".$pageName."')" }}" x-on:click="window.scrollTo({ top: 0 })" class="{{ $step }} hover:bg-subtle">Berikutnya</a>
+            <a href="{{ $paginator->nextPageUrl() }}" rel="next" @if ($livewire) wire:click.prevent="{{ "nextPage('".$pageName."')" }}" x-on:click="window.scrollTo({ top: 0 })" @endif class="{{ $step }} hover:bg-subtle">Berikutnya</a>
         @else
             <span class="{{ $step }} text-muted" aria-disabled="true">Berikutnya</span>
         @endif
