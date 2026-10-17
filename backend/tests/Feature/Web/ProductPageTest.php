@@ -375,36 +375,64 @@ describe('layout', function () {
             ->not->toContain(e(route('catalog', ['kategori' => $this->bakau->slug])));
     });
 
-    it('picks a photo with buttons that say which photo they show', function () {
-        ProductImage::factory()->for($this->product)->count(3)->sequence(
+    it('shows the photos as a mosaic of the main photo and the next two', function () {
+        $images = ProductImage::factory()->for($this->product)->count(4)->sequence(
             ['sort_order' => 1],
             ['sort_order' => 2],
             ['sort_order' => 3],
+            ['sort_order' => 4],
         )->create();
 
         $html = productPage()->assertOk()->getContent();
 
-        expect(preg_match_all('#aria-label="Foto \d+ dari 3"#', $html))->toBe(3)
-            ->and($html)
-            ->toMatch('#<button[^>]*aria-label="Foto 1 dari 3"[^>]*aria-pressed="true"#s')
-            ->toMatch('#<button[^>]*aria-label="Foto 2 dari 3"[^>]*aria-pressed="false"#s')
-            ->toContain('x-bind:aria-pressed');
+        expect($html)
+            ->toMatch('#<img[^>]*src="'.preg_quote($images[0]->url(), '#').'"[^>]*alt="Kepiting Bakau Super, foto 1 dari 4"#')
+            ->toMatch('#<button[^>]*data-photo-tile[^>]*aria-label="Tampilkan foto 2 dari 4"#')
+            ->toMatch('#<button[^>]*data-photo-tile[^>]*aria-label="Tampilkan foto 3 dari 4"#')
+            ->toContain($images[1]->thumbnailUrl())
+            ->toContain($images[2]->thumbnailUrl())
+            ->and(substr_count($html, 'data-photo-tile'))->toBe(2);
     });
 
-    it('shows a single photo without thumbnails', function () {
+    it('moves between the photos with previous and next buttons', function () {
+        ProductImage::factory()->for($this->product)->count(3)->sequence(['sort_order' => 1], ['sort_order' => 2], ['sort_order' => 3])->create();
+
+        expect(productPage()->assertOk()->getContent())
+            ->toMatch('#<button[^>]*aria-label="Foto sebelumnya"#')
+            ->toMatch('#<button[^>]*aria-label="Foto berikutnya"#')
+            ->toContain('1 dari 3');
+    });
+
+    it('gives two photos one tall tile', function () {
+        ProductImage::factory()->for($this->product)->count(2)->sequence(['sort_order' => 1], ['sort_order' => 2])->create();
+
+        expect(substr_count(productPage()->assertOk()->getContent(), 'data-photo-tile'))->toBe(1);
+    });
+
+    it('shows a single photo without tiles or buttons', function () {
         ProductImage::factory()->for($this->product)->create();
 
         productPage()
             ->assertOk()
-            ->assertDontSee('aria-label="Foto 1 dari 1"', escape: false)
-            ->assertDontSee('aria-pressed', escape: false);
+            ->assertDontSee('data-photo-tile', escape: false)
+            ->assertDontSee('Foto berikutnya');
     });
 
     it('fills a product without photos with the empty state', function () {
         productPage()
             ->assertOk()
             ->assertSee('Belum ada foto')
-            ->assertDontSee('aria-pressed', escape: false);
+            ->assertDontSee('data-photo-tile', escape: false)
+            ->assertDontSee('Foto berikutnya');
+    });
+
+    it('keeps the photo list out of inline scripts', function () {
+        ProductImage::factory()->for($this->product)->count(2)->sequence(['sort_order' => 1], ['sort_order' => 2])->create();
+        $this->product->update(['name' => 'Kepiting "Bakau" </script>']);
+
+        expect(productPage()->assertOk()->getContent())
+            ->toContain('data-photos="')
+            ->not->toContain('Kepiting "Bakau" </script>');
     });
 
     it('marks a stale variant with the warning badge', function () {
@@ -470,15 +498,22 @@ function orderBuilder(): Testable
 describe('order steps', function () {
     it('numbers the steps of a ready stock product 1 to 3 without a delivery date', function () {
         orderBuilder()
-            ->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Jumlah', 'data-step="3"', 'Cara terima'])
+            ->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Berapa kilo?', 'data-step="3"', 'Diantar atau ambil sendiri?'])
             ->assertDontSeeHtml('data-step="4"')
+            ->assertDontSee('Kapan mau diterima?')
             ->assertDontSee('Tanggal kirim');
     });
 
     it('adds the delivery date as step 3 of a pre-order product', function () {
         makeOrderPreOrder();
 
-        orderBuilder()->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Jumlah', 'data-step="3"', 'Tanggal kirim', 'data-step="4"', 'Cara terima']);
+        orderBuilder()->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Berapa kilo?', 'data-step="3"', 'Kapan mau diterima?', 'data-step="4"', 'Diantar atau ambil sendiri?']);
+    });
+
+    it('asks for the quantity in the unit of the chosen variant', function () {
+        $this->fresh->update(['unit' => Unit::Piece]);
+
+        orderBuilder()->assertSee('Berapa '.mb_strtolower(Unit::Piece->label()).'?');
     });
 
     it('lists the active variants with price and unit, and disables the sold-out ones', function () {
