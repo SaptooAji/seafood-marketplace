@@ -444,6 +444,195 @@ describe('stores', function () {
     });
 });
 
+/**
+ * A visible pre-order product with one active variant.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function homePreOrder(array $attributes = [], ?Store $store = null, int $price = 95_000): Product
+{
+    $product = Product::factory()->preOrder()
+        ->for($store ?? Store::factory()->active())
+        ->create(['lead_time_days' => 1, 'cutoff_time' => '15:00', 'daily_quota' => '20.000', ...$attributes]);
+    ProductVariant::factory()->for($product)->create(['price' => $price, 'unit' => Unit::Kg]);
+
+    return $product;
+}
+
+/**
+ * The HTML of one day panel of the pre-order band, or '' when it is not there.
+ */
+function preOrderPanel(int $day): string
+{
+    $section = homeSection('preorder-judul');
+    $marker = 'id="preorder-hari-'.$day.'"';
+
+    if (! str_contains($section, $marker)) {
+        return '';
+    }
+
+    return Str::before(Str::after($section, $marker), 'id="preorder-hari-');
+}
+
+describe('shopping needs', function () {
+    it('links each tile to the catalog with the filters from the config', function () {
+        config(['home.needs' => [
+            ['title' => 'Acara dan katering', 'text' => 'Kepiting hidup untuk tamu.', 'photo' => 'images/resep/kepiting-saus-padang.jpg', 'query' => ['kategori' => 'kepiting', 'kondisi' => 'live']],
+            ['title' => 'Stok warung makan', 'text' => 'Hasil laut beku.', 'photo' => 'images/resep/cumi-goreng-tepung.jpg', 'query' => ['kondisi' => 'frozen']],
+        ]]);
+
+        $section = homeSection('keperluan-judul');
+
+        expect($section)->toContain('Belanja untuk keperluan apa?')
+            ->toContain('Acara dan katering')
+            ->toContain('Kepiting hidup untuk tamu.')
+            ->toContain('href="'.e(route('catalog', ['kategori' => 'kepiting', 'kondisi' => 'live'])).'"')
+            ->toContain('href="'.e(route('catalog', ['kondisi' => 'frozen'])).'"')
+            ->toContain('src="'.asset('images/resep/kepiting-saus-padang.jpg').'"');
+    });
+
+    it('is not rendered without tiles', function () {
+        config(['home.needs' => []]);
+
+        expect(homeSection('keperluan-judul'))->toBe('');
+    });
+
+    it('escapes the tile text', function () {
+        config(['home.needs' => [['title' => '<b>Judul</b>', 'text' => '<i>Teks</i>', 'photo' => 'images/resep/kepiting-saus-padang.jpg', 'query' => []]]]);
+
+        expect(homeSection('keperluan-judul'))->not->toContain('<b>Judul</b>')->not->toContain('<i>Teks</i>');
+    });
+});
+
+describe('pre-order band', function () {
+    it('shows a pre-order product from tomorrow when ordered before the cutoff', function () {
+        $this->travelTo(now()->setDateTime(2026, 10, 15, 3, 0)); // 10.00 WIB
+        homePreOrder(['name' => 'Udang Vaname Size 40']);
+
+        expect(homeSection('preorder-judul'))->toContain('Pesan hari ini, tangkapan besok')
+            ->and(preOrderPanel(0))->toContain('Udang Vaname Size 40')
+            ->and(preOrderPanel(1))->toContain('Udang Vaname Size 40');
+    });
+
+    it('shows it from the day after tomorrow when ordered after the cutoff', function () {
+        $this->travelTo(now()->setDateTime(2026, 10, 15, 9, 0)); // 16.00 WIB
+        homePreOrder(['name' => 'Udang Vaname Size 40']);
+
+        expect(preOrderPanel(0))->not->toContain('Udang Vaname Size 40')
+            ->and(preOrderPanel(1))->toContain('Udang Vaname Size 40');
+    });
+
+    it('has a tab for each of the next three days, tomorrow selected', function () {
+        $this->travelTo(now()->setDateTime(2026, 10, 15, 3, 0)); // Thursday 10.00 WIB
+        homePreOrder();
+
+        $section = homeSection('preorder-judul');
+
+        expect(substr_count($section, 'role="tab"'))->toBe(3)
+            ->and($section)->toContain('Besok')
+            ->toContain('Lusa')
+            ->toContain('Minggu')
+            ->and(substr_count($section, 'aria-selected="true"'))->toBe(1);
+    });
+
+    it('shows the photo, name, store, starting price, capacity, and order deadline', function () {
+        $this->travelTo(now()->setDateTime(2026, 10, 15, 3, 0)); // 10.00 WIB
+        $store = Store::factory()->active()->create(['name' => 'Lapak Bu Sari']);
+        $product = homePreOrder(['name' => 'Udang Vaname Size 40'], $store, 95_000);
+        ProductImage::factory()->for($product)->create();
+
+        expect(preOrderPanel(0))->toContain($product->images()->first()->thumbnailUrl())
+            ->toContain('Lapak Bu Sari')
+            ->toContain('Rp95.000')
+            ->toContain('Kuota 20 kg per hari')
+            ->toContain('Pesan sebelum 15.00 hari ini');
+    });
+
+    it('leaves out the capacity line when there is no daily quota', function () {
+        homePreOrder(['name' => 'Tanpa Kuota', 'daily_quota' => null]);
+
+        expect(homeSection('preorder-judul'))->toContain('Tanpa Kuota')->not->toContain('Kuota ');
+    });
+
+    it('leaves out ready stock and pre-orders buyers cannot see', function () {
+        homePreOrder(['name' => 'Pre Order Tampil']);
+        homeProduct(['name' => 'Ready Stock']);
+        homePreOrder(['name' => 'Pre Order Diblokir', 'blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.']);
+        homePreOrder(['name' => 'Pre Order Toko Ditangguhkan'], Store::factory()->suspended()->create());
+
+        expect(homeSection('preorder-judul'))->toContain('Pre Order Tampil')
+            ->not->toContain('Ready Stock')
+            ->not->toContain('Pre Order Diblokir')
+            ->not->toContain('Pre Order Toko Ditangguhkan');
+    });
+
+    it('lists pre-orders of real stores first', function () {
+        homePreOrder(['name' => 'Pre Order Contoh', 'created_at' => now()], Store::factory()->active()->demo()->create());
+        homePreOrder(['name' => 'Pre Order Asli', 'created_at' => now()->subDay()]);
+
+        $panel = preOrderPanel(1);
+
+        expect(Str::position($panel, 'Pre Order Asli'))->toBeLessThan(Str::position($panel, 'Pre Order Contoh'));
+    });
+
+    it('links to all pre-orders in the catalog', function () {
+        homePreOrder();
+
+        expect(homeSection('preorder-judul'))->toContain('Semua pre order')->toContain('href="'.url('/produk').'"');
+    });
+
+    it('is not rendered without pre-order products, not even its heading', function () {
+        homeProduct();
+
+        $this->get('/')->assertOk()->assertDontSee('Pesan hari ini, tangkapan besok');
+    });
+
+    it('escapes the product and store names', function () {
+        homePreOrder(['name' => '<script>alert(6)</script>'], Store::factory()->active()->create(['name' => '<script>alert(7)</script>']));
+
+        expect(homeSection('preorder-judul'))->not->toContain('<script>alert(6)</script>')->not->toContain('<script>alert(7)</script>');
+    });
+});
+
+describe('verified store rows', function () {
+    it('shows each store with its city, number of products, and a link', function () {
+        $store = Store::factory()->active()->create(['name' => 'Lapak Bu Sari', 'slug' => 'lapak-bu-sari', 'city' => 'Jakarta Utara']);
+        homeProduct(store: $store);
+        homeProduct(store: $store);
+        homeProduct(['is_active' => false], store: $store);
+
+        expect(homeSection('lapak-judul'))->toContain('Lapak Bu Sari')
+            ->toContain('Jakarta Utara')
+            ->toContain('2 produk')
+            ->toContain('Kunjungi lapak')
+            ->toContain('href="'.url('/toko/lapak-bu-sari').'"');
+    });
+});
+
+describe('seller band', function () {
+    it('invites sellers to open a store', function () {
+        expect(homeSection('buka-lapak-judul'))->toContain('Punya lapak hasil laut?')
+            ->toContain('href="'.url('/seller').'"');
+    });
+});
+
+describe('home sections performance', function () {
+    it('runs the same number of queries for 2 and 12 pre-orders and stores', function () {
+        $add = function (int $count) {
+            foreach (range(1, $count) as $i) {
+                homePreOrder(['category_id' => Category::factory()->create()->id]);
+            }
+        };
+
+        $add(2);
+        $few = homePageQueryCount();
+
+        $add(10);
+
+        expect(homePageQueryCount())->toBe($few);
+    });
+});
+
 describe('security', function () {
     it('escapes product, store, city, and category names everywhere they show', function () {
         $category = Category::factory()->create(['name' => '<script>alert(4)</script>', 'sort_order' => 1]);

@@ -159,20 +159,18 @@
         </section>
     @endif
 
-    @if ($stores->isNotEmpty())
-        <section aria-labelledby="lapak-judul" class="border-t border-line">
-            <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-9 pb-14 lg:pt-12 lg:pb-16">
-                <h2 id="lapak-judul" class="text-[1.625rem] leading-tight font-medium tracking-tight lg:text-[2.125rem]">Lapak terverifikasi</h2>
-
-                <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
-                    @foreach ($stores as $store)
+    @if ($needs !== [])
+        <section aria-labelledby="keperluan-judul">
+            <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 pb-12 lg:gap-6 lg:pb-16">
+                <h2 id="keperluan-judul" class="text-[1.625rem] leading-tight font-medium tracking-tight lg:text-[2.125rem]">Belanja untuk keperluan apa?</h2>
+                <ul class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
+                    @foreach ($needs as $need)
                         <li>
-                            <a href="{{ route('stores.show', $store->slug) }}" class="flex items-center gap-3.5 rounded-option border border-line bg-white p-3.5 hover:border-primary-600 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
-                                <span class="flex size-14 shrink-0 items-center justify-center rounded-photo bg-primary-50 text-xl font-semibold text-primary-800" aria-hidden="true">{{ mb_strtoupper(mb_substr($store->name, 0, 1)) }}</span>
-                                <span class="min-w-0">
-                                    <span class="block truncate font-semibold">{{ $store->name }}</span>
-                                    <span class="block truncate text-sm text-muted">{{ $store->city }}</span>
-                                </span>
+                            <a href="{{ route('catalog', $need['query']) }}" class="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-card bg-ink p-4 text-white focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-primary-600 lg:aspect-[4/3] lg:p-5">
+                                <img src="{{ asset($need['photo']) }}" alt="" loading="lazy" class="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none">
+                                <span aria-hidden="true" class="absolute inset-0 bg-linear-to-t from-ink/90 via-ink/40 to-ink/0"></span>
+                                <span class="relative text-lg leading-tight font-semibold lg:text-xl">{{ $need['title'] }}</span>
+                                <span class="relative mt-1 text-sm leading-snug text-white/85">{{ $need['text'] }}</span>
                             </a>
                         </li>
                     @endforeach
@@ -180,4 +178,112 @@
             </div>
         </section>
     @endif
+
+    @if ($preOrderDays !== [])
+        <section aria-labelledby="preorder-judul" class="bg-ink text-white" x-data="{ day: 0 }">
+            <div class="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-10 lg:gap-6 lg:py-14">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                    <div class="flex flex-col gap-1.5">
+                        <h2 id="preorder-judul" class="text-[1.625rem] leading-tight font-medium tracking-tight lg:text-[2.125rem]">Pesan hari ini, tangkapan besok</h2>
+                        <p class="max-w-[36em] text-sm text-white/80 lg:text-base">Penjual menyiapkan pesanan dari hasil tangkapan subuh. Jumlahnya per hari terbatas, jadi pesan lebih awal.</p>
+                    </div>
+                    <a href="{{ route('catalog') }}" class="flex min-h-11 items-center self-start font-semibold underline underline-offset-4 lg:self-auto">Semua pre order</a>
+                </div>
+
+                <div role="tablist" aria-label="Hari kirim" class="grid grid-cols-3 gap-2 lg:max-w-xl">
+                    @foreach ($preOrderDays as $index => $day)
+                        <button
+                            type="button"
+                            role="tab"
+                            id="preorder-tab-{{ $index }}"
+                            aria-controls="preorder-hari-{{ $index }}"
+                            aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+                            x-bind:aria-selected="day === {{ $index }}"
+                            x-on:click="day = {{ $index }}"
+                            class="flex flex-col items-start rounded-option bg-white/10 px-3.5 py-2.5 text-left aria-selected:bg-white aria-selected:text-ink"
+                        >
+                            <span class="text-xs opacity-80">{{ $day['date']->locale('id')->translatedFormat('j M') }}</span>
+                            <span class="font-semibold">{{ $day['label'] }}</span>
+                        </button>
+                    @endforeach
+                </div>
+
+                @foreach ($preOrderDays as $index => $day)
+                    <div
+                        role="tabpanel"
+                        id="preorder-hari-{{ $index }}"
+                        aria-labelledby="preorder-tab-{{ $index }}"
+                        @if ($index > 0) hidden @endif
+                        x-bind:hidden="day !== {{ $index }}"
+                    >
+                        @if ($day['products'] === [])
+                            <p class="rounded-card bg-white/10 p-5 text-white/85">Belum ada pre order yang bisa dikirim {{ mb_strtolower($day['label']) }}.</p>
+                        @else
+                            <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
+                                @foreach ($day['products'] as $item)
+                                    @php($product = $item['product'])
+                                    @php($cheapest = $product->variants->first())
+                                    <li>
+                                        <a href="{{ route('products.show', $product->slug) }}" class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3.5 rounded-card bg-white p-2.5 text-ink focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-white">
+                                            @if ($product->images->first())
+                                                <img src="{{ $product->images->first()->thumbnailUrl() }}" alt="" loading="lazy" class="size-22 rounded-photo bg-subtle object-cover">
+                                            @else
+                                                <x-empty-state compact title="Belum ada foto" class="size-22 rounded-photo" />
+                                            @endif
+                                            <span class="flex min-w-0 flex-col gap-0.5">
+                                                <span class="truncate font-semibold">{{ $product->name }}</span>
+                                                <span class="truncate text-xs text-muted">{{ $product->store->name }}</span>
+                                                @if ($cheapest)
+                                                    <span class="text-sm"><span class="text-xs text-muted">Mulai</span> <x-price :amount="$cheapest->price" :unit="$cheapest->unit->label()" class="text-base" /></span>
+                                                @endif
+                                                @if ($product->daily_quota !== null && $cheapest)
+                                                    <span class="text-xs font-semibold text-primary-800">Kuota {{ \App\Livewire\ProductPage::quantity((string) $product->daily_quota) }} {{ mb_strtolower($cheapest->unit->label()) }} per hari</span>
+                                                @endif
+                                                <span class="text-xs font-semibold text-accent-700">Pesan sebelum {{ $item['deadline'] }}</span>
+                                            </span>
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if ($stores->isNotEmpty())
+        <section aria-labelledby="lapak-judul">
+            <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 pt-10 pb-12 lg:pt-14 lg:pb-16">
+                <h2 id="lapak-judul" class="text-[1.625rem] leading-tight font-medium tracking-tight lg:text-[2.125rem]">Lapak terverifikasi</h2>
+
+                <ul class="flex flex-col rounded-card bg-white px-4 lg:px-6">
+                    @foreach ($stores as $store)
+                        <li class="flex items-center gap-3.5 border-b border-line py-3.5 last:border-b-0 lg:gap-5 lg:py-4">
+                            @if ($store->logoUrl())
+                                <img src="{{ $store->logoUrl() }}" alt="" loading="lazy" class="size-12 shrink-0 rounded-photo object-cover lg:size-14">
+                            @else
+                                <span class="flex size-12 shrink-0 items-center justify-center rounded-photo bg-primary-50 text-xl font-semibold text-primary-800 lg:size-14" aria-hidden="true">{{ mb_strtoupper(mb_substr($store->name, 0, 1)) }}</span>
+                            @endif
+                            <span class="flex min-w-0 flex-1 flex-col">
+                                <span class="truncate font-semibold">{{ $store->name }}</span>
+                                <span class="truncate text-sm text-muted">{{ $store->city }}, {{ $store->product_count }} produk</span>
+                            </span>
+                            <a href="{{ route('stores.show', $store->slug) }}" class="flex h-11 shrink-0 items-center rounded-full border-2 border-ink px-4 text-sm font-bold hover:bg-surface focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600" aria-label="Kunjungi lapak {{ $store->name }}">Kunjungi lapak</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        </section>
+    @endif
+
+    <section aria-labelledby="buka-lapak-judul" class="bg-primary-50">
+        <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 lg:flex-row lg:items-center lg:justify-between lg:py-12">
+            <div class="flex flex-col gap-1.5">
+                <h2 id="buka-lapak-judul" class="text-[1.625rem] leading-tight font-medium tracking-tight text-primary-800 lg:text-[2.125rem]">Punya lapak hasil laut?</h2>
+                <p class="max-w-[36em] text-primary-800">Jual ke pembeli di sekitar lapak Anda. Stok dicatat dari ponsel, pesanan masuk dengan alamat dan ongkos kirim yang jelas.</p>
+            </div>
+            <a href="{{ url('/seller') }}" class="flex h-13 shrink-0 items-center justify-center self-start rounded-full bg-primary-700 px-6 font-bold text-white hover:bg-primary-800 focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-primary-600 lg:self-auto">Buka lapak</a>
+        </div>
+    </section>
 </x-layouts.app>
