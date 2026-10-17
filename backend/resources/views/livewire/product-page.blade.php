@@ -38,46 +38,69 @@
         </nav>
 
         {{-- On a phone the steps come right after the photos; from lg the tabs sit under the photos. --}}
-        <div class="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-12">
-            {{-- Photos never change with the choices, so Livewire leaves Alpine's state alone. --}}
-            <section aria-label="Foto produk" x-data="{ active: 0 }" wire:ignore class="flex min-w-0 flex-col gap-3 lg:col-start-1 lg:row-start-1 lg:grid lg:grid-cols-[5.5rem_minmax(0,1fr)] lg:items-start lg:gap-3">
+        <div class="grid gap-8 lg:grid-cols-[5fr_7fr] lg:grid-rows-[auto_1fr] lg:gap-x-12">
+            {{--
+                Board 4B: from lg the main photo with the next two as tiles beside it;
+                on a phone one photo with previous and next buttons. The list comes in
+                through a data attribute, never an inline script. Photos never change
+                with the choices, so Livewire leaves Alpine's state alone.
+            --}}
+            @php($photoList = $product->images->map(fn ($image) => ['url' => $image->url(), 'thumb' => $image->thumbnailUrl()])->values()->all())
+            <section
+                aria-label="Foto produk"
+                wire:ignore
+                data-photos="{{ json_encode($photoList, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) }}"
+                x-data="{
+                    photos: JSON.parse($el.dataset.photos),
+                    active: 0,
+                    at(offset) { return (this.active + offset) % this.photos.length },
+                    move(step) { this.active = (this.active + step + this.photos.length) % this.photos.length },
+                }"
+                @class([
+                    'min-w-0 lg:col-start-1 lg:row-start-1',
+                    'lg:grid lg:h-[460px] lg:grid-cols-[2fr_1fr] lg:grid-rows-2 lg:gap-2.5' => $photoCount > 1,
+                ])
+            >
                 @if ($photoCount === 0)
-                    <x-empty-state compact title="Belum ada foto" class="aspect-square w-full rounded-feature lg:col-span-2" />
+                    <x-empty-state compact title="Belum ada foto" class="aspect-square w-full rounded-feature" />
                 @else
-                    <div class="relative overflow-hidden rounded-feature bg-subtle lg:col-start-2 lg:row-start-1">
-                        @foreach ($product->images as $index => $image)
-                            <img
-                                src="{{ $image->url() }}"
-                                alt="{{ $product->name }}"
-                                x-show="active === {{ $index }}"
-                                @if ($index > 0) x-cloak loading="lazy" @endif
-                                class="aspect-square w-full object-cover"
-                            >
-                        @endforeach
+                    <div @class(['relative overflow-hidden rounded-feature bg-subtle', 'lg:row-span-2' => $photoCount > 1])>
+                        <img
+                            src="{{ $photoList[0]['url'] }}"
+                            x-bind:src="photos[active].url"
+                            alt="{{ $product->name }}, foto 1 dari {{ $photoCount }}"
+                            x-bind:alt="$el.dataset.name + ', foto ' + (active + 1) + ' dari ' + photos.length"
+                            data-name="{{ $product->name }}"
+                            @class(['aspect-square w-full object-cover', 'lg:aspect-auto lg:h-full' => $photoCount > 1])
+                        >
 
                         @if ($photoCount > 1)
-                            <span class="absolute right-3 bottom-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink" aria-hidden="true">
-                                <span x-text="active + 1">1</span> dari {{ $photoCount }}
-                            </span>
+                            <button type="button" x-on:click="move(-1)" aria-label="Foto sebelumnya" class="absolute top-1/2 left-3 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink focus-visible:outline-3 focus-visible:outline-primary-600 lg:hidden">
+                                <svg class="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+                            </button>
+                            <button type="button" x-on:click="move(1)" aria-label="Foto berikutnya" class="absolute top-1/2 right-3 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink focus-visible:outline-3 focus-visible:outline-primary-600 lg:hidden">
+                                <svg class="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                            </button>
+                            <span aria-hidden="true" x-text="(active + 1) + ' dari ' + photos.length" class="absolute right-3 bottom-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-ink">1 dari {{ $photoCount }}</span>
                         @endif
                     </div>
 
-                    @if ($photoCount > 1)
-                        <div class="flex gap-2 overflow-x-auto lg:col-start-1 lg:row-start-1 lg:flex-col lg:overflow-visible">
-                            @foreach ($product->images as $index => $image)
-                                <button
-                                    type="button"
-                                    aria-label="Foto {{ $index + 1 }} dari {{ $photoCount }}"
-                                    aria-pressed="{{ $index === 0 ? 'true' : 'false' }}"
-                                    x-bind:aria-pressed="active === {{ $index }} ? 'true' : 'false'"
-                                    x-on:click="active = {{ $index }}"
-                                    class="size-18 shrink-0 overflow-hidden rounded-photo border-3 border-transparent bg-subtle aria-pressed:border-primary-700 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600 lg:size-22"
-                                >
-                                    <img src="{{ $image->thumbnailUrl() }}" alt="" loading="lazy" class="size-full object-cover">
-                                </button>
-                            @endforeach
-                        </div>
-                    @endif
+                    @foreach (range(1, min(2, $photoCount - 1)) as $offset)
+                        @continue($photoCount < 2)
+                        <button
+                            type="button"
+                            data-photo-tile
+                            aria-label="Tampilkan foto {{ $offset + 1 }} dari {{ $photoCount }}"
+                            x-bind:aria-label="'Tampilkan foto ' + (at({{ $offset }}) + 1) + ' dari ' + photos.length"
+                            x-on:click="active = at({{ $offset }})"
+                            @class(['relative hidden overflow-hidden rounded-photo bg-subtle focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600 lg:block', 'lg:row-span-2' => $photoCount === 2])
+                        >
+                            <img src="{{ $photoList[$offset]['thumb'] }}" x-bind:src="photos[at({{ $offset }})].thumb" alt="" loading="lazy" class="size-full object-cover">
+                            @if ($offset === 2 && $photoCount > 3)
+                                <span aria-hidden="true" class="absolute inset-0 flex items-center justify-center bg-ink/45 text-lg font-bold text-white">+{{ $photoCount - 3 }} foto</span>
+                            @endif
+                        </button>
+                    @endforeach
                 @endif
             </section>
 
@@ -104,42 +127,55 @@
                     @endif
                 </div>
 
-                <ol class="flex flex-col gap-7">
-                    <li class="flex flex-col gap-3">
-                        <h2 class="flex items-center gap-2.5 font-bold"><span data-step="{{ ++$step }}" aria-hidden="true" class="flex size-7 items-center justify-center rounded-full bg-ink text-sm text-white">{{ $step }}</span> Pilih ukuran</h2>
-                        <fieldset class="flex flex-col gap-2">
+                <ol aria-label="Atur pesanan" class="flex flex-col">
+                    <li class="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4">
+                        <span aria-hidden="true" class="flex flex-col items-center">
+                            <span data-step="{{ ++$step }}" class="flex size-9 items-center justify-center rounded-full bg-primary-700 font-bold text-white">{{ $step }}</span>
+                            <span class="mt-1.5 w-0.5 flex-1 bg-primary-100 [li:last-child_&]:hidden"></span>
+                        </span>
+                        <div class="flex min-w-0 flex-col gap-3 pt-1 pb-7">
+                        <h2 class="text-lg font-semibold">Pilih ukuran</h2>
+                        <fieldset class="grid gap-2.5 sm:grid-cols-2">
                             <legend class="sr-only">Pilih ukuran</legend>
                             @foreach ($this->variants as $variant)
                                 @php($available = in_array($variant->id, $availableIds, true))
                                 <label wire:key="variant-{{ $variant->id }}" @class([
-                                    'grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 rounded-option border-2 border-line px-4 py-3.5 has-checked:border-primary-700 has-checked:bg-primary-50 has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary-600',
+                                    'flex items-start gap-3 rounded-option border-2 border-line px-4 py-3.5 has-checked:border-primary-700 has-checked:bg-primary-50 has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary-600',
                                     'cursor-pointer hover:border-line-strong' => $available,
                                     'cursor-not-allowed opacity-60' => ! $available,
                                 ])>
-                                    <input type="radio" name="varian" wire:model.live="variantId" value="{{ $variant->id }}" @disabled(! $available) class="row-span-2 mt-0.5 size-5 accent-primary-700 focus-visible:outline-none">
-                                    <span class="font-bold">{{ $variant->name }}</span>
-                                    <x-price :amount="$variant->price" :unit="$variant->unit->label()" class="text-right" />
-                                    <span class="col-span-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-                                        @if ($preOrder)
-                                            <span>Dibuat sesuai pesanan</span>
-                                        @elseif ($available)
-                                            <span>Sisa {{ \App\Livewire\ProductPage::quantity($variant->stock) }} {{ $variant->unit->label() }}</span>
-                                        @else
-                                            <span class="font-semibold text-danger-700">Stok habis</span>
-                                        @endif
+                                    <input type="radio" name="varian" wire:model.live="variantId" value="{{ $variant->id }}" @disabled(! $available) class="mt-0.5 size-5 shrink-0 accent-primary-700 focus-visible:outline-none">
+                                    <span class="flex min-w-0 flex-col gap-0.5">
+                                        <span class="font-bold">{{ $variant->name }}</span>
+                                        <x-price :amount="$variant->price" :unit="$variant->unit->label()" />
+                                        <span class="text-sm text-muted">
+                                            @if ($preOrder)
+                                                Dibuat sesuai pesanan
+                                            @elseif ($available)
+                                                Sisa {{ \App\Livewire\ProductPage::quantity($variant->stock) }} {{ $variant->unit->label() }}
+                                            @else
+                                                <span class="font-semibold text-danger-700">Stok habis</span>
+                                            @endif
+                                        </span>
                                         @if ($variant->isStockStale())
-                                            <x-badge variant="warning">Stok belum dikonfirmasi</x-badge>
+                                            <x-badge variant="warning" class="mt-1 self-start">Stok belum dikonfirmasi</x-badge>
                                         @else
-                                            <span>Stok diperbarui {{ $variant->stock_confirmed_at->timezone('Asia/Jakarta')->locale('id')->translatedFormat('j F Y, H.i') }} WIB</span>
+                                            <span class="text-xs text-muted">Stok diperbarui {{ $variant->stock_confirmed_at->timezone('Asia/Jakarta')->locale('id')->translatedFormat('j F Y, H.i') }} WIB</span>
                                         @endif
                                     </span>
                                 </label>
                             @endforeach
                         </fieldset>
+                        </div>
                     </li>
 
-                    <li class="flex flex-col gap-3">
-                        <h2 class="flex items-center gap-2.5 font-bold"><span data-step="{{ ++$step }}" aria-hidden="true" class="flex size-7 items-center justify-center rounded-full bg-ink text-sm text-white">{{ $step }}</span> Jumlah</h2>
+                    <li class="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4">
+                        <span aria-hidden="true" class="flex flex-col items-center">
+                            <span data-step="{{ ++$step }}" class="flex size-9 items-center justify-center rounded-full bg-primary-700 font-bold text-white">{{ $step }}</span>
+                            <span class="mt-1.5 w-0.5 flex-1 bg-primary-100 [li:last-child_&]:hidden"></span>
+                        </span>
+                        <div class="flex min-w-0 flex-col gap-3 pt-1 pb-7">
+                        <h2 class="text-lg font-semibold">{{ $selected && $selected->unit === \App\Enums\Unit::Kg ? 'Berapa kilo?' : 'Berapa '.($unit ?: 'banyak').'?' }}</h2>
                         @if ($soldOut)
                             <p class="font-semibold text-danger-700">Stok habis</p>
                         @endif
@@ -163,13 +199,19 @@
                                 </p>
                             @endif
                         </div>
+                        </div>
                     </li>
 
                     @if ($preOrder)
-                        <li class="flex flex-col gap-3">
-                            <h2 class="flex items-center gap-2.5 font-bold"><span data-step="{{ ++$step }}" aria-hidden="true" class="flex size-7 items-center justify-center rounded-full bg-ink text-sm text-white">{{ $step }}</span> Tanggal kirim</h2>
+                        <li class="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4">
+                            <span aria-hidden="true" class="flex flex-col items-center">
+                                <span data-step="{{ ++$step }}" class="flex size-9 items-center justify-center rounded-full bg-primary-700 font-bold text-white">{{ $step }}</span>
+                                <span class="mt-1.5 w-0.5 flex-1 bg-primary-100 [li:last-child_&]:hidden"></span>
+                            </span>
+                            <div class="flex min-w-0 flex-col gap-3 pt-1 pb-7">
+                            <h2 class="text-lg font-semibold">Kapan mau diterima?</h2>
                             <fieldset class="grid grid-cols-3 gap-2">
-                                <legend class="sr-only">Tanggal kirim</legend>
+                                <legend class="sr-only">Kapan mau diterima?</legend>
                                 @foreach ($deliveryDates as $date)
                                     <label wire:key="tanggal-{{ $date->format('Y-m-d') }}" class="flex cursor-pointer flex-col rounded-option border-2 border-line px-3 py-2.5 hover:border-line-strong has-checked:border-primary-700 has-checked:bg-primary-50 has-disabled:cursor-not-allowed has-disabled:opacity-60 has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary-600">
                                         <input type="radio" name="tanggal-kirim" value="{{ $date->format('Y-m-d') }}" data-delivery-date="{{ $date->format('Y-m-d') }}" wire:model.live="deliveryDate" @disabled($soldOut) class="sr-only">
@@ -181,16 +223,22 @@
                                     </label>
                                 @endforeach
                             </fieldset>
+                            </div>
                         </li>
                     @endif
 
-                    <li class="flex flex-col gap-3">
-                        <h2 class="flex items-center gap-2.5 font-bold"><span data-step="{{ ++$step }}" aria-hidden="true" class="flex size-7 items-center justify-center rounded-full bg-ink text-sm text-white">{{ $step }}</span> Cara terima</h2>
+                    <li class="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-4">
+                        <span aria-hidden="true" class="flex flex-col items-center">
+                            <span data-step="{{ ++$step }}" class="flex size-9 items-center justify-center rounded-full bg-primary-700 font-bold text-white">{{ $step }}</span>
+                            <span class="mt-1.5 w-0.5 flex-1 bg-primary-100 [li:last-child_&]:hidden"></span>
+                        </span>
+                        <div class="flex min-w-0 flex-col gap-3 pt-1 pb-7">
+                        <h2 class="text-lg font-semibold">Diantar atau ambil sendiri?</h2>
                         @if ($this->shippingMethods->isEmpty())
                             <p class="rounded-option bg-subtle px-4 py-3 text-sm">Tanyakan cara kirim ke penjual.</p>
                         @else
-                            <fieldset class="flex flex-col gap-2">
-                                <legend class="sr-only">Cara terima</legend>
+                            <fieldset class="grid gap-2.5 sm:grid-cols-2">
+                                <legend class="sr-only">Diantar atau ambil sendiri?</legend>
                                 @foreach ($this->shippingMethods as $option)
                                     <label wire:key="cara-{{ $option->id }}" class="flex cursor-pointer items-center gap-3 rounded-option border-2 border-line px-4 py-3 hover:border-line-strong has-checked:border-primary-700 has-checked:bg-primary-50 has-disabled:cursor-not-allowed has-disabled:opacity-60 has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-primary-600">
                                         <input type="radio" name="cara-terima" value="{{ $option->id }}" wire:model.live="shippingMethodId" @disabled($soldOut) class="size-5 accent-primary-700 focus-visible:outline-none">
@@ -208,6 +256,7 @@
                                 @endforeach
                             </fieldset>
                         @endif
+                        </div>
                     </li>
                 </ol>
 
