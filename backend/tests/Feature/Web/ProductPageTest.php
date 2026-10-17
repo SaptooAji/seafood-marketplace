@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\AttributeType;
 use App\Enums\ProductCondition;
 use App\Enums\SalesMode;
+use App\Enums\ShippingMethodType;
 use App\Enums\Unit;
 use App\Models\Category;
 use App\Models\CategoryAttribute;
@@ -12,7 +13,11 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
+use App\Models\StoreShippingMethod;
+use App\Support\StockCheckTime;
+use Carbon\CarbonImmutable;
 use Illuminate\Testing\TestResponse;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 /*
@@ -133,9 +138,8 @@ describe('content', function () {
         productPage()
             ->assertOk()
             ->assertSee(SalesMode::PreOrder->label())
-            ->assertSee('3 hari')
-            ->assertSee('15:00')
-            ->assertSee('Kuota harian 20');
+            ->assertSee('Pesan sebelum 15.00 hari ini, dikirim Jumat')
+            ->assertSee('Kuota 20 kg per hari');
     });
 
     it('shows the photos with the product name as alt text', function () {
@@ -200,6 +204,8 @@ describe('choosing a variant and quantity', function () {
     });
 
     it('switches to another active variant and its minimum quantity', function () {
+        $this->stale->forceFill(['stock' => '3.000'])->save();
+
         Livewire::test('product-page', ['slug' => 'kepiting-bakau-super'])
             ->set('variantId', $this->stale->id)
             ->assertSet('variantId', $this->stale->id)
@@ -214,26 +220,8 @@ describe('choosing a variant and quantity', function () {
         'of another product' => [fn () => ProductVariant::factory()->create()],
         'inactive' => [fn () => ProductVariant::query()->where('name', 'Varian Nonaktif')->sole()],
         'deleted' => [fn () => ProductVariant::withTrashed()->where('name', 'Varian Terhapus')->sole()],
+        'sold out' => [fn () => test()->stale],
     ]);
-
-    it('rejects a quantity it cannot sell', function (string $qty) {
-        Livewire::test('product-page', ['slug' => 'kepiting-bakau-super'])
-            ->set('qty', $qty)
-            ->assertHasErrors('qty');
-    })->with([
-        'below the minimum' => ['0.4'],
-        'zero' => ['0'],
-        'negative' => ['-1'],
-        'text' => ['satu'],
-        'more than 3 decimals' => ['1.2345'],
-        'too large' => ['100000'],
-    ]);
-
-    it('accepts a quantity at or above the minimum', function (string $qty) {
-        Livewire::test('product-page', ['slug' => 'kepiting-bakau-super'])
-            ->set('qty', $qty)
-            ->assertHasNoErrors('qty');
-    })->with(['0.5', '2', '1.25']);
 
     it('cannot swap the product from the browser', function () {
         $other = ProductVariant::factory()->create()->product;
@@ -387,36 +375,64 @@ describe('layout', function () {
             ->not->toContain(e(route('catalog', ['kategori' => $this->bakau->slug])));
     });
 
-    it('picks a photo with buttons that say which photo they show', function () {
-        ProductImage::factory()->for($this->product)->count(3)->sequence(
+    it('shows the photos as a mosaic of the main photo and the next two', function () {
+        $images = ProductImage::factory()->for($this->product)->count(4)->sequence(
             ['sort_order' => 1],
             ['sort_order' => 2],
             ['sort_order' => 3],
+            ['sort_order' => 4],
         )->create();
 
         $html = productPage()->assertOk()->getContent();
 
-        expect(preg_match_all('#aria-label="Foto \d+ dari 3"#', $html))->toBe(3)
-            ->and($html)
-            ->toMatch('#<button[^>]*aria-label="Foto 1 dari 3"[^>]*aria-pressed="true"#s')
-            ->toMatch('#<button[^>]*aria-label="Foto 2 dari 3"[^>]*aria-pressed="false"#s')
-            ->toContain('x-bind:aria-pressed');
+        expect($html)
+            ->toMatch('#<img[^>]*src="'.preg_quote($images[0]->url(), '#').'"[^>]*alt="Kepiting Bakau Super, foto 1 dari 4"#')
+            ->toMatch('#<button[^>]*data-photo-tile[^>]*aria-label="Tampilkan foto 2 dari 4"#')
+            ->toMatch('#<button[^>]*data-photo-tile[^>]*aria-label="Tampilkan foto 3 dari 4"#')
+            ->toContain($images[1]->thumbnailUrl())
+            ->toContain($images[2]->thumbnailUrl())
+            ->and(substr_count($html, 'data-photo-tile'))->toBe(2);
     });
 
-    it('shows a single photo without thumbnails', function () {
+    it('moves between the photos with previous and next buttons', function () {
+        ProductImage::factory()->for($this->product)->count(3)->sequence(['sort_order' => 1], ['sort_order' => 2], ['sort_order' => 3])->create();
+
+        expect(productPage()->assertOk()->getContent())
+            ->toMatch('#<button[^>]*aria-label="Foto sebelumnya"#')
+            ->toMatch('#<button[^>]*aria-label="Foto berikutnya"#')
+            ->toContain('1 dari 3');
+    });
+
+    it('gives two photos one tall tile', function () {
+        ProductImage::factory()->for($this->product)->count(2)->sequence(['sort_order' => 1], ['sort_order' => 2])->create();
+
+        expect(substr_count(productPage()->assertOk()->getContent(), 'data-photo-tile'))->toBe(1);
+    });
+
+    it('shows a single photo without tiles or buttons', function () {
         ProductImage::factory()->for($this->product)->create();
 
         productPage()
             ->assertOk()
-            ->assertDontSee('aria-label="Foto 1 dari 1"', escape: false)
-            ->assertDontSee('aria-pressed', escape: false);
+            ->assertDontSee('data-photo-tile', escape: false)
+            ->assertDontSee('Foto berikutnya');
     });
 
     it('fills a product without photos with the empty state', function () {
         productPage()
             ->assertOk()
             ->assertSee('Belum ada foto')
-            ->assertDontSee('aria-pressed', escape: false);
+            ->assertDontSee('data-photo-tile', escape: false)
+            ->assertDontSee('Foto berikutnya');
+    });
+
+    it('keeps the photo list out of inline scripts', function () {
+        ProductImage::factory()->for($this->product)->count(2)->sequence(['sort_order' => 1], ['sort_order' => 2])->create();
+        $this->product->update(['name' => 'Kepiting "Bakau" </script>']);
+
+        expect(productPage()->assertOk()->getContent())
+            ->toContain('data-photos="')
+            ->not->toContain('Kepiting "Bakau" </script>');
     });
 
     it('marks a stale variant with the warning badge', function () {
@@ -425,17 +441,19 @@ describe('layout', function () {
         expect($html)->toMatch('#<span[^>]*bg-warning-50[^>]*>\s*Stok belum dikonfirmasi\s*</span>#');
     });
 
-    it('shows the condition and sales mode as badges above the name', function () {
+    it('shows the condition and sales mode as chips under the name', function () {
         productPage()
             ->assertOk()
-            ->assertSeeInOrder([ProductCondition::Live->label(), SalesMode::ReadyStock->label(), '<h1', 'Kepiting Bakau Super'], escape: false);
+            ->assertSeeInOrder(['<h1', 'Kepiting Bakau Super', ProductCondition::Live->label(), SalesMode::ReadyStock->label()], escape: false);
     });
 
     it('shows the price of the chosen variant next to the name', function () {
+        $this->stale->forceFill(['stock' => '3.000'])->save();
+
         Livewire::test('product-page', ['slug' => 'kepiting-bakau-super'])
-            ->assertSeeHtmlInOrder(['<h1', 'Kepiting Bakau Super', 'Rp185.000', 'Pilih varian'])
+            ->assertSeeHtmlInOrder(['<h1', 'Kepiting Bakau Super', 'Rp185.000', 'Pilih ukuran'])
             ->set('variantId', $this->stale->id)
-            ->assertSeeHtmlInOrder(['<h1', 'Kepiting Bakau Super', 'Rp240.000', 'Pilih varian']);
+            ->assertSeeHtmlInOrder(['<h1', 'Kepiting Bakau Super', 'Rp240.000', 'Pilih ukuran']);
     });
 
     it('links the store from the seller card', function () {
@@ -451,5 +469,322 @@ describe('layout', function () {
 
         expect($links[0])->not->toBeEmpty()
             ->each->toContain('rel="noopener noreferrer"');
+    });
+});
+
+/**
+ * Make the fixture product a pre-order product.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function makeOrderPreOrder(array $attributes = []): void
+{
+    test()->product->update(['sales_mode' => SalesMode::PreOrder, 'daily_quota' => '20.000', 'lead_time_days' => 1, 'cutoff_time' => '15:00', ...$attributes]);
+}
+
+/**
+ * Friday 16 October 2026 at the given time in WIB.
+ */
+function orderFridayAt(string $time): void
+{
+    test()->travelTo(CarbonImmutable::parse("2026-10-16 {$time}", StockCheckTime::TIMEZONE)->utc());
+}
+
+function orderBuilder(): Testable
+{
+    return Livewire::test('product-page', ['slug' => 'kepiting-bakau-super']);
+}
+
+describe('order steps', function () {
+    it('numbers the steps of a ready stock product 1 to 3 without a delivery date', function () {
+        orderBuilder()
+            ->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Berapa kilo?', 'data-step="3"', 'Diantar atau ambil sendiri?'])
+            ->assertDontSeeHtml('data-step="4"')
+            ->assertDontSee('Kapan mau diterima?')
+            ->assertDontSee('Tanggal kirim');
+    });
+
+    it('adds the delivery date as step 3 of a pre-order product', function () {
+        makeOrderPreOrder();
+
+        orderBuilder()->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Berapa kilo?', 'data-step="3"', 'Kapan mau diterima?', 'data-step="4"', 'Diantar atau ambil sendiri?']);
+    });
+
+    it('asks for the quantity in the unit of the chosen variant', function () {
+        $this->fresh->update(['unit' => Unit::Piece]);
+
+        orderBuilder()->assertSee('Berapa '.mb_strtolower(Unit::Piece->label()).'?');
+    });
+
+    it('lists the active variants with price and unit, and disables the sold-out ones', function () {
+        $html = orderBuilder()
+            ->assertSeeHtmlInOrder(['Jantan 300-400 g', 'Rp185.000', 'Jantan 500 g up', 'Rp240.000'])
+            ->html();
+
+        expect($html)
+            ->toMatch('#<input[^>]*value="'.$this->stale->id.'"[^>]*disabled#')
+            ->not->toMatch('#<input[^>]*value="'.$this->fresh->id.'"[^>]*disabled#');
+    });
+
+    it('starts with the first variant that has stock', function () {
+        $this->fresh->forceFill(['stock' => '0.000'])->save();
+        $this->stale->forceFill(['stock' => '4.000'])->save();
+
+        orderBuilder()->assertSet('variantId', $this->stale->id)->assertSet('qty', '1');
+    });
+});
+
+describe('quantity', function () {
+    it('steps by the minimum quantity within the stock', function () {
+        orderBuilder()
+            ->call('decrement')
+            ->assertSet('qty', '0.5')
+            ->call('increment')
+            ->assertSet('qty', '1')
+            ->call('increment')
+            ->assertSet('qty', '1.5')
+            ->set('qty', '12.5')
+            ->call('increment')
+            ->assertSet('qty', '12.5');
+    });
+
+    it('brings a quantity it cannot sell back to the nearest valid one', function (string $typed, string $kept) {
+        orderBuilder()->set('qty', $typed)->assertSet('qty', $kept)->assertHasNoErrors();
+    })->with([
+        'below the minimum' => ['0.4', '0.5'],
+        'zero' => ['0', '0.5'],
+        'negative' => ['-1', '0.5'],
+        'above the stock' => ['20', '12.5'],
+        'not a multiple, rounded down' => ['1.2', '1'],
+        'not a multiple, rounded up' => ['1.3', '1.5'],
+        'halfway, rounded up' => ['1.25', '1.5'],
+        'with a comma' => ['1,5', '1.5'],
+        'too large' => ['100000', '12.5'],
+    ]);
+
+    it('keeps the previous quantity for text that is not a number', function (string $typed) {
+        orderBuilder()->set('qty', '2')->set('qty', $typed)->assertSet('qty', '2');
+    })->with(['satu', '', '1e3', '1.2.3', '0x10']);
+
+    it('keeps a valid quantity as it is', function (string $qty) {
+        orderBuilder()->set('qty', $qty)->assertSet('qty', $qty);
+    })->with(['0.5', '2', '12.5']);
+
+    it('limits a pre-order product by the daily quota instead of the stock', function () {
+        makeOrderPreOrder();
+
+        orderBuilder()
+            ->set('qty', '15')
+            ->assertSet('qty', '15')
+            ->set('qty', '25')
+            ->assertSet('qty', '20');
+    });
+
+    it('lets a pre-order product without a daily quota go up to the maximum', function () {
+        makeOrderPreOrder(['daily_quota' => null]);
+
+        orderBuilder()->set('qty', '50')->assertSet('qty', '50');
+    });
+
+    it('shows "Stok habis" and disables the next steps when every variant is sold out', function () {
+        $this->fresh->forceFill(['stock' => '0.000'])->save();
+        StoreShippingMethod::factory()->for($this->store)->pickup()->create();
+
+        $html = productPage()->assertOk()->assertSee('Stok habis')->getContent();
+
+        expect($html)
+            ->toMatch('#<button[^>]*wire:click="increment"[^>]*disabled#')
+            ->toMatch('#<button[^>]*wire:click="decrement"[^>]*disabled#')
+            ->toMatch('#<input[^>]*name="cara-terima"[^>]*disabled#');
+    });
+});
+
+describe('delivery date', function () {
+    it('offers the first three dates from the cutoff and lead time', function (string $time, array $dates, string $firstDay) {
+        orderFridayAt($time);
+        makeOrderPreOrder();
+
+        $component = orderBuilder()->assertSet('deliveryDate', $dates[0])->assertSee($firstDay);
+
+        foreach ($dates as $date) {
+            $component->assertSeeHtml('data-delivery-date="'.$date.'"');
+        }
+    })->with([
+        'before the cutoff' => ['10:00', ['2026-10-17', '2026-10-18', '2026-10-19'], 'Sabtu'],
+        'after the cutoff' => ['16:00', ['2026-10-18', '2026-10-19', '2026-10-20'], 'Minggu'],
+        'exactly at the cutoff' => ['15:00', ['2026-10-18', '2026-10-19', '2026-10-20'], 'Minggu'],
+    ]);
+
+    it('shows the daily quota on each date in the unit of the variant', function () {
+        orderFridayAt('10:00');
+        makeOrderPreOrder();
+
+        expect(substr_count(orderBuilder()->html(), 'Kuota 20 kg per hari'))->toBe(3);
+    });
+
+    it('shows the dates without a quota line when there is no daily quota', function () {
+        orderFridayAt('10:00');
+        makeOrderPreOrder(['daily_quota' => null]);
+
+        orderBuilder()->assertSeeHtml('data-delivery-date="2026-10-17"')->assertDontSee('Kuota');
+    });
+
+    it('ignores a date it does not offer', function (string $date) {
+        orderFridayAt('10:00');
+        makeOrderPreOrder();
+
+        orderBuilder()
+            ->set('deliveryDate', '2026-10-18')
+            ->set('deliveryDate', $date)
+            ->assertSet('deliveryDate', '2026-10-18');
+    })->with([
+        'too early' => ['2026-10-16'],
+        'too late' => ['2026-10-20'],
+        'not a date' => ['besok'],
+        'empty' => [''],
+    ]);
+
+    it('shows the order deadline and first delivery day of a pre-order product', function (string $time, string $line) {
+        orderFridayAt($time);
+        makeOrderPreOrder();
+
+        productPage()->assertOk()->assertSee($line);
+    })->with([
+        'before the cutoff' => ['10:00', 'Pesan sebelum 15.00 hari ini, dikirim Sabtu'],
+        'after the cutoff' => ['16:00', 'Pesan sebelum 15.00 besok, dikirim Minggu'],
+    ]);
+
+    it('has no deadline line for a ready stock product', function () {
+        productPage()->assertOk()->assertDontSee('Pesan sebelum');
+    });
+});
+
+describe('receiving the order', function () {
+    it('shows each active shipping method of the store with its fee', function () {
+        StoreShippingMethod::factory()->for($this->store)->pickup()->create();
+        StoreShippingMethod::factory()->for($this->store)->ownDeliveryFlat()->create();
+        StoreShippingMethod::factory()->for($this->store)->expedition()->create(['is_active' => false]);
+
+        orderBuilder()
+            ->assertSeeInOrder([ShippingMethodType::Pickup->label(), 'Gratis'])
+            ->assertSeeInOrder([ShippingMethodType::OwnDelivery->label(), 'Rp10.000'])
+            ->assertDontSee(ShippingMethodType::Expedition->label());
+    });
+
+    it('says the fee is set at checkout for per-km and manual fees', function (Closure $method) {
+        $method($this->store);
+
+        orderBuilder()->assertSee('Dihitung saat checkout');
+    })->with([
+        'own delivery per km' => [fn (Store $store) => StoreShippingMethod::factory()->for($store)->ownDeliveryPerKm()->create()],
+        'ojol' => [fn (Store $store) => StoreShippingMethod::factory()->for($store)->ojol()->create()],
+    ]);
+
+    it('asks the buyer to check with the seller when the store has no active method', function () {
+        StoreShippingMethod::factory()->for($this->store)->pickup()->create(['is_active' => false]);
+
+        orderBuilder()->assertSee('Tanyakan cara kirim ke penjual');
+    });
+
+    it('ignores a shipping method of another store or one that is inactive', function (Closure $method) {
+        $own = StoreShippingMethod::factory()->for($this->store)->pickup()->create();
+
+        orderBuilder()
+            ->set('shippingMethodId', $own->id)
+            ->set('shippingMethodId', $method()->id)
+            ->assertSet('shippingMethodId', $own->id);
+    })->with([
+        'of another store' => [fn () => StoreShippingMethod::factory()->ownDeliveryFlat()->create()],
+        'inactive' => [fn () => StoreShippingMethod::factory()->for(test()->store)->ownDeliveryFlat()->create(['is_active' => false])],
+    ]);
+});
+
+describe('summary', function () {
+    it('totals the price times the quantity', function () {
+        orderBuilder()
+            ->set('qty', '1.5')
+            ->assertSeeHtml('data-order-total="277500"')
+            ->assertSee('Rp277.500');
+    });
+
+    it('adds a flat delivery fee to the total', function () {
+        $flat = StoreShippingMethod::factory()->for($this->store)->ownDeliveryFlat()->create();
+
+        orderBuilder()
+            ->set('qty', '1.5')
+            ->set('shippingMethodId', $flat->id)
+            ->assertSeeHtml('data-order-total="287500"')
+            ->assertSee('Rp287.500');
+    });
+
+    it('leaves out a fee that is set at checkout', function () {
+        $perKm = StoreShippingMethod::factory()->for($this->store)->ownDeliveryPerKm()->create();
+
+        orderBuilder()
+            ->set('qty', '1.5')
+            ->set('shippingMethodId', $perKm->id)
+            ->assertSeeHtml('data-order-total="277500"')
+            ->assertSee('Dihitung saat checkout');
+    });
+
+    it('rounds a total that is not a whole rupiah', function () {
+        $this->fresh->update(['price' => 33_333, 'min_qty' => '0.001']);
+
+        // 33,333 x 0.005 = 166.665, rounded half up.
+        orderBuilder()->set('qty', '0.005')->assertSeeHtml('data-order-total="167"');
+    });
+
+    it('sums up the variant, quantity, date, and way of receiving', function () {
+        orderFridayAt('10:00');
+        makeOrderPreOrder();
+        $pickup = StoreShippingMethod::factory()->for($this->store)->pickup()->create();
+
+        orderBuilder()
+            ->set('qty', '2')
+            ->set('shippingMethodId', $pickup->id)
+            ->assertSeeHtmlInOrder(['aria-labelledby="ringkasan-judul"', 'Jantan 300-400 g', '2 kg', 'Sabtu, 17 Okt', ShippingMethodType::Pickup->label(), 'data-order-total="370000"', 'Segera hadir']);
+    });
+
+    it('keeps the cart button disabled', function () {
+        expect(productPage()->assertOk()->getContent())->toMatch('#<button[^>]*disabled[^>]*>\s*<span>Tambah ke keranjang</span>\s*<span[^>]*>Segera hadir</span>#');
+    });
+});
+
+describe('top band', function () {
+    it('heads the page with the name, store, condition, and stock check', function () {
+        productPage()
+            ->assertOk()
+            ->assertSeeInOrder(['<h1', 'Kepiting Bakau Super', 'Dari Toko Bahari, Jakarta Utara', ProductCondition::Live->label(), 'Dicek hari ini 06.30'], escape: false);
+    });
+
+    it('shows the stale stock marker instead of the check time', function () {
+        $this->fresh->forceFill(['stock_confirmed_at' => now()->subHours(30)])->save();
+
+        productPage()->assertOk()->assertSee('Stok belum dikonfirmasi')->assertDontSee('Dicek hari ini');
+    });
+
+    it('puts the description, quality standard, and details in tabs under the photos', function () {
+        $html = productPage()->assertOk()->getContent();
+
+        expect($html)
+            ->toMatch('#role="tablist"#')
+            ->toMatch('#role="tab"[^>]*aria-controls="tab-deskripsi"[^>]*>\s*Deskripsi#')
+            ->toMatch('#role="tab"[^>]*aria-controls="tab-standar"[^>]*>\s*Standar kualitas#')
+            ->toMatch('#role="tab"[^>]*aria-controls="tab-rincian"[^>]*>\s*Rincian#')
+            ->toContain('id="tab-deskripsi"')
+            ->toContain('role="tabpanel"')
+            ->toContain('x-on:keydown.right')
+            ->toContain('x-on:keydown.left');
+    });
+
+    it('shows only the tabs that have content', function () {
+        $this->kepiting->update(['quality_standard' => null]);
+        $this->product->update(['shelf_life_days' => null, 'storage_instructions' => null]);
+        $this->product->attributeValues()->delete();
+
+        expect(productPage()->assertOk()->getContent())
+            ->toContain('aria-controls="tab-deskripsi"')
+            ->not->toContain('aria-controls="tab-standar"')
+            ->not->toContain('aria-controls="tab-rincian"');
     });
 });
