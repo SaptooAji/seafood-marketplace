@@ -72,7 +72,7 @@ function sellingProduct(Store $store, Category $category, int $price, Unit $unit
 {
     $product = Product::factory()->for($store)->for($category)->create();
     $variant = ProductVariant::factory()->for($product)->create(['price' => $price, 'unit' => $unit]);
-    $variant->forceFill(['stock' => $stock, 'stock_confirmed_at' => $checkedAt ?? now()->setTime(6, 30)])->save();
+    $variant->forceFill(['stock' => $stock, 'stock_confirmed_at' => $checkedAt ?? now('Asia/Jakarta')->setTime(6, 30)->utc()])->save();
 
     return $product;
 }
