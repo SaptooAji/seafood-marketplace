@@ -265,7 +265,8 @@ describe('recipe picks', function () {
     it('shows only the featured recipes there are, without empty slots', function () {
         config(['recipes' => [homeRecipe('satu'), homeRecipe('dua'), homeRecipe('bukan', featured: false)]]);
 
-        expect(substr_count(homeSection('resep-pilihan'), 'href="'.url('/resep/')))->toBe(2);
+        // url() drops a trailing slash, so add it after: only the recipe links count, not "Semua resep".
+        expect(substr_count(homeSection('resep-pilihan'), 'href="'.url('/resep').'/'))->toBe(2);
     });
 
     it('is not rendered when no recipe is featured', function () {
