@@ -2,11 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
+use App\Models\StoreShippingMethod;
+use App\Support\StockCheckTime;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 beforeEach(function () {
     $this->store = Store::factory()->active()->create([
@@ -107,15 +113,19 @@ describe('products', function () {
         storePageProduct($this->store, ['name' => 'Produk Terhapus'])->delete();
         ProductVariant::factory()->for(Product::factory()->for($this->store)->create(['name' => 'Produk Tanpa Varian Aktif']))->create(['is_active' => false]);
 
-        $this->get('/toko/toko-bahari')
-            ->assertOk()
-            ->assertSee('Kepiting Bakau Super')
-            ->assertSee('href="'.url('/produk/'.Product::query()->where('name', 'Kepiting Bakau Super')->value('slug')).'"', escape: false)
-            ->assertDontSee('Produk Toko Lain')
-            ->assertDontSee('Produk Diblokir')
-            ->assertDontSee('Produk Nonaktif')
-            ->assertDontSee('Produk Terhapus')
-            ->assertDontSee('Produk Tanpa Varian Aktif');
+        $html = $this->get('/toko/toko-bahari')->assertOk()->getContent();
+        // The other store's product may show under the nearby stores, never in this list.
+        $list = Str::before(Str::after($html, 'aria-labelledby="produk-toko"'), '</section>');
+
+        expect($list)
+            ->toContain('Kepiting Bakau Super')
+            ->toContain('href="'.url('/produk/'.Product::query()->where('name', 'Kepiting Bakau Super')->value('slug')).'"')
+            ->not->toContain('Produk Toko Lain')
+            ->and($html)
+            ->not->toContain('Produk Diblokir')
+            ->not->toContain('Produk Nonaktif')
+            ->not->toContain('Produk Terhapus')
+            ->not->toContain('Produk Tanpa Varian Aktif');
     });
 
     it('shows a message when the store has no products yet', function () {
@@ -277,7 +287,7 @@ describe('layout', function () {
 
         $this->get('/toko/toko-bahari')
             ->assertOk()
-            ->assertSee('2 produk')
+            ->assertSee('2 dijual')
             ->assertSee('Mulai')
             ->assertSee('<ul', escape: false);
     });
@@ -308,7 +318,276 @@ describe('layout', function () {
 
         preg_match_all('#<a\s[^>]*target="_blank"[^>]*>#', $html, $links);
 
-        expect($links[0])->toHaveCount(2)
+        expect($links[0])->toHaveCount(3)
             ->each->toContain('rel="noopener noreferrer"');
+    });
+});
+
+/**
+ * A store that sells one visible product, at the given distance north of
+ * Toko Bahari (-6.1065, 106.7765).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function nearbyStore(float $km, array $attributes = []): Store
+{
+    $store = Store::factory()->active()->create([
+        'lat' => number_format(-6.1065 + $km / 6371 * 180 / M_PI, 7, '.', ''),
+        'lng' => '106.7765000',
+        ...$attributes,
+    ]);
+    storePageProduct($store, ['name' => 'Produk '.$store->name]);
+
+    return $store;
+}
+
+/**
+ * The page of Toko Bahari, or with the given query string.
+ */
+function storePageHtml(string $query = ''): string
+{
+    return test()->get('/toko/toko-bahari'.$query)->assertOk()->getContent();
+}
+
+/**
+ * The markup of one figure in the identity card, up to the next figure.
+ */
+function storeFigure(string $html, string $label): string
+{
+    expect($html)->toContain('<dt class');
+
+    return Str::before(Str::after($html, '>'.$label.'</dt>'), '</dd>');
+}
+
+describe('cover and identity card', function () {
+    it('uses the photo of the newest product buyers can see as the cover', function (Closure $hide) {
+        $older = ProductImage::factory()->for(storePageProduct($this->store, ['created_at' => now()->subDays(2)]))->create();
+        $hidden = ProductImage::factory()->for(storePageProduct($this->store, ['created_at' => now()]))->create();
+        $hide($hidden->product);
+
+        $html = storePageHtml();
+
+        expect($html)
+            ->toMatch('#data-store-cover[^>]*src="'.preg_quote($older->url(), '#').'"#')
+            ->not->toContain($hidden->url());
+    })->with([
+        'blocked' => [fn (Product $p) => $p->forceFill(['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.'])->save()],
+        'inactive' => [fn (Product $p) => $p->update(['is_active' => false])],
+    ]);
+
+    it('shows a plain sand band without product photos', function () {
+        storePageProduct($this->store);
+
+        expect(storePageHtml())->toContain('data-store-cover="polos"')->not->toMatch('#<img[^>]*data-store-cover#');
+    });
+
+    it('labels a real store as verified', function () {
+        expect(storePageHtml())->toContain('Lapak terverifikasi')->not->toContain('Toko contoh');
+    });
+
+    it('offers WhatsApp, phone, and directions to the coordinates of the store', function () {
+        $html = storePageHtml();
+        $directions = 'https://www.google.com/maps/dir/?api=1&destination=-6.1065000,106.7765000';
+
+        expect($html)
+            ->toContain('Chat WhatsApp')
+            ->toMatch('#<a[^>]*href="'.preg_quote(e($directions), '#').'"[^>]*rel="noopener noreferrer"[^>]*>\s*Petunjuk arah#')
+            ->not->toContain(urlencode('Jl. Dermaga Raya'));
+    });
+
+    it('shows when the stock was last checked, from active variants of visible products', function () {
+        $this->travelTo(CarbonImmutable::parse('2026-10-16 09:00', StockCheckTime::TIMEZONE)->utc());
+        $at = fn (string $time) => CarbonImmutable::parse("2026-10-16 {$time}", StockCheckTime::TIMEZONE)->utc();
+
+        storePageProduct($this->store)->variants()->sole()->forceFill(['stock_confirmed_at' => $at('05:00')])->save();
+        storePageProduct($this->store)->variants()->sole()->forceFill(['stock_confirmed_at' => $at('06:30')])->save();
+        $withInactive = storePageProduct($this->store);
+        $withInactive->variants()->sole()->forceFill(['stock_confirmed_at' => $at('05:30')])->save();
+        ProductVariant::factory()->for($withInactive)->create(['is_active' => false])->forceFill(['stock_confirmed_at' => $at('08:00')])->save();
+        storePageProduct($this->store, ['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.'])->variants()->sole()->forceFill(['stock_confirmed_at' => $at('08:30')])->save();
+
+        expect(storeFigure(storePageHtml(), 'Stok dicek'))->toContain('06.30')->not->toContain('08.');
+    });
+
+    it('says the stock was not checked when no variant has been', function () {
+        expect(storeFigure(storePageHtml(), 'Stok dicek'))->toContain('Belum dicek');
+    });
+
+    it('counts the products buyers can see', function () {
+        storePageProduct($this->store);
+        storePageProduct($this->store);
+        storePageProduct($this->store, ['is_active' => false]);
+
+        expect(storeFigure(storePageHtml(), 'Produk'))->toContain('2 dijual');
+    });
+
+    it('shows 0 for sale and the empty state without products', function () {
+        expect(storePageHtml())
+            ->toContain('0 dijual')
+            ->toContain('Toko ini belum punya produk');
+    });
+
+    it('says how the store takes orders from its active shipping methods', function (array $methods, string $text) {
+        foreach ($methods as $method) {
+            StoreShippingMethod::factory()->for($this->store)->{$method}()->create();
+        }
+        StoreShippingMethod::factory()->for($this->store)->expedition()->create(['is_active' => false]);
+
+        expect(storeFigure(storePageHtml(), 'Terima pesanan'))->toContain($text);
+    })->with([
+        'delivery and pickup' => [['ownDeliveryFlat', 'pickup'], 'Antar atau ambil'],
+        'pickup only' => [['pickup'], 'Hanya ambil di lapak'],
+        'own delivery only' => [['ownDeliveryPerKm'], 'Hanya diantar'],
+        'ojol only' => [['ojol'], 'Hanya diantar'],
+        'none active' => [[], 'Tanyakan ke penjual'],
+    ]);
+});
+
+describe('about card', function () {
+    it('puts the description, a map picture, the address, and a Google Maps link in one card', function () {
+        $card = Str::before(Str::after(storePageHtml(), 'aria-label="Tentang lapak"'), '</aside>');
+
+        expect($card)
+            ->toContain('Tentang lapak')
+            ->toContain('Kepiting dan cumi segar langsung dari nelayan Muara Angke sejak 2010.')
+            ->toMatch('#<svg[^>]*aria-hidden="true"#')
+            ->toContain('Jl. Dermaga Raya No. 5, Muara Angke')
+            ->toMatch('#href="'.preg_quote(e($this->store->googleMapsUrl()), '#').'"[^>]*>\s*Buka di Google Maps#')
+            ->not->toContain('>Alamat<');
+    });
+
+    it('leaves out the about text when there is no description', function () {
+        $this->store->update(['description' => null]);
+
+        expect(Str::before(Str::after(storePageHtml(), 'aria-label="Tentang lapak"'), '</aside>'))
+            ->not->toContain('<h2')
+            ->toContain('Jl. Dermaga Raya No. 5, Muara Angke');
+    });
+});
+
+describe('category tabs', function () {
+    beforeEach(function () {
+        $this->kepiting = Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+        $bakau = Category::factory()->childOf($this->kepiting)->create(['name' => 'Bakau', 'slug' => 'bakau']);
+        $soka = Category::factory()->childOf($this->kepiting)->create(['name' => 'Soka', 'slug' => 'soka']);
+        $cumi = Category::factory()->create(['name' => 'Cumi', 'slug' => 'cumi']);
+
+        storePageProduct($this->store, ['name' => 'Kepiting Bakau Super', 'category_id' => $bakau->id]);
+        storePageProduct($this->store, ['name' => 'Kepiting Soka Beku', 'category_id' => $soka->id]);
+        storePageProduct($this->store, ['name' => 'Cumi Segar Pagi', 'category_id' => $cumi->id]);
+        storePageProduct($this->store, ['name' => 'Cumi Tersembunyi', 'category_id' => $cumi->id, 'is_active' => false]);
+    });
+
+    it('lists the root categories of the store with their number of products', function () {
+        $tabs = Str::before(Str::after(storePageHtml(), 'aria-label="Kategori di lapak ini"'), '</nav>');
+
+        expect($tabs)
+            ->toMatch('#href="'.preg_quote(url('/toko/toko-bahari'), '#').'"[^>]*aria-current="page"[^>]*>\s*Semua\s*<span[^>]*>3</span>#')
+            ->toMatch('#href="'.preg_quote(e(url('/toko/toko-bahari?kategori=kepiting')), '#').'"[^>]*>\s*Kepiting\s*<span[^>]*>2</span>#')
+            ->toMatch('#>\s*Cumi\s*<span[^>]*>1</span>#')
+            ->not->toContain('Bakau');
+    });
+
+    it('shows only the products of the chosen root category', function () {
+        $html = storePageHtml('?kategori=kepiting');
+
+        expect($html)
+            ->toContain('Kepiting Bakau Super')
+            ->toContain('Kepiting Soka Beku')
+            ->not->toContain('Cumi Segar Pagi')
+            ->toMatch('#href="'.preg_quote(e(url('/toko/toko-bahari?kategori=kepiting')), '#').'"[^>]*aria-current="page"#');
+    });
+
+    it('shows every product for a category the store does not sell', function (string $slug) {
+        expect(storePageHtml('?kategori='.$slug))
+            ->toContain('Kepiting Bakau Super')
+            ->toContain('Cumi Segar Pagi');
+    })->with(['tidak-ada', 'bakau']);
+});
+
+describe('nearby stores', function () {
+    it('lists up to 3 other stores by distance from this store, real stores first', function () {
+        nearbyStore(5.8, ['name' => 'Lapak Jauh', 'slug' => 'lapak-jauh']);
+        nearbyStore(1.9, ['name' => 'Lapak Dekat', 'slug' => 'lapak-dekat']);
+        nearbyStore(3.1, ['name' => 'Lapak Tengah', 'slug' => 'lapak-tengah']);
+        nearbyStore(0.5, ['name' => 'Lapak Contoh', 'is_demo' => true]);
+        nearbyStore(0.8, ['name' => 'Lapak Ditangguhkan'])->forceFill(['status' => 'suspended'])->save();
+        Store::factory()->active()->create(['name' => 'Lapak Kosong', 'lat' => '-6.1070000', 'lng' => '106.7765000']);
+
+        $section = Str::before(Str::after(storePageHtml(), 'aria-labelledby="lapak-sekitar"'), '</section>');
+
+        expect($section)
+            ->toContain('Lapak lain di sekitar')
+            ->toContain('1,9 km')
+            ->toContain('3,1 km')
+            ->toContain('5,8 km')
+            ->not->toContain('Lapak Contoh')
+            ->not->toContain('Lapak Ditangguhkan')
+            ->not->toContain('Lapak Kosong')
+            ->and(strpos($section, 'Lapak Dekat'))->toBeLessThan(strpos($section, 'Lapak Tengah'))
+            ->and(strpos($section, 'Lapak Tengah'))->toBeLessThan(strpos($section, 'Lapak Jauh'));
+    });
+
+    it('lists a demo store after the real stores', function () {
+        nearbyStore(0.5, ['name' => 'Lapak Contoh', 'is_demo' => true]);
+        nearbyStore(3.1, ['name' => 'Lapak Asli']);
+
+        $section = Str::before(Str::after(storePageHtml(), 'aria-labelledby="lapak-sekitar"'), '</section>');
+
+        expect(strpos($section, 'Lapak Asli'))->toBeLessThan(strpos($section, 'Lapak Contoh'))
+            ->and($section)->toContain('Toko contoh');
+    });
+
+    it('shows each store with its products, up to 3, and a link to visit it', function () {
+        $near = nearbyStore(1.9, ['name' => 'Lapak Dekat', 'slug' => 'lapak-dekat']);
+        foreach (range(1, 3) as $number) {
+            storePageProduct($near, ['name' => "Jualan Dekat {$number}.", 'created_at' => now()->addMinutes($number)]);
+        }
+
+        $section = Str::before(Str::after(storePageHtml(), 'aria-labelledby="lapak-sekitar"'), '</section>');
+
+        expect($section)
+            ->toContain('4 produk')
+            ->toContain('Jualan Dekat 3.')
+            ->toContain('Jualan Dekat 1.')
+            ->not->toContain('Produk Lapak Dekat')
+            ->toContain('Mulai')
+            ->toMatch('#href="'.preg_quote(route('stores.show', 'lapak-dekat'), '#').'"[^>]*>\s*Kunjungi lapak#');
+    });
+
+    it('is not rendered without other active stores selling something', function () {
+        nearbyStore(1.9)->forceFill(['status' => 'suspended'])->save();
+
+        expect(storePageHtml())->not->toContain('aria-labelledby="lapak-sekitar"');
+    });
+
+    it('never shows the coordinates or bank details of the other stores', function () {
+        nearbyStore(1.9, ['bank_account_no' => '1111222233', 'lng' => '106.7765432']);
+
+        expect(storePageHtml())->not->toContain('1111222233')->not->toContain('106.7765432');
+    });
+
+    it('runs the same number of queries for 2 and 20 other stores', function () {
+        $count = function (): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            storePageHtml();
+            $queries = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $queries;
+        };
+
+        storePageProduct($this->store);
+        foreach (range(1, 2) as $i) {
+            ProductImage::factory()->for(nearbyStore($i)->products()->sole())->create();
+        }
+        $few = $count();
+
+        foreach (range(3, 20) as $i) {
+            ProductImage::factory()->for(nearbyStore($i)->products()->sole())->create();
+        }
+
+        expect($count())->toBe($few);
     });
 });
