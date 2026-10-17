@@ -634,3 +634,166 @@ describe('pagination', function () {
         $this->get('/produk')->assertOk()->assertDontSee('aria-label="Halaman', escape: false);
     });
 });
+
+/**
+ * The markup of the category card for the given root category slug.
+ */
+function categoryCard(string $html, string $slug): string
+{
+    expect($html)->toContain('data-category-card="'.$slug.'"');
+
+    return Str::before(Str::after($html, 'data-category-card="'.$slug.'"'), '</button>');
+}
+
+describe('category cards', function () {
+    it('shows a card for each root category with its number of visible products', function () {
+        catalogProduct(['name' => 'Kepiting Satu']);
+        catalogProduct(['name' => 'Kepiting Dua']);
+        catalogProduct(['name' => 'Kepiting Tiga', 'category_id' => $this->soka->id]);
+        catalogProduct(['name' => 'Cumi Satu', 'category_id' => $this->cumiSegar->id]);
+        catalogProduct(['name' => 'Cumi Dua', 'category_id' => $this->cumiSegar->id]);
+
+        $html = $this->get('/produk')->assertOk()->getContent();
+
+        expect(categoryCard($html, 'kepiting'))->toContain('Kepiting')->toContain('3 produk')
+            ->and(categoryCard($html, 'cumi'))->toContain('Cumi')->toContain('2 produk')
+            ->and($html)->not->toContain('data-category-card="bakau"');
+    });
+
+    it('uses the photo of the newest visible product in the category, subcategories included', function () {
+        $older = ProductImage::factory()->for(catalogProduct(['created_at' => now()->subDays(2)]))->create();
+        $newer = ProductImage::factory()->for(catalogProduct(['category_id' => $this->soka->id, 'created_at' => now()->subDay()]))->create();
+        $cumi = ProductImage::factory()->for(catalogProduct(['category_id' => $this->cumiSegar->id, 'created_at' => now()]))->create();
+
+        $card = categoryCard($this->get('/produk')->assertOk()->getContent(), 'kepiting');
+
+        expect($card)->toContain($newer->thumbnailUrl())
+            ->not->toContain($older->thumbnailUrl())
+            ->not->toContain($cumi->thumbnailUrl());
+    });
+
+    it('skips the newest product when it has no photo', function () {
+        $photo = ProductImage::factory()->for(catalogProduct(['created_at' => now()->subDays(2)]))->create();
+        catalogProduct(['created_at' => now()]);
+
+        expect(categoryCard($this->get('/produk')->assertOk()->getContent(), 'kepiting'))
+            ->toContain($photo->thumbnailUrl())
+            ->not->toContain('Belum ada foto');
+    });
+
+    it('shows the empty photo when no product in the category has one', function () {
+        catalogProduct();
+
+        expect(categoryCard($this->get('/produk')->assertOk()->getContent(), 'kepiting'))->toContain('Belum ada foto');
+    });
+
+    it('does not render a root category without visible products', function () {
+        catalogProduct();
+
+        $this->get('/produk')
+            ->assertOk()
+            ->assertSee('data-category-card="kepiting"', escape: false)
+            ->assertDontSee('data-category-card="cumi"', escape: false);
+    });
+
+    it('neither counts nor uses the photo of products buyers may not see', function (Closure $create) {
+        $visible = ProductImage::factory()->for(catalogProduct(['created_at' => now()->subDays(2)]))->create();
+        $hidden = ProductImage::factory()->for($create())->create();
+
+        $card = categoryCard($this->get('/produk')->assertOk()->getContent(), 'kepiting');
+
+        expect($card)->toContain('1 produk')
+            ->toContain($visible->thumbnailUrl())
+            ->not->toContain($hidden->thumbnailUrl());
+    })->with([
+        'blocked' => [fn () => catalogProduct(['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.'])],
+        'inactive' => [fn () => catalogProduct(['is_active' => false])],
+        'from a pending store' => [fn () => catalogProduct(store: Store::factory()->pending()->create())],
+        'from a suspended store' => [fn () => catalogProduct(store: Store::factory()->suspended()->create())],
+    ]);
+
+    it('sets the category filter when a card is clicked and removes it on a second click', function () {
+        catalogProduct();
+
+        Livewire::test('catalog')
+            ->call('toggleCategory', 'kepiting')
+            ->assertSet('category', 'kepiting')
+            ->call('toggleCategory', 'kepiting')
+            ->assertSet('category', '');
+    });
+
+    it('ignores a click on a category that is not a root category', function (string $slug) {
+        catalogProduct();
+
+        Livewire::test('catalog')->call('toggleCategory', $slug)->assertSet('category', '');
+    })->with([
+        'unknown' => ['tidak-ada'],
+        'a subcategory' => ['bakau'],
+    ]);
+
+    it('marks the card of the chosen category as pressed', function () {
+        catalogProduct();
+        catalogProduct(['category_id' => $this->cumiSegar->id]);
+
+        $html = $this->get('/produk?kategori=kepiting')->assertOk()->getContent();
+
+        expect(categoryCard($html, 'kepiting'))->toContain('aria-pressed="true"')
+            ->and(categoryCard($html, 'cumi'))->toContain('aria-pressed="false"');
+    });
+
+    it('calls the toggle from each card', function () {
+        catalogProduct();
+
+        expect(categoryCard($this->get('/produk')->assertOk()->getContent(), 'kepiting'))
+            ->toContain('wire:click="toggleCategory(\'kepiting\')"');
+    });
+
+    it('counts only the products matching the other filters', function () {
+        catalogProduct(['condition' => ProductCondition::Frozen]);
+        catalogProduct(['condition' => ProductCondition::Live]);
+        catalogProduct(['condition' => ProductCondition::Frozen, 'category_id' => $this->cumiSegar->id]);
+        catalogProduct(['condition' => ProductCondition::Frozen, 'category_id' => $this->cumiSegar->id]);
+        catalogProduct(['condition' => ProductCondition::Fresh, 'category_id' => $this->cumiSegar->id]);
+
+        $html = $this->get('/produk?kondisi=frozen')->assertOk()->getContent();
+
+        expect(categoryCard($html, 'kepiting'))->toContain('1 produk')
+            ->and(categoryCard($html, 'cumi'))->toContain('2 produk');
+    });
+
+    it('does not narrow the counts by the chosen category itself', function () {
+        catalogProduct();
+        catalogProduct(['category_id' => $this->cumiSegar->id]);
+        catalogProduct(['category_id' => $this->cumiSegar->id]);
+
+        expect(categoryCard($this->get('/produk?kategori=kepiting')->assertOk()->getContent(), 'cumi'))->toContain('2 produk');
+    });
+
+    it('escapes the category name', function () {
+        $root = Category::factory()->create(['name' => '<script>alert(1)</script>', 'slug' => 'berbahaya']);
+        catalogProduct(['category_id' => $root->id]);
+
+        expect(categoryCard($this->get('/produk')->assertOk()->getContent(), 'berbahaya'))
+            ->not->toContain('<script>alert(1)</script>')
+            ->toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    });
+
+    it('runs the same number of queries for 2 and 8 root categories', function () {
+        $addCategories = function (int $count) {
+            foreach (range(1, $count) as $i) {
+                $root = Category::factory()->create();
+                $child = Category::factory()->childOf($root)->create();
+                ProductImage::factory()->for(catalogProduct(['category_id' => $child->id, 'condition' => ProductCondition::Live]))->create();
+            }
+        };
+
+        catalogProduct(['condition' => ProductCondition::Live]);
+        catalogProduct(['category_id' => $this->cumiSegar->id, 'condition' => ProductCondition::Live]);
+        $few = catalogQueryCount('/produk?kondisi=live');
+
+        $addCategories(6);
+        $many = catalogQueryCount('/produk?kondisi=live');
+
+        expect($many)->toBe($few);
+    });
+});
