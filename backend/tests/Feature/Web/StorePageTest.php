@@ -685,8 +685,17 @@ describe('tabs without reload', function () {
         $html = storePageHtml();
 
         expect($html)
-            ->toMatch('#<a[^>]*href="'.preg_quote(e(url('/toko/toko-bahari?kategori=kepiting')), '#').'"[^>]*wire:click\.prevent="chooseCategory\(&\#039;kepiting&\#039;\)"#')
-            ->toMatch('#<a[^>]*href="'.preg_quote(url('/toko/toko-bahari'), '#').'"[^>]*wire:click\.prevent="chooseCategory\(&\#039;&\#039;\)"#');
+            ->toMatch('#<a[^>]*href="'.preg_quote(e(url('/toko/toko-bahari?kategori=kepiting')), '#').'"[^>]*wire:click\.prevent="chooseCategory\(\'kepiting\'\)"#')
+            ->toMatch('#<a[^>]*href="'.preg_quote(url('/toko/toko-bahari'), '#').'"[^>]*wire:click\.prevent="chooseCategory\(\'\'\)"#');
+    });
+
+    it('keeps the chosen category in the page links, which lead back to this store', function () {
+        foreach (range(1, 25) as $i) {
+            storePageProduct($this->store, ['category_id' => $this->bakau->id]);
+        }
+
+        expect(storePageHtml('?kategori=kepiting'))
+            ->toContain('href="'.e(url('/toko/toko-bahari?kategori=kepiting&page=2')).'"');
     });
 
     it('dims the list and announces loading while it changes', function () {
