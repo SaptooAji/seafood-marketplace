@@ -1,0 +1,190 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+|--------------------------------------------------------------------------
+| Photo Credits
+|--------------------------------------------------------------------------
+|
+| Every Wikimedia Commons photo the site shows: the demo store photos
+| (files in database/seeders/images) and, later, the recipe photos
+| (paths starting with public/). CC BY and CC BY-SA require the title,
+| author, source, license, and the changes; CC0 and public domain photos
+| are listed as well.
+|
+*/
+
+return [
+    [
+        'file' => 'kepiting-bakau/1-hidup-di-keranjang.jpg',
+        'title' => 'Mud crab 2.jpg',
+        'author' => 'Vengolis',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Mud_crab_2.jpg',
+        'license' => 'CC BY-SA 3.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/3.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kepiting-bakau/2-dipegang-nelayan.jpg',
+        'title' => 'Scylla serrata - Giant mud crab (নোনা কাঁকড়া) 01.jpg',
+        'author' => 'JIBON',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Scylla_serrata_-_Giant_mud_crab_(%E0%A6%A8%E0%A7%8B%E0%A6%A8%E0%A6%BE_%E0%A6%95%E0%A6%BE%E0%A6%81%E0%A6%95%E0%A6%A1%E0%A6%BC%E0%A6%BE)_01.jpg',
+        'license' => 'CC BY-SA 4.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/4.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kepiting-bakau/3-rebus-di-piring.jpg',
+        'title' => 'Boiled mud crab (Scylla serrata) on plate.jpg',
+        'author' => 'JaredMcKenzie',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Boiled_mud_crab_(Scylla_serrata)_on_plate.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'rajungan/1-rajungan-hidup.jpg',
+        'title' => 'Portunus pelagicus 321797187.jpg',
+        'author' => '葉子',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Portunus_pelagicus_321797187.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'rajungan/2-rajungan-di-pasar.jpg',
+        'title' => 'Bulakenyo market vendor with protective masks selling Alimasag Baliwag 01.jpg',
+        'author' => 'FBenjr123',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Bulakenyo_market_vendor_with_protective_masks_selling_Alimasag_Baliwag_01.jpg',
+        'license' => 'CC BY-SA 4.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/4.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kepiting-soka/1-soka-goreng.jpg',
+        'title' => 'Soft shell crab (3196520484).jpg',
+        'author' => 'Geoff Peters',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Soft_shell_crab_(3196520484).jpg',
+        'license' => 'CC BY 2.0',
+        'license_url' => 'https://creativecommons.org/licenses/by/2.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kepiting-soka/2-soka-tepung.jpg',
+        'title' => 'Soft shell crab at the Pacific Fair, Gold Coast, Queensland.jpg',
+        'author' => 'Kgbo',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Soft_shell_crab_at_the_Pacific_Fair,_Gold_Coast,_Queensland.jpg',
+        'license' => 'CC BY-SA 4.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/4.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'cumi-segar/1-cumi-di-pasar.jpg',
+        'title' => '20190415 Yehliu fish market squid-1.jpg',
+        'author' => 'Balon Greyjoy',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:20190415_Yehliu_fish_market_squid-1.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'cumi-segar/2-cumi-di-lapak.jpg',
+        'title' => '20190415 Yehliu fish market squid-2.jpg',
+        'author' => 'Balon Greyjoy',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:20190415_Yehliu_fish_market_squid-2.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'cumi-beku/1-cumi-di-atas-es.jpg',
+        'title' => 'Frozen fresh squid.jpg',
+        'author' => 'Fumikas Sagisavas',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Frozen_fresh_squid.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'udang/1-udang-vaname.jpg',
+        'title' => '2884Whiteleg shrimp in the Philippines textures 09.jpg',
+        'author' => 'Judgefloro',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:2884Whiteleg_shrimp_in_the_Philippines_textures_09.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'udang/2-udang-vaname.jpg',
+        'title' => '2884Whiteleg shrimp in the Philippines textures 15.jpg',
+        'author' => 'Judgefloro',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:2884Whiteleg_shrimp_in_the_Philippines_textures_15.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'udang/3-udang-vaname.jpg',
+        'title' => '2884Whiteleg shrimp in the Philippines textures 22.jpg',
+        'author' => 'Judgefloro',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:2884Whiteleg_shrimp_in_the_Philippines_textures_22.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kerang-hijau/1-kerang-hijau.jpg',
+        'title' => 'Jf246Mussels Perna viridis Obandofvf.JPG',
+        'author' => 'Judgefloro',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Jf246Mussels_Perna_viridis_Obandofvf.JPG',
+        'license' => 'CC BY-SA 4.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/4.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kerang-hijau/2-kerang-hijau.jpg',
+        'title' => 'Jf252Mussels Perna viridis Obandofvf.JPG',
+        'author' => 'Judgefloro',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Jf252Mussels_Perna_viridis_Obandofvf.JPG',
+        'license' => 'CC BY-SA 4.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/4.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kerang-hijau/3-cangkang-kerang.jpg',
+        'title' => 'Perna viridis 001.jpg',
+        'author' => 'Jan Delsing',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Perna_viridis_001.jpg',
+        'license' => 'Domain publik',
+        'license_url' => null,
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kakap-merah/1-kakap-merah.jpg',
+        'title' => 'Mangrove Red Snapper Lutjanus argentimaculatus 01.jpg',
+        'author' => 'Dr. Raju Kasambe',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Mangrove_Red_Snapper_Lutjanus_argentimaculatus_01.jpg',
+        'license' => 'CC BY-SA 4.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/4.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kakap-merah/2-kakap-merah.jpg',
+        'title' => 'Mangrove Red Snapper Lutjanus argentimaculatus 02.jpg',
+        'author' => 'Dr. Raju Kasambe',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Mangrove_Red_Snapper_Lutjanus_argentimaculatus_02.jpg',
+        'license' => 'CC BY-SA 4.0',
+        'license_url' => 'https://creativecommons.org/licenses/by-sa/4.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+    [
+        'file' => 'kakap-merah/3-fillet-kakap.jpg',
+        'title' => 'Original and duplicate redsnapper.jpg',
+        'author' => 'Arunshinija',
+        'source_url' => 'https://commons.wikimedia.org/wiki/File:Original_and_duplicate_redsnapper.jpg',
+        'license' => 'CC0',
+        'license_url' => 'https://creativecommons.org/publicdomain/zero/1.0/',
+        'changes' => 'Diperkecil dan dikompres ulang.',
+    ],
+];

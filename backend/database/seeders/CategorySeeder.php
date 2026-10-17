@@ -48,6 +48,30 @@ class CategorySeeder extends Seeder
             ],
         ],
         [
+            'name' => 'Udang',
+            'slug' => 'udang',
+            'quality_standard' => "- Kepala menempel kuat, tidak menghitam\n- Kulit bening dan mengkilap\n- Daging kenyal, tidak berbau amonia",
+            'attributes' => [
+                ['name' => 'Isi per kg', 'type' => AttributeType::Number, 'unit' => 'ekor', 'is_required' => true, 'is_filterable' => true],
+            ],
+            'children' => [
+                ['name' => 'Vaname', 'slug' => 'vaname'],
+                ['name' => 'Windu', 'slug' => 'windu'],
+            ],
+        ],
+        [
+            'name' => 'Kerang',
+            'slug' => 'kerang',
+            'quality_standard' => "- Cangkang tertutup rapat atau menutup saat diketuk\n- Berbau segar seperti air laut\n- Tidak ada cangkang pecah atau terbuka lebar",
+            'attributes' => [
+                ['name' => 'Isi per kg', 'type' => AttributeType::Number, 'unit' => 'butir', 'is_required' => true],
+            ],
+            'children' => [
+                ['name' => 'Kerang Hijau', 'slug' => 'kerang-hijau'],
+                ['name' => 'Kerang Dara', 'slug' => 'kerang-dara'],
+            ],
+        ],
+        [
             'name' => 'Tiram',
             'slug' => 'tiram',
             'quality_standard' => "- Cangkang tertutup rapat atau menutup saat disentuh\n- Berbau segar seperti air laut\n- Tidak ada cangkang retak",
