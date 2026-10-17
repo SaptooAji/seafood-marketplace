@@ -97,6 +97,14 @@ describe('POST /seller/store', function () {
             ->rejection_reason->toBeNull();
     });
 
+    it('ignores the demo flag in the body', function () {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson(SELLER_STORE_URL, storePayload(['is_demo' => true]))->assertCreated();
+
+        expect(Store::query()->sole()->is_demo)->toBeFalse();
+    });
+
     it('accepts coordinates sent as strings', function () {
         Sanctum::actingAs(User::factory()->create());
 
@@ -243,6 +251,20 @@ describe('PUT /seller/store', function () {
             ->verified_at->toBeNull()
             ->rejection_reason->toBe($reason);
     });
+
+    it('never lets the owner change the demo flag', function (bool $isDemo) {
+        $user = User::factory()->create();
+        $store = Store::factory()->active()->state(['is_demo' => $isDemo])->create();
+        $store->users()->attach($user, ['role' => StoreRole::Owner->value]);
+        Sanctum::actingAs($user);
+
+        $this->putJson(SELLER_STORE_URL, storePayload(['is_demo' => ! $isDemo]))->assertOk();
+
+        expect($store->fresh()->is_demo)->toBe($isDemo);
+    })->with([
+        'real store asks to become a demo store' => [false],
+        'demo store asks to drop the demo flag' => [true],
+    ]);
 
     it('validates the update like the create', function () {
         $user = User::factory()->create();

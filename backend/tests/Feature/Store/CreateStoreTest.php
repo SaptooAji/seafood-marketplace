@@ -78,3 +78,7 @@ it('does not save the store when adding the owner fails', function () {
 
     expect(Store::query()->count())->toBe(0);
 });
+
+it('creates a real store, never a demo store', function () {
+    expect(createStore(User::factory()->create())->fresh()->is_demo)->toBeFalse();
+});

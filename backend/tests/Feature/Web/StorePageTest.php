@@ -82,6 +82,20 @@ describe('profile', function () {
     it('is a 404 for an unknown slug', function () {
         $this->get('/toko/tidak-ada')->assertNotFound();
     });
+
+    it('keeps a demo store out of search results', function () {
+        Store::factory()->active()->demo()->create(['slug' => 'toko-contoh']);
+
+        $this->get('/toko/toko-contoh')
+            ->assertOk()
+            ->assertSee('<meta name="robots" content="noindex, follow">', escape: false);
+    });
+
+    it('is a 404 for a suspended demo store', function () {
+        Store::factory()->suspended()->demo()->create(['slug' => 'toko-contoh']);
+
+        $this->get('/toko/toko-contoh')->assertNotFound();
+    });
 });
 
 describe('products', function () {

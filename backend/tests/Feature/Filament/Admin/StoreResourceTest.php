@@ -73,6 +73,27 @@ describe('list page', function () {
 
         Livewire::test(ListStores::class)->assertSee(StoreStatus::Pending->label());
     });
+
+    it('shows which stores are demo stores', function () {
+        Store::factory()->demo()->create();
+
+        Livewire::test(ListStores::class)
+            ->assertTableColumnExists('is_demo')
+            ->assertSee('Toko contoh');
+    });
+
+    it('filters the demo stores', function () {
+        $real = Store::factory()->create();
+        $demo = Store::factory()->demo()->create();
+
+        Livewire::test(ListStores::class)
+            ->filterTable('is_demo', true)
+            ->assertCanSeeTableRecords([$demo])
+            ->assertCanNotSeeTableRecords([$real])
+            ->filterTable('is_demo', false)
+            ->assertCanSeeTableRecords([$real])
+            ->assertCanNotSeeTableRecords([$demo]);
+    });
 });
 
 describe('table actions', function () {

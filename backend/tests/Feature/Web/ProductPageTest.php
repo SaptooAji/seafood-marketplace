@@ -244,6 +244,14 @@ describe('choosing a variant and quantity', function () {
 });
 
 describe('SEO', function () {
+    it('keeps a product of a demo store out of search results', function () {
+        $this->store->forceFill(['is_demo' => true])->save();
+
+        productPage()
+            ->assertOk()
+            ->assertSee('<meta name="robots" content="noindex, follow">', escape: false);
+    });
+
     it('has the title, meta description, canonical, and Open Graph tags', function () {
         $image = ProductImage::factory()->for($this->product)->create();
 
