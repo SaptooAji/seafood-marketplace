@@ -86,6 +86,7 @@
                 </ul>
                 <ul class="flex flex-col gap-2">
                     <li><a href="{{ url('/seller') }}" class="hover:underline">Buka lapak</a></li>
+                    <li><a href="{{ route('credits') }}" class="hover:underline">Kredit foto</a></li>
                 </ul>
             </nav>
         </div>

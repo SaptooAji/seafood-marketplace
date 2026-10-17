@@ -48,7 +48,7 @@ beforeEach(function () {
 });
 
 describe('sitemap', function () {
-    it('lists the home page, the catalog, visible products, and active stores', function () {
+    it('lists the home page, the catalog, the photo credits, visible products, and active stores', function () {
         $product = sitemapProduct($this->store, ['slug' => 'kepiting-bakau', 'updated_at' => Carbon::parse('2026-10-01 08:30:00')]);
 
         $response = $this->get('/sitemap.xml')->assertOk();
@@ -57,6 +57,7 @@ describe('sitemap', function () {
             ->and(sitemapEntries($response->getContent()))->toEqualCanonicalizing([
                 url('/') => null,
                 url('/produk') => null,
+                url('/kredit-foto') => null,
                 url('/produk/kepiting-bakau') => $product->updated_at->toAtomString(),
                 url('/toko/toko-bahari') => null,
             ]);
@@ -75,6 +76,7 @@ describe('sitemap', function () {
         expect(array_keys(sitemapEntries($this->get('/sitemap.xml')->assertOk()->getContent())))->toEqualCanonicalizing([
             url('/'),
             url('/produk'),
+            url('/kredit-foto'),
             url('/produk/produk-tampil'),
             url('/toko/toko-bahari'),
         ]);
@@ -89,16 +91,17 @@ describe('sitemap', function () {
         expect(array_keys(sitemapEntries($this->get('/sitemap.xml')->assertOk()->getContent())))->toEqualCanonicalizing([
             url('/'),
             url('/produk'),
+            url('/kredit-foto'),
             url('/produk/produk-asli'),
             url('/toko/toko-bahari'),
         ]);
     });
 
-    it('is valid with only the home page and catalog when nothing is listed', function () {
+    it('is valid with only the fixed pages when nothing is listed', function () {
         $this->store->forceFill(['status' => StoreStatus::Pending])->save();
 
         expect(array_keys(sitemapEntries($this->get('/sitemap.xml')->assertOk()->getContent())))
-            ->toEqualCanonicalizing([url('/'), url('/produk')]);
+            ->toEqualCanonicalizing([url('/'), url('/produk'), url('/kredit-foto')]);
     });
 
     it('stays valid XML when a URL has an ampersand', function () {
