@@ -2,17 +2,23 @@
 
 declare(strict_types=1);
 
+use App\Data\Recipe;
+use App\Enums\ProductCondition;
 use App\Enums\Unit;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
+use App\Support\StockCheckTime;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 /*
- * "Produk serupa" and "Lapak lain yang menjual" under the product page (#173).
+ * The sections under the product page: "Lapak lain yang menjual" as a store
+ * comparison, "Produk serupa" (#173), "Dari {toko} juga", and "Masak apa" (#195).
  *
  * Kepiting
  *   ├─ Bakau     (Kepiting Bakau Super from Toko Bahari, the product shown)
@@ -284,5 +290,274 @@ describe('performance', function () {
         DB::disableQueryLog();
 
         expect($queries->filter(fn (string $sql): bool => str_contains($sql, '"category_id"')))->toBeEmpty();
+    });
+});
+
+/**
+ * The markup of one row of the store comparison, up to the next row.
+ */
+function storeRow(string $section, string $slug): string
+{
+    expect($section)->toContain('data-store-row="'.$slug.'"');
+
+    return Str::before(Str::after($section, 'data-store-row="'.$slug.'"'), 'data-store-row=');
+}
+
+/**
+ * A recipe for the config, filled in around the given fields.
+ *
+ * @param  array<string, mixed>  $attributes
+ * @return array<string, mixed>
+ */
+function relatedRecipe(array $attributes): array
+{
+    return [
+        'slug' => 'resep-uji',
+        'name' => 'Resep uji',
+        'description' => 'Resep untuk test.',
+        'photo' => 'images/resep/kepiting-saus-padang.jpg',
+        'category' => 'kepiting',
+        'minutes' => 30,
+        'servings' => 2,
+        'level' => 'Mudah',
+        'group' => 'keluarga',
+        'needs' => ['category' => 'bakau', 'kg' => '0.500', 'label' => '500 g kepiting bakau'],
+        'ingredients' => [['amount' => '1', 'unit' => 'buah', 'name' => 'jeruk nipis']],
+        'steps' => ['Masak.'],
+        ...$attributes,
+    ];
+}
+
+describe('store comparison', function () {
+    beforeEach(function () {
+        $this->travelTo(CarbonImmutable::parse('2026-10-16 09:00', StockCheckTime::TIMEZONE)->utc());
+    });
+
+    it('shows when the cheapest variant of each store was checked and what is left', function () {
+        $sari = Store::factory()->active()->create(['name' => 'Lapak Bu Sari', 'slug' => 'lapak-bu-sari']);
+        $cheap = relatedProduct($sari, $this->bakau, [], 180_000)->variants()->sole();
+        $cheap->forceFill(['stock' => '7.500', 'stock_confirmed_at' => CarbonImmutable::parse('2026-10-16 06:30', StockCheckTime::TIMEZONE)->utc()])->save();
+        $dear = relatedProduct($sari, $this->bakau, [], 240_000)->variants()->sole();
+        $dear->forceFill(['stock' => '20.000', 'stock_confirmed_at' => now()])->save();
+
+        $row = storeRow(relatedSection(relatedPageHtml(), 'lapak-lain'), 'lapak-bu-sari');
+
+        expect($row)
+            ->toContain('Lapak Bu Sari')
+            ->toContain('06.30')
+            ->toContain('7,5 kg')
+            ->not->toContain('20 kg')
+            ->toContain('Rp180.000');
+    });
+
+    it('says when a store has not checked its stock', function () {
+        $sari = Store::factory()->active()->create(['name' => 'Lapak Bu Sari', 'slug' => 'lapak-bu-sari']);
+        relatedProduct($sari, $this->bakau)->variants()->sole()->forceFill(['stock_confirmed_at' => null])->save();
+
+        expect(storeRow(relatedSection(relatedPageHtml(), 'lapak-lain'), 'lapak-bu-sari'))->toContain('Belum dicek');
+    });
+
+    it('marks the cheapest real store, not a cheaper demo store', function () {
+        relatedProduct(Store::factory()->active()->demo()->create(['slug' => 'toko-contoh']), $this->bakau, [], 150_000);
+        relatedProduct(Store::factory()->active()->create(['slug' => 'lapak-murah']), $this->bakau, [], 180_000);
+        relatedProduct(Store::factory()->active()->create(['slug' => 'lapak-mahal']), $this->bakau, [], 190_000);
+
+        $section = relatedSection(relatedPageHtml(), 'lapak-lain');
+
+        expect(substr_count($section, 'Termurah'))->toBe(1)
+            ->and(storeRow($section, 'lapak-murah'))->toContain('Termurah')
+            ->and(storeRow($section, 'toko-contoh'))->not->toContain('Termurah')->toContain('Toko contoh');
+    });
+
+    it('marks no store as the cheapest when only demo stores sell the category', function () {
+        relatedProduct(Store::factory()->active()->demo()->create(), $this->bakau, [], 150_000);
+
+        expect(relatedSection(relatedPageHtml(), 'lapak-lain'))->not->toContain('Termurah');
+    });
+
+    it('links to every store selling the category in the catalog', function () {
+        foreach (range(1, 5) as $number) {
+            relatedProduct(Store::factory()->active()->create(), $this->bakau);
+        }
+
+        expect(relatedSection(relatedPageHtml(), 'lapak-lain'))
+            ->toContain('Lihat semua 5 lapak')
+            ->toContain('href="'.e(route('catalog', ['kategori' => $this->bakau->slug])).'"');
+    });
+
+    it('links each store with a "Lihat" button', function () {
+        $sari = Store::factory()->active()->create(['slug' => 'lapak-bu-sari']);
+        relatedProduct($sari, $this->bakau);
+
+        expect(storeRow(relatedSection(relatedPageHtml(), 'lapak-lain'), 'lapak-bu-sari'))
+            ->toMatch('#<a[^>]*href="'.preg_quote(route('stores.show', 'lapak-bu-sari'), '#').'"[^>]*>\s*Lihat\s*</a>#');
+    });
+
+    it('is a table with column headers and no distance column', function () {
+        relatedProduct(Store::factory()->active()->create(), $this->bakau);
+
+        expect(relatedSection(relatedPageHtml(), 'lapak-lain'))
+            ->toContain('role="table"')
+            ->toMatch('#role="columnheader"[^>]*>\s*Lapak#')
+            ->toMatch('#role="columnheader"[^>]*>\s*Stok dicek#')
+            ->toMatch('#role="columnheader"[^>]*>\s*Sisa#')
+            ->toMatch('#role="columnheader"[^>]*>\s*Harga mulai#')
+            ->not->toContain('Jarak')
+            ->not->toContain('Terdekat');
+    });
+});
+
+describe('same store', function () {
+    it('shows up to 4 other products of the store, newest first', function () {
+        $sotong = Category::factory()->create(['name' => 'Sotong']);
+        foreach (range(1, 5) as $day) {
+            relatedProduct($this->store, $day === 1 ? $sotong : $this->bakau, ['name' => "Produk Toko Hari {$day}", 'created_at' => now()->subDays($day)]);
+        }
+
+        $section = relatedSection(relatedPageHtml(), 'lapak-sama');
+
+        expect($section)
+            ->toContain('Dari Toko Bahari juga')
+            ->toContain('Pesan bersama Kepiting Bakau Super, ongkos kirimnya cukup sekali.')
+            ->toContain('Produk Toko Hari 1')
+            ->toContain('Produk Toko Hari 4')
+            ->not->toContain('Produk Toko Hari 5')
+            ->not->toContain('href="'.route('products.show', 'kepiting-bakau-super').'"')
+            ->and(strpos($section, 'Produk Toko Hari 1'))->toBeLessThan(strpos($section, 'Produk Toko Hari 2'));
+    });
+
+    it('links to all products of the store on the store page', function () {
+        foreach (range(1, 5) as $number) {
+            relatedProduct($this->store, $this->bakau);
+        }
+
+        expect(relatedSection(relatedPageHtml(), 'lapak-sama'))
+            ->toContain('Lihat semua 6 produk')
+            ->toContain('href="'.route('stores.show', $this->store->slug).'"');
+    });
+
+    it('shows each product with its photo, condition, stock check, and price', function () {
+        $this->travelTo(CarbonImmutable::parse('2026-10-16 09:00', StockCheckTime::TIMEZONE)->utc());
+        $other = relatedProduct($this->store, $this->bakau, ['name' => 'Rajungan Segar', 'condition' => ProductCondition::Fresh], 95_000);
+        $other->variants()->sole()->forceFill(['stock_confirmed_at' => CarbonImmutable::parse('2026-10-16 07:15', StockCheckTime::TIMEZONE)->utc()])->save();
+        $image = ProductImage::factory()->for($other)->create();
+
+        expect(relatedSection(relatedPageHtml(), 'lapak-sama'))
+            ->toContain($image->thumbnailUrl())
+            ->toContain(ProductCondition::Fresh->label())
+            ->toContain('Dicek 07.15')
+            ->toContain('Rp95.000')
+            ->toContain('href="'.route('products.show', $other->slug).'"');
+    });
+
+    it('leaves out the products buyers may not see', function (Closure $hide) {
+        $hidden = relatedProduct($this->store, $this->bakau, ['name' => 'Produk Toko Tersembunyi']);
+        relatedProduct($this->store, $this->bakau, ['name' => 'Produk Toko Tampil']);
+        $hide($hidden);
+
+        expect(relatedSection(relatedPageHtml(), 'lapak-sama'))
+            ->toContain('Produk Toko Tampil')
+            ->not->toContain('Produk Toko Tersembunyi')
+            ->toContain('Lihat semua 2 produk');
+    })->with([
+        'blocked' => [fn (Product $p) => $p->forceFill(['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.'])->save()],
+        'inactive' => [fn (Product $p) => $p->update(['is_active' => false])],
+        'without an active variant' => [fn (Product $p) => $p->variants()->update(['is_active' => false])],
+        'deleted' => [fn (Product $p) => $p->delete()],
+    ]);
+
+    it('is not rendered when the store sells only this product', function () {
+        relatedProduct(Store::factory()->active()->create(), $this->bakau, ['name' => 'Produk Toko Lain']);
+
+        expect(relatedPageHtml())
+            ->not->toContain('aria-labelledby="lapak-sama"')
+            ->not->toContain('Dari Toko Bahari juga');
+    });
+
+    it('runs the same number of queries for 2 and 20 products of the store', function () {
+        $count = function (): int {
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            relatedPageHtml();
+            $queries = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $queries;
+        };
+
+        foreach (range(1, 2) as $i) {
+            ProductImage::factory()->for(relatedProduct($this->store, $this->rajungan))->create();
+        }
+        $few = $count();
+
+        foreach (range(1, 18) as $i) {
+            ProductImage::factory()->for(relatedProduct($this->store, $this->rajungan))->create();
+        }
+
+        expect($count())->toBe($few);
+    });
+});
+
+describe('recipes', function () {
+    it('shows up to 3 recipes of the root category with time, servings, and what to buy', function () {
+        $this->kepiting->update(['slug' => 'kepiting']);
+        $recipes = array_slice(Recipe::inCategory('kepiting'), 0, 3);
+
+        $section = relatedSection(relatedPageHtml(), 'resep');
+
+        expect($section)
+            ->toContain('Masak apa dengan kepiting?')
+            ->toContain('href="'.route('recipes.index').'"')
+            ->and(substr_count($section, 'data-recipe-card'))->toBe(min(3, count(Recipe::inCategory('kepiting'))));
+
+        foreach ($recipes as $recipe) {
+            expect($section)
+                ->toContain(e($recipe->name))
+                ->toContain($recipe->meta())
+                ->toContain('Butuh '.e($recipe->needs['label']))
+                ->toContain('href="'.route('recipes.show', $recipe->slug).'"')
+                ->toContain(asset($recipe->photo));
+        }
+    });
+
+    it('uses the recipes of the root category for a product in a subcategory', function () {
+        $this->kepiting->update(['slug' => 'kepiting']);
+        config(['recipes' => [relatedRecipe(['slug' => 'kepiting-uji', 'name' => 'Kepiting uji', 'category' => 'kepiting']), relatedRecipe(['slug' => 'udang-uji', 'name' => 'Udang uji', 'category' => 'udang'])]]);
+
+        expect(relatedSection(relatedPageHtml(), 'resep'))
+            ->toContain('Kepiting uji')
+            ->not->toContain('Udang uji');
+    });
+
+    it('is not rendered for a category without recipes', function () {
+        $this->kepiting->update(['slug' => 'kepiting']);
+        config(['recipes' => [relatedRecipe(['category' => 'udang'])]]);
+
+        expect(relatedPageHtml())
+            ->not->toContain('aria-labelledby="resep"')
+            ->not->toContain('Masak apa dengan');
+    });
+
+    it('escapes the recipe names', function () {
+        $this->kepiting->update(['slug' => 'kepiting']);
+        config(['recipes' => [relatedRecipe(['name' => 'Resep <script>alert(3)</script>'])]]);
+
+        expect(relatedPageHtml())
+            ->toContain(e('Resep <script>alert(3)</script>'))
+            ->not->toContain('<script>alert(3)</script>');
+    });
+});
+
+describe('section order', function () {
+    it('lists other stores, similar products, the same store, then recipes', function () {
+        $this->kepiting->update(['slug' => 'kepiting']);
+        relatedProduct(Store::factory()->active()->create(), $this->bakau, ['name' => 'Bakau Lain']);
+        relatedProduct($this->store, $this->udang, ['name' => 'Udang Toko Bahari']);
+
+        $html = relatedPageHtml();
+
+        expect(strpos($html, 'aria-labelledby="lapak-lain"'))->toBeLessThan(strpos($html, 'aria-labelledby="produk-serupa"'))
+            ->and(strpos($html, 'aria-labelledby="produk-serupa"'))->toBeLessThan(strpos($html, 'aria-labelledby="lapak-sama"'))
+            ->and(strpos($html, 'aria-labelledby="lapak-sama"'))->toBeLessThan(strpos($html, 'aria-labelledby="resep"'));
     });
 });

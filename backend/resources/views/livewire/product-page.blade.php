@@ -375,9 +375,69 @@
         </div>
     </div>
 
-    {{-- An island renders once with the page and is skipped when a variant is chosen, so these lists are not looked up again. --}}
+    {{-- An island renders once with the page and is skipped when a choice changes, so these lists are not looked up again. --}}
     @island(name: 'terkait')
+        @php
+            $rootCategory = $product->category->parent ?? $product->category;
+            $sameStoreCount = $this->sameStoreCount;
+        @endphp
         <div class="flex flex-col gap-10 lg:gap-12">
+            @if ($this->otherStores->isNotEmpty())
+                <section aria-labelledby="lapak-lain" class="flex flex-col gap-4">
+                    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+                        <div class="flex flex-col gap-1">
+                            <h2 id="lapak-lain" class="text-[1.375rem] font-extrabold tracking-tight lg:text-[1.75rem]">Lapak lain yang menjual {{ $product->category->name }}</h2>
+                            <p class="text-sm text-muted">Bandingkan harga dan kapan stoknya terakhir dicek.</p>
+                        </div>
+                        <a href="{{ route('catalog', ['kategori' => $product->category->slug]) }}" class="flex min-h-11 items-center font-semibold text-primary-700 underline underline-offset-4">Lihat semua {{ $this->otherStoreCount }} lapak</a>
+                    </div>
+
+                    {{-- A table from lg; on a phone each row is a card and the column names sit beside the values. --}}
+                    <div role="table" aria-label="Perbandingan lapak" class="flex flex-col gap-3 lg:gap-0 lg:overflow-hidden lg:rounded-card lg:bg-white">
+                        <div role="row" class="hidden gap-4 border-b border-line px-6 py-3.5 text-[0.8125rem] text-muted lg:grid lg:grid-cols-[minmax(0,2.2fr)_1.2fr_1fr_1.2fr_7.5rem]">
+                            <span role="columnheader">Lapak</span>
+                            <span role="columnheader">Stok dicek</span>
+                            <span role="columnheader">Sisa</span>
+                            <span role="columnheader" class="text-right">Harga mulai</span>
+                            <span role="columnheader"><span class="sr-only">Tautan</span></span>
+                        </div>
+                        @foreach ($this->otherStores as $index => $other)
+                            @php($cheapest = $index === 0 && ! $other->is_demo)
+                            <div role="row" wire:key="lapak-{{ $other->id }}" data-store-row="{{ $other->slug }}" class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-card bg-white p-4 lg:grid-cols-[minmax(0,2.2fr)_1.2fr_1fr_1.2fr_7.5rem] lg:rounded-none lg:border-b lg:border-line lg:px-6 lg:last:border-b-0">
+                                <span role="cell" class="col-span-2 flex min-w-0 items-center gap-3 lg:col-span-1">
+                                    @if ($other->logoUrl())
+                                        <img src="{{ $other->logoUrl() }}" alt="" loading="lazy" class="size-11 shrink-0 rounded-photo object-cover">
+                                    @else
+                                        <span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center rounded-photo bg-primary-50 font-extrabold text-primary-700">{{ mb_strtoupper(mb_substr($other->name, 0, 1)) }}</span>
+                                    @endif
+                                    <span class="flex min-w-0 flex-col">
+                                        <span id="lapak-nama-{{ $other->id }}" class="truncate font-semibold">{{ $other->name }}</span>
+                                        <span class="truncate text-[0.8125rem] text-muted">{{ $other->city }}{{ $other->is_demo ? ', Toko contoh' : '' }}</span>
+                                    </span>
+                                </span>
+                                <span role="cell" class="text-sm">
+                                    <span class="text-muted lg:hidden">Dicek </span>{{ $other->checked_at ? \App\Support\StockCheckTime::format($other->checked_at) : 'Belum dicek' }}
+                                </span>
+                                <span role="cell" class="text-right text-sm lg:text-left">
+                                    <span class="text-muted lg:hidden">Sisa </span>{{ \App\Livewire\ProductPage::quantity((string) $other->from_stock) }} {{ mb_strtolower($other->from_unit->label()) }}
+                                </span>
+                                <span role="cell" class="flex flex-col items-start gap-1 lg:items-end">
+                                    <x-price :amount="$other->from_price" :unit="$other->from_unit->label()" class="text-lg" />
+                                    @if ($cheapest)
+                                        <span class="rounded-full bg-accent-50 px-2 py-px text-xs font-semibold text-accent-700">Termurah</span>
+                                    @endif
+                                </span>
+                                <span role="cell" class="text-right">
+                                    <a href="{{ route('stores.show', $other->slug) }}" id="lapak-lihat-{{ $other->id }}" aria-labelledby="lapak-lihat-{{ $other->id }} lapak-nama-{{ $other->id }}" class="inline-flex h-11 items-center rounded-full border-2 border-ink px-4.5 text-sm font-bold hover:bg-subtle focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+                                        Lihat
+                                    </a>
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             @if ($this->similarProducts->isNotEmpty())
                 <section aria-labelledby="produk-serupa" class="flex flex-col gap-4">
                     <h2 id="produk-serupa" class="text-[1.375rem] font-extrabold tracking-tight lg:text-[1.75rem]">Produk serupa</h2>
@@ -391,26 +451,66 @@
                 </section>
             @endif
 
-            @if ($this->otherStores->isNotEmpty())
-                <section aria-labelledby="lapak-lain" class="flex flex-col gap-4">
-                    <h2 id="lapak-lain" class="text-[1.375rem] font-extrabold tracking-tight lg:text-[1.75rem]">Lapak lain yang menjual {{ $product->category->name }}</h2>
-                    <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-                        @foreach ($this->otherStores as $other)
-                            <li wire:key="lapak-{{ $other->id }}">
-                                <a href="{{ route('stores.show', $other->slug) }}" class="group flex items-center gap-3.5 rounded-card bg-white p-3.5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
-                                    @if ($other->logoUrl())
-                                        <img src="{{ $other->logoUrl() }}" alt="" loading="lazy" class="size-16 shrink-0 rounded-photo object-cover">
+            @if ($this->sameStoreProducts->isNotEmpty())
+                <section aria-labelledby="lapak-sama" class="flex flex-col gap-5 rounded-feature bg-primary-50 p-5 lg:p-7">
+                    <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+                        <div class="flex items-center gap-3.5">
+                            @if ($product->store->logoUrl())
+                                <img src="{{ $product->store->logoUrl() }}" alt="" loading="lazy" class="size-13 shrink-0 rounded-photo object-cover">
+                            @else
+                                <span aria-hidden="true" class="flex size-13 shrink-0 items-center justify-center rounded-photo bg-white text-xl font-extrabold text-primary-700">{{ mb_strtoupper(mb_substr($product->store->name, 0, 1)) }}</span>
+                            @endif
+                            <div class="flex flex-col gap-0.5">
+                                <h2 id="lapak-sama" class="text-xl font-extrabold tracking-tight lg:text-2xl">Dari {{ $product->store->name }} juga</h2>
+                                <p class="text-sm text-primary-800">Pesan bersama {{ $product->name }}, ongkos kirimnya cukup sekali.</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('stores.show', $product->store->slug) }}" class="flex min-h-11 items-center font-semibold text-primary-800 underline underline-offset-4">Lihat semua {{ $sameStoreCount }} produk</a>
+                    </div>
+                    <ul class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+                        @foreach ($this->sameStoreProducts as $same)
+                            @php($sameCheapest = $same->variants->first())
+                            <li wire:key="toko-sama-{{ $same->id }}" class="flex">
+                                <a href="{{ route('products.show', $same->slug) }}" class="group flex flex-1 flex-col gap-1.5 rounded-card bg-white p-2.5 pb-3.5 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+                                    @if ($same->images->first())
+                                        <img src="{{ $same->images->first()->thumbnailUrl() }}" alt="" loading="lazy" class="aspect-[4/3] w-full rounded-photo bg-subtle object-cover">
                                     @else
-                                        <span class="flex size-16 shrink-0 items-center justify-center rounded-photo bg-primary-50 text-2xl font-extrabold text-primary-700" aria-hidden="true">{{ mb_strtoupper(mb_substr($other->name, 0, 1)) }}</span>
+                                        <x-empty-state compact title="Belum ada foto" class="aspect-[4/3] w-full rounded-photo" />
                                     @endif
-                                    <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-                                        <span class="truncate font-bold group-hover:text-primary-700">{{ $other->name }}</span>
-                                        <span class="truncate text-sm text-muted">{{ $other->city }}</span>
+                                    <span class="mt-1 flex flex-wrap items-center gap-1.5 px-1 text-xs text-muted">
+                                        <span class="rounded-full bg-subtle px-2 py-px font-semibold text-ink">{{ $same->condition->label() }}</span>
+                                        @if ($same->last_checked_at)
+                                            <span>Dicek {{ \App\Support\StockCheckTime::format(\Illuminate\Support\Carbon::parse($same->last_checked_at)) }}</span>
+                                        @endif
                                     </span>
-                                    <span class="flex shrink-0 flex-col items-end text-sm">
-                                        <span class="text-xs text-muted">Mulai</span>
-                                        <x-price :amount="$other->from_price" :unit="$other->from_unit->label()" />
-                                    </span>
+                                    <span class="px-1 leading-tight font-semibold group-hover:text-primary-700">{{ $same->name }}</span>
+                                    @if ($sameCheapest)
+                                        <x-price :amount="$sameCheapest->price" :unit="$sameCheapest->unit->label()" class="mt-auto px-1 pt-1" />
+                                    @endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
+            @if ($this->recipes !== [])
+                <section aria-labelledby="resep" class="flex flex-col gap-5 rounded-feature bg-white p-5 lg:p-8">
+                    <div class="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+                        <div class="flex flex-col gap-1">
+                            <h2 id="resep" class="text-[1.375rem] font-extrabold tracking-tight lg:text-[1.75rem]">Masak apa dengan {{ mb_strtolower($rootCategory->name) }}?</h2>
+                            <p class="text-sm text-muted">Resep dengan takarannya, dari bahan yang dijual di sini.</p>
+                        </div>
+                        <a href="{{ route('recipes.index') }}" class="flex min-h-11 items-center font-semibold text-primary-700 underline underline-offset-4">Semua resep</a>
+                    </div>
+                    <ul class="grid gap-5 sm:grid-cols-3">
+                        @foreach ($this->recipes as $recipe)
+                            <li wire:key="resep-{{ $recipe->slug }}">
+                                <a href="{{ route('recipes.show', $recipe->slug) }}" data-recipe-card class="group flex flex-col gap-2 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-primary-600">
+                                    <img src="{{ asset($recipe->photo) }}" alt="" loading="lazy" class="aspect-[16/10] w-full rounded-card bg-subtle object-cover">
+                                    <span class="text-[0.8125rem] text-muted">{{ $recipe->meta() }}</span>
+                                    <span class="text-lg leading-tight font-semibold group-hover:text-primary-700 lg:text-xl">{{ $recipe->name }}</span>
+                                    <span class="text-sm font-semibold text-accent-700">Butuh {{ $recipe->needs['label'] }}</span>
                                 </a>
                             </li>
                         @endforeach
