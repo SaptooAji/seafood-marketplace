@@ -101,7 +101,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | CONF-2 | Rahasia tidak pernah di URL, log, pesan exception, fixture test, atau aplikasi Android | ✅ log, exception, dan respons error dites tanpa token, password, kunci, atau rekening (#146); ID token Google tetap dikirim sebagai query `tokeninfo` (bentuk resmi endpoint itu) dan dites tidak ikut tercatat saat gagal |
 | CONF-3 | Secret scanning dan push protection GitHub aktif | ✅ Settings → Advanced Security (#123); berlaku di semua branch, bukan lewat ruleset |
 | CONF-4 | Produksi: `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL` minimal `warning`, HTTPS dengan HSTS, `SESSION_SECURE_COOKIE=true` | ❌ Tahap 7 |
-| CONF-5 | Header keamanan web: `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options` (kecuali yang dibutuhkan), CSP di Tahap 7 | ❌ temuan sedang, #160 (Tahap 4); CSP tetap Tahap 7 |
+| CONF-5 | Header keamanan web: `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options` (kecuali yang dibutuhkan), CSP di Tahap 7 | ✅ `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, dan `X-Frame-Options: DENY` di setiap respons (web, panel, API, error) lewat middleware global `AddSecurityHeaders`, dites (#160); CSP tetap Tahap 7 |
 | CONF-6 | CORS tidak dibuka untuk API karena Android tidak memakai browser; bila dibutuhkan, origin dibatasi eksplisit | ✅ tidak ada `config/cors.php` |
 | CONF-7 | Perintah artisan destruktif dilarang di produksi (`DB::prohibitDestructiveCommands`); `Model::shouldBeStrict` di luar produksi | ✅ |
 
@@ -176,4 +176,4 @@ Setiap temuan menjadi issue `fix(security): ...` dengan label `fix` dan tingkatn
 | Setiap PR | Review terhadap checklist; CI menjalankan audit dependency (#123) |
 | Akhir Tahap 3, sebelum v0.3.0 | Audit Tahap 1–3 terhadap dokumen ini; temuan kritis dan tinggi diperbaiki sebelum rilis |
 | Akhir setiap tahap berikutnya | Tinjau status aturan yang berkaitan dengan tahap itu |
-| Tahap 7, sebelum rilis publik | Hardening produksi (CONF-4, CONF-5), OWASP ZAP baseline untuk web, cek APK (MASVS dasar) |
+| Tahap 7, sebelum rilis publik | Hardening produksi (CONF-4, CSP di CONF-5), OWASP ZAP baseline untuk web, cek APK (MASVS dasar) |
