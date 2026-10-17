@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Enums\ProductCondition;
+use App\Enums\SalesMode;
 use App\Enums\StoreStatus;
 use App\Models\Category;
 use App\Models\Product;
@@ -52,13 +53,25 @@ class Catalog extends Component
      */
     public const array RADII = [5, 10, 25, 50];
 
-    private const array FILTERS = ['q', 'category', 'condition', 'store', 'minPrice', 'maxPrice', 'sort', 'radius'];
+    /**
+     * The most stores the store filter takes from the URL at once.
+     */
+    public const int MAX_STORES = 10;
+
+    public const int MAX_SLUG_LENGTH = 100;
+
+    /**
+     * Bars in the price histogram.
+     */
+    public const int PRICE_BARS = 8;
+
+    private const array FILTERS = ['q', 'category', 'condition', 'preOrder', 'store', 'minPrice', 'maxPrice', 'sort', 'radius'];
 
     /**
      * The filters a chip can remove: all but the sort, which is a choice of
      * order rather than a filter.
      */
-    private const array REMOVABLE_FILTERS = ['q', 'category', 'condition', 'store', 'minPrice', 'maxPrice', 'radius'];
+    private const array REMOVABLE_FILTERS = ['q', 'category', 'condition', 'preOrder', 'store', 'minPrice', 'maxPrice', 'radius'];
 
     #[Url(except: '')]
     public string $q = '';
@@ -69,6 +82,16 @@ class Catalog extends Component
     #[Url(as: 'kondisi', except: '')]
     public string $condition = '';
 
+    /**
+     * Only `1` turns the filter on; any other value is ignored.
+     */
+    #[Url(as: 'pre_order', except: '')]
+    public string $preOrder = '';
+
+    /**
+     * Store slugs separated by commas. An old link with a single slug still
+     * works; unknown slugs are ignored.
+     */
     #[Url(as: 'toko', except: '')]
     public string $store = '';
 
@@ -94,9 +117,22 @@ class Catalog extends Component
      */
     public ?string $lng = null;
 
+    /**
+     * The ids of the chosen stores that are active, found again on each render.
+     *
+     * @var list<int>
+     */
+    private array $storeIds = [];
+
     public function mount(): void
     {
         $this->q = $this->cutQuery($this->q);
+
+        // Livewire reads "true" in the URL as 1; only a literal 1 turns the
+        // pre-order filter on.
+        if (request()->query('pre_order') !== '1') {
+            $this->preOrder = '';
+        }
 
         // A shared or refreshed link carries no location to sort by.
         if ($this->sort === 'terdekat') {
@@ -169,6 +205,36 @@ class Catalog extends Component
         $this->resetPage();
     }
 
+    /**
+     * Turn the pre-order filter on or off.
+     */
+    public function togglePreOrder(): void
+    {
+        $this->preOrder = $this->preOrder === '1' ? '' : '1';
+        $this->resetPage();
+    }
+
+    /**
+     * Add an active store to the store filter, or take it out when it is
+     * already there. Any other slug is ignored, and so is a store past the
+     * tenth.
+     */
+    public function toggleStore(string $slug): void
+    {
+        $slugs = $this->storeSlugs();
+
+        if (in_array($slug, $slugs, true)) {
+            $slugs = array_values(array_diff($slugs, [$slug]));
+        } elseif (count($slugs) < self::MAX_STORES && Store::query()->where('status', StoreStatus::Active)->where('slug', $slug)->exists()) {
+            $slugs[] = $slug;
+        } else {
+            return;
+        }
+
+        $this->store = implode(',', $slugs);
+        $this->resetPage();
+    }
+
     public function updatedQ(): void
     {
         $this->q = $this->cutQuery($this->q);
@@ -187,18 +253,25 @@ class Catalog extends Component
     public function render(): View
     {
         $category = $this->selectedCategory();
-        $stores = Store::query()->where('status', StoreStatus::Active)->orderBy('name')->get(['id', 'name', 'slug']);
+        $stores = Store::query()
+            ->where('status', StoreStatus::Active)
+            ->orderBy('is_demo')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'is_demo']);
+
+        $slugs = $this->storeSlugs();
+        $this->storeIds = $stores->filter(fn (Store $store) => in_array($store->slug, $slugs, true))->pluck('id')->values()->all();
 
         return view('livewire.catalog', [
             'products' => $this->products($category),
             'located' => $this->isLocated(),
             'radii' => self::RADII,
-            'categories' => $this->categoryOptions(),
             'categoryCards' => $this->categoryCards(),
-            'stores' => $stores,
+            'conditionOptions' => $this->conditionOptions($category),
+            'storeOptions' => $this->storeOptions($category, $stores),
+            'priceBars' => $this->priceBars($category),
             'activeFilters' => $this->activeFilters($category, $stores),
             'filtered' => $this->isFiltered() || $this->radius !== '',
-            'conditions' => ProductCondition::cases(),
             'sorts' => $this->isLocated() ? [...self::SORTS, 'terdekat' => 'Terdekat'] : self::SORTS,
         ])->layout(Layout::class, [
             'title' => $category->name ?? 'Katalog',
@@ -237,18 +310,21 @@ class Catalog extends Component
     }
 
     /**
-     * Narrow the query by each filter that is set.
+     * Narrow the query by each filter that is set, but for the ones named in
+     * `$except` (category, condition, store, price), so a filter can count
+     * its own options.
      *
      * @param  Builder<Product>  $query
+     * @param  list<string>  $except
      * @return bool false when a filter names something unknown, so nothing matches
      */
-    private function applyFilters(Builder $query, ?Category $category, bool $byCategory = true): bool
+    private function applyFilters(Builder $query, ?Category $category, array $except = []): bool
     {
         if ($this->q !== '') {
             $query->whereLike('products.name', '%'.$this->escapeLike($this->q).'%');
         }
 
-        if ($byCategory && $this->category !== '') {
+        if (! in_array('category', $except, true) && $this->category !== '') {
             if ($category === null) {
                 return false;
             }
@@ -256,7 +332,7 @@ class Catalog extends Component
             $query->whereIn('products.category_id', [$category->id, ...$category->descendantIds()]);
         }
 
-        if ($this->condition !== '') {
+        if (! in_array('condition', $except, true) && $this->condition !== '') {
             $condition = ProductCondition::tryFrom($this->condition);
 
             if ($condition === null) {
@@ -266,14 +342,16 @@ class Catalog extends Component
             $query->where('products.condition', $condition);
         }
 
-        if ($this->store !== '') {
-            $storeId = Store::query()->where('status', StoreStatus::Active)->where('slug', $this->store)->value('id');
+        if ($this->preOrder === '1') {
+            $query->where('products.sales_mode', SalesMode::PreOrder);
+        }
 
-            if ($storeId === null) {
-                return false;
-            }
+        if (! in_array('store', $except, true) && $this->storeIds !== []) {
+            $query->whereIn('products.store_id', $this->storeIds);
+        }
 
-            $query->where('products.store_id', $storeId);
+        if (in_array('price', $except, true)) {
+            return true;
         }
 
         $minPrice = $this->price($this->minPrice);
@@ -375,18 +453,139 @@ class Catalog extends Component
     }
 
     /**
-     * Root categories with their children for the category filter.
+     * The visible products matching every filter but those in `$except`,
+     * within the chosen radius; null when a filter names something unknown.
      *
-     * @return Collection<int, Category>
+     * @param  list<string>  $except
+     * @return Builder<Product>|null
      */
-    private function categoryOptions(): Collection
+    private function matching(?Category $category, array $except): ?Builder
     {
-        return Category::query()
-            ->whereNull('parent_id')
-            ->with(['children' => fn ($children) => $children->orderBy('sort_order')->orderBy('name')])
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name', 'slug']);
+        $query = Product::query()->visibleInCatalog();
+
+        if (! $this->applyFilters($query, $category, $except)) {
+            return null;
+        }
+
+        $this->applyRadius($query);
+
+        return $query;
+    }
+
+    /**
+     * The number of matching products for each value of a column, with every
+     * filter but those in `$except`. One query.
+     *
+     * @param  list<string>  $except
+     * @return array<int|string, int>
+     */
+    private function countBy(string $column, ?Category $category, array $except): array
+    {
+        $matching = $this->matching($category, $except);
+
+        if ($matching === null) {
+            return [];
+        }
+
+        return $matching->toBase()
+            ->select($column)
+            ->selectRaw('count(*) as product_count')
+            ->groupBy($column)
+            ->pluck('product_count', str_replace('products.', '', $column))
+            ->map(fn (mixed $count) => (int) $count)
+            ->all();
+    }
+
+    /**
+     * "Semua" and each condition, with the number of products it would show.
+     *
+     * @return list<array{value: string, label: string, count: int}>
+     */
+    private function conditionOptions(?Category $category): array
+    {
+        $counts = $this->countBy('products.condition', $category, ['condition']);
+        $options = [['value' => '', 'label' => 'Semua', 'count' => array_sum($counts)]];
+
+        foreach (ProductCondition::cases() as $condition) {
+            $options[] = ['value' => $condition->value, 'label' => $condition->label(), 'count' => $counts[$condition->value] ?? 0];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Each active store, demo stores last, with the number of products it
+     * would add and whether it is chosen.
+     *
+     * @param  Collection<int, Store>  $stores
+     * @return list<array{store: Store, count: int, checked: bool}>
+     */
+    private function storeOptions(?Category $category, Collection $stores): array
+    {
+        $counts = $this->countBy('products.store_id', $category, ['store']);
+
+        return $stores
+            ->map(fn (Store $store) => [
+                'store' => $store,
+                'count' => $counts[$store->id] ?? 0,
+                'checked' => in_array($store->id, $this->storeIds, true),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The number of matching products in each of eight equal price ranges,
+     * from the lowest to the highest starting price, by every filter but the
+     * price. One bar when every product costs the same, none when there are
+     * no products. One query; ranges are in whole rupiah.
+     *
+     * @return list<array{from: int, to: int, count: int}>
+     */
+    private function priceBars(?Category $category): array
+    {
+        $matching = $this->matching($category, ['price']);
+
+        if ($matching === null) {
+            return [];
+        }
+
+        $prices = $matching->toBase()->selectSub($this->cheapestActivePrice(), 'price');
+
+        $ranged = DB::query()
+            ->fromSub($prices, 'prices')
+            ->selectRaw('price, min(price) over () as low, max(price) over () as high');
+
+        // high + 1 keeps the highest price inside the last bar and a single
+        // price from dividing by zero.
+        $rows = DB::query()
+            ->fromSub($ranged, 'ranged')
+            ->selectRaw('width_bucket(price::numeric, low::numeric, (high + 1)::numeric, '.self::PRICE_BARS.') as bar, count(*) as product_count, min(low) as low, min(high) as high')
+            ->groupBy('bar')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $low = (int) data_get($rows->first(), 'low');
+        $high = (int) data_get($rows->first(), 'high');
+        $counts = $rows->pluck('product_count', 'bar')->map(fn (mixed $count) => (int) $count);
+
+        if ($low === $high) {
+            return [['from' => $low, 'to' => $high, 'count' => $counts->sum()]];
+        }
+
+        // A price is in bar i (from 0) when i <= (price - low) * bars / span < i + 1.
+        $span = $high + 1 - $low;
+        $start = fn (int $bar): int => $low + intdiv($span * $bar + self::PRICE_BARS - 1, self::PRICE_BARS);
+        $bars = [];
+
+        foreach (range(0, self::PRICE_BARS - 1) as $bar) {
+            $bars[] = ['from' => $start($bar), 'to' => $start($bar + 1) - 1, 'count' => $counts->get($bar + 1, 0)];
+        }
+
+        return $bars;
     }
 
     /**
@@ -400,13 +599,11 @@ class Catalog extends Component
      */
     private function categoryCards(): array
     {
-        $matching = Product::query()->visibleInCatalog();
+        $matching = $this->matching(null, ['category']);
 
-        if (! $this->applyFilters($matching, null, byCategory: false)) {
+        if ($matching === null) {
             return [];
         }
-
-        $this->applyRadius($matching);
 
         /** @var array<int, int> $counts */
         $counts = (clone $matching)->toBase()
@@ -499,7 +696,8 @@ class Catalog extends Component
             'q' => $this->q !== '' ? '“'.$this->q.'”' : null,
             'category' => $category?->name,
             'condition' => ProductCondition::tryFrom($this->condition)?->label(),
-            'store' => $this->store !== '' ? $stores->firstWhere('slug', $this->store)?->name : null,
+            'preOrder' => $this->preOrder === '1' ? 'Hanya pre order' : null,
+            'store' => $this->storeIds !== [] ? $stores->whereIn('id', $this->storeIds)->pluck('name')->join(', ') : null,
             'minPrice' => $minPrice !== null ? 'Mulai Rp'.number_format($minPrice, 0, ',', '.') : null,
             'maxPrice' => $maxPrice !== null ? 'Sampai Rp'.number_format($maxPrice, 0, ',', '.') : null,
             'radius' => $this->isLocated() && $radius !== null ? "Dalam {$radius} km" : null,
@@ -529,10 +727,32 @@ class Catalog extends Component
         return $this->q !== ''
             || $this->category !== ''
             || $this->condition !== ''
+            || $this->preOrder !== ''
             || $this->store !== ''
             || $this->minPrice !== ''
             || $this->maxPrice !== ''
             || $this->sort !== 'terbaru';
+    }
+
+    /**
+     * The store slugs from the URL: trimmed, without blanks, repeats, or
+     * slugs longer than 100 characters, and at most the first ten.
+     *
+     * @return list<string>
+     */
+    private function storeSlugs(): array
+    {
+        $slugs = [];
+
+        foreach (explode(',', $this->store) as $slug) {
+            $slug = trim($slug);
+
+            if ($slug !== '' && mb_strlen($slug) <= self::MAX_SLUG_LENGTH && ! in_array($slug, $slugs, true)) {
+                $slugs[] = $slug;
+            }
+        }
+
+        return array_slice($slugs, 0, self::MAX_STORES);
     }
 
     private function cutQuery(string $value): string
