@@ -113,15 +113,19 @@ describe('products', function () {
         storePageProduct($this->store, ['name' => 'Produk Terhapus'])->delete();
         ProductVariant::factory()->for(Product::factory()->for($this->store)->create(['name' => 'Produk Tanpa Varian Aktif']))->create(['is_active' => false]);
 
-        $this->get('/toko/toko-bahari')
-            ->assertOk()
-            ->assertSee('Kepiting Bakau Super')
-            ->assertSee('href="'.url('/produk/'.Product::query()->where('name', 'Kepiting Bakau Super')->value('slug')).'"', escape: false)
-            ->assertDontSee('Produk Toko Lain')
-            ->assertDontSee('Produk Diblokir')
-            ->assertDontSee('Produk Nonaktif')
-            ->assertDontSee('Produk Terhapus')
-            ->assertDontSee('Produk Tanpa Varian Aktif');
+        $html = $this->get('/toko/toko-bahari')->assertOk()->getContent();
+        // The other store's product may show under the nearby stores, never in this list.
+        $list = Str::before(Str::after($html, 'aria-labelledby="produk-toko"'), '</section>');
+
+        expect($list)
+            ->toContain('Kepiting Bakau Super')
+            ->toContain('href="'.url('/produk/'.Product::query()->where('name', 'Kepiting Bakau Super')->value('slug')).'"')
+            ->not->toContain('Produk Toko Lain')
+            ->and($html)
+            ->not->toContain('Produk Diblokir')
+            ->not->toContain('Produk Nonaktif')
+            ->not->toContain('Produk Terhapus')
+            ->not->toContain('Produk Tanpa Varian Aktif');
     });
 
     it('shows a message when the store has no products yet', function () {
@@ -397,7 +401,9 @@ describe('cover and identity card', function () {
 
         storePageProduct($this->store)->variants()->sole()->forceFill(['stock_confirmed_at' => $at('05:00')])->save();
         storePageProduct($this->store)->variants()->sole()->forceFill(['stock_confirmed_at' => $at('06:30')])->save();
-        ProductVariant::factory()->for(storePageProduct($this->store))->create(['is_active' => false])->forceFill(['stock_confirmed_at' => $at('08:00')])->save();
+        $withInactive = storePageProduct($this->store);
+        $withInactive->variants()->sole()->forceFill(['stock_confirmed_at' => $at('05:30')])->save();
+        ProductVariant::factory()->for($withInactive)->create(['is_active' => false])->forceFill(['stock_confirmed_at' => $at('08:00')])->save();
         storePageProduct($this->store, ['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.'])->variants()->sole()->forceFill(['stock_confirmed_at' => $at('08:30')])->save();
 
         expect(storeFigure(storePageHtml(), 'Stok dicek'))->toContain('06.30')->not->toContain('08.');
