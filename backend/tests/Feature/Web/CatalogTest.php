@@ -940,7 +940,7 @@ describe('store filter', function () {
         'only an unknown slug' => ['tidak-ada', ['Produk Alpha', 'Produk Beta', 'Produk Gamma'], []],
         'a suspended store' => ['toko-ditangguhkan', ['Produk Alpha', 'Produk Beta', 'Produk Gamma'], []],
         'a known and an unknown slug' => ['toko-alpha,tidak-ada', ['Produk Alpha'], ['Produk Beta', 'Produk Gamma']],
-        'empty items and spaces' => [',toko-beta,, ', ['Produk Beta'], ['Produk Alpha', 'Produk Gamma']],
+        'empty items and spaces' => [',%20toko-beta,,%20', ['Produk Beta'], ['Produk Alpha', 'Produk Gamma']],
         'a slug longer than 100 characters' => [str_repeat('a', 101).',toko-beta', ['Produk Beta'], ['Produk Alpha', 'Produk Gamma']],
     ]);
 
