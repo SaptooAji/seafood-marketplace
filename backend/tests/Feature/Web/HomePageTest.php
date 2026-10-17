@@ -195,6 +195,12 @@ describe('recently confirmed products', function () {
             ->toContain('Jakarta Utara');
     });
 
+    it('shows the products on white cards', function () {
+        homeProduct(['name' => 'Cumi Segar']);
+
+        expect(homeSection('baru-judul'))->toContain('data-tone="white"');
+    });
+
     it('ignores inactive and deleted variants for the starting price', function () {
         $product = homeProduct(['name' => 'Cumi Segar'], price: 90_000);
         ProductVariant::factory()->for($product)->create(['price' => 40_000, 'is_active' => false]);

@@ -87,6 +87,12 @@ describe('page', function () {
             ->assertDontSee('noindex');
     });
 
+    it('shows the products on white cards', function () {
+        catalogProduct(['name' => 'Kepiting Bakau Super']);
+
+        $this->get('/produk')->assertOk()->assertSee('data-tone="white"', escape: false);
+    });
+
     it('uses the shared product card with the cheapest active price', function () {
         $product = catalogProduct(['name' => 'Kepiting Bakau Super', 'slug' => 'kepiting-bakau-super'], 185_000);
         ProductVariant::factory()->for($product)->create(['price' => 40_000, 'is_active' => false]);

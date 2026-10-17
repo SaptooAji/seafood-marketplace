@@ -1,20 +1,22 @@
-@props(['product', 'distance' => null, 'label' => null])
+@props(['product', 'distance' => null, 'label' => null, 'tone' => 'white'])
 
 {{--
-    A product in a list: the photo with an optional label over it (when the
-    stock was checked), the name, the store, and the starting price.
+    A product in a list, on a white card: the photo with an optional label
+    over it (when the stock was checked), the name, the store, and the
+    starting price. `tone="surface"` gives a sand card for white bands.
 --}}
 @php
     $image = $product->images->first();
     $cheapest = $product->variants->first();
+    $tone = in_array($tone, ['white', 'surface'], true) ? $tone : 'white';
 @endphp
 
-<a href="{{ route('products.show', $product->slug) }}" {{ $attributes->merge(['class' => 'group flex flex-col gap-1.5 rounded-card focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-primary-600']) }}>
+<a href="{{ route('products.show', $product->slug) }}" data-tone="{{ $tone }}" {{ $attributes->merge(['class' => 'group flex h-full flex-col gap-1.5 rounded-card p-2.5 pb-3.5 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-primary-600 '.($tone === 'surface' ? 'bg-surface' : 'bg-white')]) }}>
     <div class="relative">
         @if ($image)
-            <img src="{{ $image->thumbnailUrl() }}" alt="{{ $product->name }}" loading="lazy" class="aspect-square w-full rounded-card bg-subtle object-cover">
+            <img src="{{ $image->thumbnailUrl() }}" alt="{{ $product->name }}" loading="lazy" class="aspect-square w-full rounded-photo bg-subtle object-cover">
         @else
-            <x-empty-state compact title="Belum ada foto" class="aspect-square w-full rounded-card" />
+            <x-empty-state compact title="Belum ada foto" class="aspect-square w-full rounded-photo" />
         @endif
 
         @if (filled($label))
@@ -22,14 +24,14 @@
         @endif
     </div>
 
-    <h3 class="mt-1 line-clamp-2 text-base font-semibold leading-snug group-hover:text-primary-700">{{ $product->name }}</h3>
+    <h3 class="mt-1 line-clamp-2 px-1 text-base font-semibold leading-snug group-hover:text-primary-700">{{ $product->name }}</h3>
 
-    <p class="truncate text-xs text-muted">
+    <p class="truncate px-1 text-xs text-muted">
         {{ $product->store->name }}, {{ $product->store->city }}@if ($distance !== null), {{ number_format((float) $distance, 1, ',', '.') }} km @endif
     </p>
 
     @if ($cheapest)
-        <p class="mt-auto text-sm">
+        <p class="mt-auto px-1 text-sm">
             <span class="text-xs text-muted">Mulai</span>
             <x-price :amount="$cheapest->price" :unit="$cheapest->unit->label()" class="text-lg" />
         </p>
