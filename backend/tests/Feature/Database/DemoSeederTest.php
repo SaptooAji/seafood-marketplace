@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\SaveShippingMethod;
+use App\Data\ProcessedPhoto;
 use App\Data\ShippingMethodData;
 use App\Enums\PlatformRole;
 use App\Enums\ProductCondition;
@@ -20,7 +21,9 @@ use App\Models\Store;
 use App\Models\StoreMember;
 use App\Models\StoreShippingMethod;
 use App\Models\User;
+use App\Support\ProductPhotoProcessor;
 use Database\Seeders\CategorySeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +41,16 @@ const DEMO_REMOVE_QUESTION = 'Hapus semua toko contoh beserta produk, foto, dan 
 
 beforeEach(function () {
     Storage::fake('public');
+
+    // The seeders upload dozens of photos per run; resizing them for real is
+    // covered by ProductPhotoProcessorTest and would make this file very slow.
+    $this->app->instance(ProductPhotoProcessor::class, new class extends ProductPhotoProcessor
+    {
+        public function process(UploadedFile $file): ProcessedPhoto
+        {
+            return new ProcessedPhoto('foto', 'thumbnail');
+        }
+    });
 });
 
 /**
