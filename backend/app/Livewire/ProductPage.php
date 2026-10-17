@@ -96,8 +96,8 @@ class ProductPage extends Component
 
     /**
      * Up to four other products buyers can see from the same category,
-     * filled up from the sibling categories, the same category first and
-     * newest first. A root category has no siblings to fill up from.
+     * filled up from the sibling categories, real stores first, then the
+     * same category first and newest first. A root category has no siblings to fill up from.
      *
      * @return Collection<int, Product>
      */
@@ -116,6 +116,7 @@ class ProductPage extends Component
                 fn (Builder $query) => $query->where('category_id', $categoryId),
                 fn (Builder $query) => $query->whereIn('category_id', Category::query()->select('id')->where('parent_id', $parentId)),
             )
+            ->realStoresFirst()
             ->orderByRaw('category_id = ? desc', [$categoryId])
             ->latest()
             ->latest('id')
@@ -126,7 +127,8 @@ class ProductPage extends Component
     /**
      * Up to three other active stores selling a product buyers can see in
      * the same category, each with its cheapest active variant there as
-     * `from_price` and `from_unit`, cheapest first. Only public columns.
+     * `from_price` and `from_unit`, real stores first, then cheapest first.
+     * Only public columns.
      *
      * @return Collection<int, Store>
      */
@@ -150,6 +152,7 @@ class ProductPage extends Component
             ->where('stores.status', StoreStatus::Active)
             ->select(['stores.id', 'stores.name', 'stores.slug', 'stores.city', 'stores.logo', 'cheapest.price as from_price', 'cheapest.unit as from_unit'])
             ->withCasts(['from_price' => 'integer', 'from_unit' => Unit::class])
+            ->orderBy('stores.is_demo')
             ->orderBy('cheapest.price')
             ->orderBy('stores.id')
             ->limit(self::OTHER_STORES)
@@ -208,7 +211,8 @@ class ProductPage extends Component
             'product' => $product,
             'qualityStandard' => $this->qualityStandard(),
             'jsonLd' => $this->jsonLd($product),
-            'whatsappUrl' => $product->store->whatsappUrl("Halo, saya tertarik dengan {$product->name}: ".route('products.show', $product->slug)),
+            // A demo store is an example: it has no phone buyers may call.
+            'whatsappUrl' => $product->store->is_demo ? null : $product->store->whatsappUrl("Halo, saya tertarik dengan {$product->name}: ".route('products.show', $product->slug)),
         ])->layout(Layout::class, [
             'title' => "{$product->name} - {$product->store->name}, {$product->store->city}",
             'description' => $product->metaDescription(),

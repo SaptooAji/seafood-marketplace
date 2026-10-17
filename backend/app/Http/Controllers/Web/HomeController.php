@@ -31,7 +31,9 @@ class HomeController extends Controller
      * - the products buyers can see, most recently checked first, each with
      *   its first photo, cheapest active variant, and root category for the
      *   chips;
-     * - the most recently verified stores.
+     * - the most recently verified stores, never a demo store.
+     *
+     * Products of real stores come before those of demo stores.
      *
      * Only the public store columns are loaded, so bank details never reach
      * the view.
@@ -44,6 +46,7 @@ class HomeController extends Controller
             ->withCardDetails()
             ->withMax(['variants as last_checked_at' => fn (Builder $variant) => $variant->where('is_active', true)], 'stock_confirmed_at')
             ->withCasts(['last_checked_at' => 'datetime'])
+            ->realStoresFirst()
             ->orderByRaw('last_checked_at desc nulls last')
             ->latest()
             ->latest('id')
@@ -54,6 +57,7 @@ class HomeController extends Controller
 
         $stores = Store::query()
             ->where('status', StoreStatus::Active)
+            ->real()
             ->latest('verified_at')
             ->latest('id')
             ->limit(self::ACTIVE_STORES)

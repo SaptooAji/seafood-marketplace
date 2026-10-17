@@ -19,6 +19,9 @@
 
             <div class="flex min-w-0 flex-1 flex-col gap-3">
                 <div>
+                    @if ($store->is_demo)
+                        <x-badge variant="demo" class="mb-2">Toko contoh</x-badge>
+                    @endif
                     <h1 id="nama-toko" class="text-[1.75rem] leading-tight font-extrabold tracking-tight lg:text-[2.125rem]">{{ $store->name }}</h1>
                     <p class="mt-1 text-muted">{{ $store->city }}</p>
                 </div>
@@ -29,11 +32,16 @@
 
                 <p class="text-sm text-muted">{{ $store->address }}</p>
 
-                <div class="mt-1 flex flex-wrap gap-2">
-                    <x-button :href="$store->whatsappUrl('Halo '.$store->name.', saya ingin bertanya tentang produk Anda.')" target="_blank" rel="noopener noreferrer">WhatsApp</x-button>
-                    <x-button variant="secondary" :href="'tel:'.$store->internationalPhone()">Telepon</x-button>
-                    <x-button variant="secondary" :href="$store->googleMapsUrl()" target="_blank" rel="noopener noreferrer">Lihat di Google Maps</x-button>
-                </div>
+                @if ($store->is_demo)
+                    {{-- A demo store is an example: no phone, chat, or directions. --}}
+                    <p role="note" class="max-w-prose rounded-option border-[1.5px] border-dashed border-ink px-4 py-3 text-sm leading-relaxed">Ini toko contoh untuk memperlihatkan tampilan marketplace. Nama, harga, dan stoknya bukan sungguhan, jadi produknya tidak bisa dipesan.</p>
+                @else
+                    <div class="mt-1 flex flex-wrap gap-2">
+                        <x-button :href="$store->whatsappUrl('Halo '.$store->name.', saya ingin bertanya tentang produk Anda.')" target="_blank" rel="noopener noreferrer">WhatsApp</x-button>
+                        <x-button variant="secondary" :href="'tel:'.$store->internationalPhone()">Telepon</x-button>
+                        <x-button variant="secondary" :href="$store->googleMapsUrl()" target="_blank" rel="noopener noreferrer">Lihat di Google Maps</x-button>
+                    </div>
+                @endif
             </div>
         </section>
 

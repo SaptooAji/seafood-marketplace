@@ -54,7 +54,8 @@ class StoreController extends Controller
             'description' => $store->description,
             'url' => route('stores.show', $store->slug),
             'image' => $store->logoUrl(),
-            'telephone' => $store->internationalPhone(),
+            // A demo store is an example: its phone is never published.
+            'telephone' => $store->is_demo ? null : $store->internationalPhone(),
             'address' => [
                 '@type' => 'PostalAddress',
                 'streetAddress' => $store->address,

@@ -2,7 +2,8 @@
 
 {{--
     A small pill label: neutral (condition), ink (stock checked at a time),
-    success (ready to ship), warning (stock not confirmed, crab orange), or danger (out of stock).
+    success (ready to ship), warning (stock not confirmed, crab orange), danger (out of stock),
+    or demo (a dashed "Toko contoh" pill for demo stores).
 --}}
 @php
     $variants = [
@@ -11,6 +12,7 @@
         'success' => 'bg-success-50 text-primary-800',
         'warning' => 'bg-warning-50 text-warning-700',
         'danger' => 'bg-danger-50 text-danger-700',
+        'demo' => 'border-[1.5px] border-dashed border-muted bg-white text-ink',
     ];
 @endphp
 
