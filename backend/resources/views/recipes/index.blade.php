@@ -47,7 +47,7 @@
                 <ul class="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-5 lg:overflow-visible lg:px-0">
                     @foreach ($group['recipes'] as $recipe)
                         <li class="flex w-55 shrink-0 snap-start lg:w-auto">
-                            <a href="{{ url('/resep/'.$recipe->slug) }}" class="group flex flex-1 flex-col gap-1.5 rounded-card bg-white p-2 pb-3.5 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-primary-600 lg:p-2.5 lg:pb-4">
+                            <a href="{{ route('recipes.show', $recipe->slug) }}" class="group flex flex-1 flex-col gap-1.5 rounded-card bg-white p-2 pb-3.5 focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-primary-600 lg:p-2.5 lg:pb-4">
                                 <img src="{{ asset($recipe->photo) }}" alt="" loading="lazy" class="aspect-[4/3] w-full rounded-photo bg-subtle object-cover">
                                 <span class="mt-1 px-1 text-xs text-muted lg:text-[0.8125rem]">{{ $recipe->meta() }}</span>
                                 <span class="px-1 text-[1.0625rem] leading-tight font-semibold group-hover:text-primary-700 lg:text-xl">{{ $recipe->name }}</span>

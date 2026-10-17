@@ -18,6 +18,11 @@
         <lastmod>{{ $product->updated_at->toAtomString() }}</lastmod>
     </url>
 @endforeach
+@foreach ($recipes as $recipe)
+    <url>
+        <loc>{{ route('recipes.show', $recipe->slug) }}</loc>
+    </url>
+@endforeach
 @foreach ($stores as $store)
     <url>
         <loc>{{ route('stores.show', $store->slug) }}</loc>

@@ -45,6 +45,9 @@ function sitemapEntries(string $xml): array
 
 beforeEach(function () {
     $this->store = Store::factory()->active()->create(['slug' => 'toko-bahari']);
+
+    // Recipe pages are covered in RecipeDetailTest; keep these lists about products and stores.
+    config(['recipes' => []]);
 });
 
 describe('sitemap', function () {
