@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Data\Recipe;
+use App\Enums\SalesMode;
 use App\Enums\StoreStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Store;
+use App\Support\StockCheckTime;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as BaseCollection;
 
@@ -22,6 +26,15 @@ class HomeController extends Controller
 
     public const int RECIPE_PICKS = 4;
 
+    public const int PRE_ORDER_DAYS = 3;
+
+    public const int PRE_ORDERS_PER_DAY = 6;
+
+    /**
+     * Pre-order products looked at for the band; enough to fill each day.
+     */
+    public const int PRE_ORDER_CANDIDATES = 24;
+
     /**
      * The home page:
      * - a hero with the highlights from config/home.php, each over a photo
@@ -29,7 +42,10 @@ class HomeController extends Controller
      * - the products buyers can see, most recently checked first, each with
      *   its first photo, cheapest active variant, and root category for the
      *   chips;
-     * - the most recently verified stores, never a demo store.
+     * - photo tiles for shopping needs, from config/home.php;
+     * - the pre-order products deliverable on each of the next three days;
+     * - the most recently verified stores with their number of products,
+     *   never a demo store.
      *
      * Products of real stores come before those of demo stores. Only the
      * public store columns are loaded, so bank details never reach the view.
@@ -55,18 +71,88 @@ class HomeController extends Controller
             ->real()
             ->latest('verified_at')
             ->latest('id')
+            ->withCount(['products as product_count' => fn (Builder $product) => $product->whereIn('products.id', Product::query()->visibleInCatalog()->select('id'))])
             ->limit(self::ACTIVE_STORES)
-            ->get(['id', 'name', 'slug', 'city']);
+            ->get(['id', 'name', 'slug', 'city', 'logo']);
 
         return view('home', [
             'products' => $products,
             'highlights' => $this->highlights(),
             'fallbackPhoto' => asset(config()->string('home.fallback_photo')),
             'recipes' => array_slice(Recipe::featured(), 0, self::RECIPE_PICKS),
+            'needs' => config()->array('home.needs'),
+            'preOrderDays' => $this->preOrderDays(),
             'rootSlugs' => $rootSlugs,
             'chips' => $chips,
             'stores' => $stores,
         ]);
+    }
+
+    /**
+     * The next three days, tomorrow first, each with up to six pre-order
+     * products deliverable that day and when to order them by. Empty when no
+     * pre-order product can be delivered in that time. One query.
+     *
+     * @return list<array{date: CarbonImmutable, label: string, products: list<array{product: Product, deadline: string}>}>
+     */
+    private function preOrderDays(): array
+    {
+        $now = now();
+        $today = CarbonImmutable::now(StockCheckTime::TIMEZONE)->startOfDay();
+
+        $products = Product::query()
+            ->select(['id', 'store_id', 'name', 'slug', 'sales_mode', 'daily_quota', 'lead_time_days', 'cutoff_time', 'created_at'])
+            ->visibleInCatalog()
+            ->where('sales_mode', SalesMode::PreOrder)
+            ->withCardDetails()
+            ->realStoresFirst()
+            ->latest()
+            ->latest('id')
+            ->limit(self::PRE_ORDER_CANDIDATES)
+            ->get();
+
+        $days = [];
+
+        foreach (range(1, self::PRE_ORDER_DAYS) as $offset) {
+            $date = $today->addDays($offset);
+            $deliverable = [];
+
+            foreach ($products as $product) {
+                $earliest = $product->earliestDeliveryDate($now);
+
+                if ($earliest !== null && $earliest->lte($date) && count($deliverable) < self::PRE_ORDERS_PER_DAY) {
+                    $deliverable[] = ['product' => $product, 'deadline' => self::deadline($product->orderDeadlineFor($date), $today)];
+                }
+            }
+
+            $days[] = [
+                'date' => $date,
+                'label' => match ($offset) {
+                    1 => 'Besok',
+                    2 => 'Lusa',
+                    default => $date->locale('id')->translatedFormat('l'),
+                },
+                'products' => $deliverable,
+            ];
+        }
+
+        $hasAny = array_filter($days, fn (array $day): bool => $day['products'] !== []) !== [];
+
+        return $hasAny ? $days : [];
+    }
+
+    /**
+     * "15.00 hari ini", "15.00 besok", or "15.00 Sabtu".
+     */
+    private static function deadline(CarbonImmutable $deadline, CarbonImmutable $today): string
+    {
+        $day = match ((int) $today->diffInDays($deadline->startOfDay())) {
+            0 => 'hari ini',
+            1 => 'besok',
+            default => $deadline->locale('id')->translatedFormat('l'),
+        };
+
+        return $deadline->format('H.i').' '.$day;
     }
 
     /**

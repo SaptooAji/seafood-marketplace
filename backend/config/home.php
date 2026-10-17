@@ -51,4 +51,36 @@ return [
 
     'fallback_photo' => 'images/resep/kepiting-saus-padang.jpg',
 
+    /*
+     * "Belanja untuk keperluan apa?": photo tiles linking to the catalog with
+     * the filters in `query` already set. Photos are under public/ and
+     * credited in config/photo-credits.php.
+     */
+    'needs' => [
+        [
+            'title' => 'Masak untuk keluarga',
+            'text' => 'Udang dan cumi segar untuk lauk sehari-hari.',
+            'photo' => 'images/resep/sup-kepiting-jagung.jpg',
+            'query' => ['kategori' => 'udang'],
+        ],
+        [
+            'title' => 'Acara dan tamu',
+            'text' => 'Kepiting hidup yang dipilih per ekor.',
+            'photo' => 'images/resep/kepiting-saus-padang.jpg',
+            'query' => ['kategori' => 'kepiting', 'kondisi' => 'live'],
+        ],
+        [
+            'title' => 'Stok warung makan',
+            'text' => 'Hasil laut beku yang tahan lama di freezer.',
+            'photo' => 'images/resep/cumi-goreng-tepung.jpg',
+            'query' => ['kondisi' => 'frozen'],
+        ],
+        [
+            'title' => 'Bakar-bakar akhir pekan',
+            'text' => 'Udang besar, cumi, dan kerang untuk dipanggang.',
+            'photo' => 'images/resep/udang-bakar-madu.jpg',
+            'query' => ['kategori' => 'kerang'],
+        ],
+    ],
+
 ];

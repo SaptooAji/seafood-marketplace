@@ -8,6 +8,9 @@ use App\Enums\ProductCondition;
 use App\Enums\SalesMode;
 use App\Enums\StoreStatus;
 use App\Support\MetaDescription;
+use App\Support\StockCheckTime;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -114,6 +117,38 @@ class Product extends Model
     protected function realStoresFirst(Builder $query): void
     {
         $query->orderBy(Store::query()->select('is_demo')->whereColumn('stores.id', 'products.store_id'));
+    }
+
+    /**
+     * The earliest day a pre-order product can be delivered when ordered at
+     * `$now`: an order before the cutoff time counts from that day, one at or
+     * after it from the next day, and the lead time in days is added. Worked
+     * out in WIB, the time the stores keep. Null for a ready stock product or
+     * a pre-order without its lead time or cutoff.
+     */
+    public function earliestDeliveryDate(CarbonInterface $now): ?CarbonImmutable
+    {
+        if ($this->sales_mode !== SalesMode::PreOrder || $this->lead_time_days === null || $this->cutoff_time === null) {
+            return null;
+        }
+
+        $local = CarbonImmutable::instance($now)->setTimezone(StockCheckTime::TIMEZONE);
+        $orderDay = $local->lt($local->setTimeFromTimeString((string) $this->cutoff_time)) ? $local : $local->addDay();
+
+        return $orderDay->startOfDay()->addDays((int) $this->lead_time_days);
+    }
+
+    /**
+     * The last moment, in WIB, to order a pre-order product for delivery on
+     * the given day: the cutoff time, the lead time in days before it.
+     */
+    public function orderDeadlineFor(CarbonInterface $deliveryDate): CarbonImmutable
+    {
+        return CarbonImmutable::instance($deliveryDate)
+            ->setTimezone(StockCheckTime::TIMEZONE)
+            ->startOfDay()
+            ->subDays((int) $this->lead_time_days)
+            ->setTimeFromTimeString((string) $this->cutoff_time);
     }
 
     /**
