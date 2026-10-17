@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Data\Recipe;
 use App\Enums\SalesMode;
 use App\Enums\ShippingFeeType;
 use App\Enums\ShippingMethodType;
@@ -44,6 +45,10 @@ use Livewire\Component;
  * @property-read StoreShippingMethod|null $selectedShippingMethod
  * @property-read Collection<int, Product> $similarProducts
  * @property-read Collection<int, Store> $otherStores
+ * @property-read int $otherStoreCount
+ * @property-read Collection<int, Product> $sameStoreProducts
+ * @property-read int $sameStoreCount
+ * @property-read list<Recipe> $recipes
  */
 class ProductPage extends Component
 {
@@ -52,6 +57,10 @@ class ProductPage extends Component
     public const int SIMILAR_PRODUCTS = 4;
 
     public const int OTHER_STORES = 3;
+
+    public const int SAME_STORE_PRODUCTS = 4;
+
+    public const int RECIPES = 3;
 
     /**
      * How far up the category tree to look for a quality standard.
@@ -252,7 +261,8 @@ class ProductPage extends Component
     /**
      * Up to three other active stores selling a product buyers can see in
      * the same category, each with its cheapest active variant there as
-     * `from_price` and `from_unit`, real stores first, then cheapest first.
+     * `from_price`, `from_unit`, `from_stock`, and `checked_at` (when that
+     * stock was last confirmed), real stores first, then cheapest first.
      * Only public columns.
      *
      * @return Collection<int, Store>
@@ -267,7 +277,7 @@ class ProductPage extends Component
             ->where('products.category_id', $this->product->category_id)
             ->where('products.store_id', '!=', $this->product->store_id)
             ->whereIn('products.id', Product::query()->visibleInCatalog()->select('id'))
-            ->selectRaw('distinct on (products.store_id) products.store_id, product_variants.price, product_variants.unit')
+            ->selectRaw('distinct on (products.store_id) products.store_id, product_variants.price, product_variants.unit, product_variants.stock, product_variants.stock_confirmed_at')
             ->orderBy('products.store_id')
             ->orderBy('product_variants.price')
             ->orderBy('product_variants.id');
@@ -275,13 +285,76 @@ class ProductPage extends Component
         return Store::query()
             ->joinSub($cheapest, 'cheapest', 'cheapest.store_id', '=', 'stores.id')
             ->where('stores.status', StoreStatus::Active)
-            ->select(['stores.id', 'stores.name', 'stores.slug', 'stores.city', 'stores.logo', 'cheapest.price as from_price', 'cheapest.unit as from_unit'])
-            ->withCasts(['from_price' => 'integer', 'from_unit' => Unit::class])
+            ->select(['stores.id', 'stores.name', 'stores.slug', 'stores.city', 'stores.logo', 'stores.is_demo', 'cheapest.price as from_price', 'cheapest.unit as from_unit', 'cheapest.stock as from_stock', 'cheapest.stock_confirmed_at as checked_at'])
+            ->withCasts(['from_price' => 'integer', 'from_unit' => Unit::class, 'checked_at' => 'datetime'])
             ->orderBy('stores.is_demo')
             ->orderBy('cheapest.price')
             ->orderBy('stores.id')
             ->limit(self::OTHER_STORES)
             ->get();
+    }
+
+    /**
+     * How many other active stores sell a product buyers can see in the same
+     * category, for "Lihat semua {n} lapak".
+     */
+    #[Computed]
+    public function otherStoreCount(): int
+    {
+        return Store::query()
+            ->where('status', StoreStatus::Active)
+            ->whereIn('id', Product::query()
+                ->visibleInCatalog()
+                ->where('category_id', $this->product->category_id)
+                ->where('store_id', '!=', $this->product->store_id)
+                ->select('store_id'))
+            ->count();
+    }
+
+    /**
+     * Up to four other products buyers can see from the same store, in any
+     * category, newest first.
+     *
+     * @return Collection<int, Product>
+     */
+    #[Computed]
+    public function sameStoreProducts(): Collection
+    {
+        return Product::query()
+            ->select(['id', 'store_id', 'name', 'slug', 'condition', 'created_at'])
+            ->visibleInCatalog()
+            ->withCardDetails()
+            ->withLastCheckedAt()
+            ->where('store_id', $this->product->store_id)
+            ->whereKeyNot($this->product->id)
+            ->latest()
+            ->latest('id')
+            ->limit(self::SAME_STORE_PRODUCTS)
+            ->get();
+    }
+
+    /**
+     * How many products buyers can see in the store, this one included, for
+     * "Lihat semua {n} produk".
+     */
+    #[Computed]
+    public function sameStoreCount(): int
+    {
+        return Product::query()->visibleInCatalog()->where('store_id', $this->product->store_id)->count();
+    }
+
+    /**
+     * Up to three static recipes of the product's root category.
+     *
+     * @return list<Recipe>
+     */
+    #[Computed]
+    public function recipes(): array
+    {
+        $category = $this->product->category;
+        $root = $category->parent_id === null ? $category : $category->parent;
+
+        return $root === null ? [] : array_slice(Recipe::inCategory($root->slug), 0, self::RECIPES);
     }
 
     /**
