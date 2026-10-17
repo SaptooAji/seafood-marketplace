@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\Unit;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
 
@@ -230,6 +231,50 @@ describe('x-product-card', function () {
             ->assertSee('Belum ada foto')
             ->assertSee('bg-subtle', escape: false)
             ->assertDontSee('<img', escape: false);
+    });
+
+    // #183: the card is white again on the sand background.
+    it('sits on a white card by default', function () {
+        $this->blade('<x-product-card :product="$product" />', ['product' => cardProduct()])
+            ->assertSee('data-tone="white"', escape: false)
+            ->assertSee('bg-white', escape: false)
+            ->assertSee('rounded-card', escape: false)
+            ->assertDontSee('bg-surface', escape: false);
+    });
+
+    it('rounds the photo inside the card', function () {
+        $product = cardProduct();
+        ProductImage::factory()->for($product)->create();
+
+        $this->blade('<x-product-card :product="$product" />', ['product' => $product->load('images')])
+            ->assertSee('<img', escape: false)
+            ->assertSee('rounded-photo', escape: false);
+    });
+
+    it('uses the sand tone on white bands', function () {
+        $this->blade('<x-product-card :product="$product" tone="surface" />', ['product' => cardProduct()])
+            ->assertSee('data-tone="surface"', escape: false)
+            ->assertSee('bg-surface', escape: false)
+            ->assertDontSee('bg-white', escape: false);
+    });
+
+    it('falls back to white for an unknown tone', function () {
+        $this->blade('<x-product-card :product="$product" tone="neon" />', ['product' => cardProduct()])
+            ->assertSee('data-tone="white"', escape: false)
+            ->assertSee('bg-white', escape: false)
+            ->assertDontSee('neon');
+    });
+
+    it('keeps a product without photos inside the white card', function () {
+        $this->blade('<x-product-card :product="$product" />', ['product' => cardProduct()])
+            ->assertSeeInOrder(['data-tone="white"', 'Belum ada foto', 'Kepiting Bakau Super'], escape: false);
+    });
+
+    it('stays one link for the whole card', function () {
+        $html = (string) $this->blade('<x-product-card :product="$product" />', ['product' => cardProduct()]);
+
+        expect(substr_count($html, '<a '))->toBe(1)
+            ->and($html)->toContain('focus-visible:outline');
     });
 });
 
