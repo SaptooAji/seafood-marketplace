@@ -449,7 +449,7 @@ describe('layout', function () {
  *
  * @param  array<string, mixed>  $attributes
  */
-function makePreOrder(array $attributes = []): void
+function makeOrderPreOrder(array $attributes = []): void
 {
     test()->product->update(['sales_mode' => SalesMode::PreOrder, 'daily_quota' => '20.000', 'lead_time_days' => 1, 'cutoff_time' => '15:00', ...$attributes]);
 }
@@ -457,32 +457,32 @@ function makePreOrder(array $attributes = []): void
 /**
  * Friday 16 October 2026 at the given time in WIB.
  */
-function fridayAt(string $time): void
+function orderFridayAt(string $time): void
 {
     test()->travelTo(CarbonImmutable::parse("2026-10-16 {$time}", StockCheckTime::TIMEZONE)->utc());
 }
 
-function builder(): Testable
+function orderBuilder(): Testable
 {
     return Livewire::test('product-page', ['slug' => 'kepiting-bakau-super']);
 }
 
 describe('order steps', function () {
     it('numbers the steps of a ready stock product 1 to 3 without a delivery date', function () {
-        builder()
+        orderBuilder()
             ->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Jumlah', 'data-step="3"', 'Cara terima'])
             ->assertDontSeeHtml('data-step="4"')
             ->assertDontSee('Tanggal kirim');
     });
 
     it('adds the delivery date as step 3 of a pre-order product', function () {
-        makePreOrder();
+        makeOrderPreOrder();
 
-        builder()->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Jumlah', 'data-step="3"', 'Tanggal kirim', 'data-step="4"', 'Cara terima']);
+        orderBuilder()->assertSeeHtmlInOrder(['data-step="1"', 'Pilih ukuran', 'data-step="2"', 'Jumlah', 'data-step="3"', 'Tanggal kirim', 'data-step="4"', 'Cara terima']);
     });
 
     it('lists the active variants with price and unit, and disables the sold-out ones', function () {
-        $html = builder()
+        $html = orderBuilder()
             ->assertSeeHtmlInOrder(['Jantan 300-400 g', 'Rp185.000', 'Jantan 500 g up', 'Rp240.000'])
             ->html();
 
@@ -495,13 +495,13 @@ describe('order steps', function () {
         $this->fresh->forceFill(['stock' => '0.000'])->save();
         $this->stale->forceFill(['stock' => '4.000'])->save();
 
-        builder()->assertSet('variantId', $this->stale->id)->assertSet('qty', '1');
+        orderBuilder()->assertSet('variantId', $this->stale->id)->assertSet('qty', '1');
     });
 });
 
 describe('quantity', function () {
     it('steps by the minimum quantity within the stock', function () {
-        builder()
+        orderBuilder()
             ->call('decrement')
             ->assertSet('qty', '0.5')
             ->call('increment')
@@ -514,7 +514,7 @@ describe('quantity', function () {
     });
 
     it('brings a quantity it cannot sell back to the nearest valid one', function (string $typed, string $kept) {
-        builder()->set('qty', $typed)->assertSet('qty', $kept)->assertHasNoErrors();
+        orderBuilder()->set('qty', $typed)->assertSet('qty', $kept)->assertHasNoErrors();
     })->with([
         'below the minimum' => ['0.4', '0.5'],
         'zero' => ['0', '0.5'],
@@ -528,17 +528,17 @@ describe('quantity', function () {
     ]);
 
     it('keeps the previous quantity for text that is not a number', function (string $typed) {
-        builder()->set('qty', '2')->set('qty', $typed)->assertSet('qty', '2');
+        orderBuilder()->set('qty', '2')->set('qty', $typed)->assertSet('qty', '2');
     })->with(['satu', '', '1e3', '1.2.3', '0x10']);
 
     it('keeps a valid quantity as it is', function (string $qty) {
-        builder()->set('qty', $qty)->assertSet('qty', $qty);
+        orderBuilder()->set('qty', $qty)->assertSet('qty', $qty);
     })->with(['0.5', '2', '12.5']);
 
     it('limits a pre-order product by the daily quota instead of the stock', function () {
-        makePreOrder();
+        makeOrderPreOrder();
 
-        builder()
+        orderBuilder()
             ->set('qty', '15')
             ->assertSet('qty', '15')
             ->set('qty', '25')
@@ -546,9 +546,9 @@ describe('quantity', function () {
     });
 
     it('lets a pre-order product without a daily quota go up to the maximum', function () {
-        makePreOrder(['daily_quota' => null]);
+        makeOrderPreOrder(['daily_quota' => null]);
 
-        builder()->set('qty', '50')->assertSet('qty', '50');
+        orderBuilder()->set('qty', '50')->assertSet('qty', '50');
     });
 
     it('shows "Stok habis" and disables the next steps when every variant is sold out', function () {
@@ -566,10 +566,10 @@ describe('quantity', function () {
 
 describe('delivery date', function () {
     it('offers the first three dates from the cutoff and lead time', function (string $time, array $dates, string $firstDay) {
-        fridayAt($time);
-        makePreOrder();
+        orderFridayAt($time);
+        makeOrderPreOrder();
 
-        $component = builder()->assertSet('deliveryDate', $dates[0])->assertSee($firstDay);
+        $component = orderBuilder()->assertSet('deliveryDate', $dates[0])->assertSee($firstDay);
 
         foreach ($dates as $date) {
             $component->assertSeeHtml('data-delivery-date="'.$date.'"');
@@ -581,24 +581,24 @@ describe('delivery date', function () {
     ]);
 
     it('shows the daily quota on each date in the unit of the variant', function () {
-        fridayAt('10:00');
-        makePreOrder();
+        orderFridayAt('10:00');
+        makeOrderPreOrder();
 
-        expect(substr_count(builder()->html(), 'Kuota 20 kg per hari'))->toBe(3);
+        expect(substr_count(orderBuilder()->html(), 'Kuota 20 kg per hari'))->toBe(3);
     });
 
     it('shows the dates without a quota line when there is no daily quota', function () {
-        fridayAt('10:00');
-        makePreOrder(['daily_quota' => null]);
+        orderFridayAt('10:00');
+        makeOrderPreOrder(['daily_quota' => null]);
 
-        builder()->assertSeeHtml('data-delivery-date="2026-10-17"')->assertDontSee('Kuota');
+        orderBuilder()->assertSeeHtml('data-delivery-date="2026-10-17"')->assertDontSee('Kuota');
     });
 
     it('ignores a date it does not offer', function (string $date) {
-        fridayAt('10:00');
-        makePreOrder();
+        orderFridayAt('10:00');
+        makeOrderPreOrder();
 
-        builder()
+        orderBuilder()
             ->set('deliveryDate', '2026-10-18')
             ->set('deliveryDate', $date)
             ->assertSet('deliveryDate', '2026-10-18');
@@ -610,8 +610,8 @@ describe('delivery date', function () {
     ]);
 
     it('shows the order deadline and first delivery day of a pre-order product', function (string $time, string $line) {
-        fridayAt($time);
-        makePreOrder();
+        orderFridayAt($time);
+        makeOrderPreOrder();
 
         productPage()->assertOk()->assertSee($line);
     })->with([
@@ -630,7 +630,7 @@ describe('receiving the order', function () {
         StoreShippingMethod::factory()->for($this->store)->ownDeliveryFlat()->create();
         StoreShippingMethod::factory()->for($this->store)->expedition()->create(['is_active' => false]);
 
-        builder()
+        orderBuilder()
             ->assertSeeInOrder([ShippingMethodType::Pickup->label(), 'Gratis'])
             ->assertSeeInOrder([ShippingMethodType::OwnDelivery->label(), 'Rp10.000'])
             ->assertDontSee(ShippingMethodType::Expedition->label());
@@ -639,7 +639,7 @@ describe('receiving the order', function () {
     it('says the fee is set at checkout for per-km and manual fees', function (Closure $method) {
         $method($this->store);
 
-        builder()->assertSee('Dihitung saat checkout');
+        orderBuilder()->assertSee('Dihitung saat checkout');
     })->with([
         'own delivery per km' => [fn (Store $store) => StoreShippingMethod::factory()->for($store)->ownDeliveryPerKm()->create()],
         'ojol' => [fn (Store $store) => StoreShippingMethod::factory()->for($store)->ojol()->create()],
@@ -648,13 +648,13 @@ describe('receiving the order', function () {
     it('asks the buyer to check with the seller when the store has no active method', function () {
         StoreShippingMethod::factory()->for($this->store)->pickup()->create(['is_active' => false]);
 
-        builder()->assertSee('Tanyakan cara kirim ke penjual');
+        orderBuilder()->assertSee('Tanyakan cara kirim ke penjual');
     });
 
     it('ignores a shipping method of another store or one that is inactive', function (Closure $method) {
         $own = StoreShippingMethod::factory()->for($this->store)->pickup()->create();
 
-        builder()
+        orderBuilder()
             ->set('shippingMethodId', $own->id)
             ->set('shippingMethodId', $method()->id)
             ->assertSet('shippingMethodId', $own->id);
@@ -666,7 +666,7 @@ describe('receiving the order', function () {
 
 describe('summary', function () {
     it('totals the price times the quantity', function () {
-        builder()
+        orderBuilder()
             ->set('qty', '1.5')
             ->assertSeeHtml('data-order-total="277500"')
             ->assertSee('Rp277.500');
@@ -675,7 +675,7 @@ describe('summary', function () {
     it('adds a flat delivery fee to the total', function () {
         $flat = StoreShippingMethod::factory()->for($this->store)->ownDeliveryFlat()->create();
 
-        builder()
+        orderBuilder()
             ->set('qty', '1.5')
             ->set('shippingMethodId', $flat->id)
             ->assertSeeHtml('data-order-total="287500"')
@@ -685,7 +685,7 @@ describe('summary', function () {
     it('leaves out a fee that is set at checkout', function () {
         $perKm = StoreShippingMethod::factory()->for($this->store)->ownDeliveryPerKm()->create();
 
-        builder()
+        orderBuilder()
             ->set('qty', '1.5')
             ->set('shippingMethodId', $perKm->id)
             ->assertSeeHtml('data-order-total="277500"')
@@ -696,15 +696,15 @@ describe('summary', function () {
         $this->fresh->update(['price' => 33_333, 'min_qty' => '0.001']);
 
         // 33,333 x 0.005 = 166.665, rounded half up.
-        builder()->set('qty', '0.005')->assertSeeHtml('data-order-total="167"');
+        orderBuilder()->set('qty', '0.005')->assertSeeHtml('data-order-total="167"');
     });
 
     it('sums up the variant, quantity, date, and way of receiving', function () {
-        fridayAt('10:00');
-        makePreOrder();
+        orderFridayAt('10:00');
+        makeOrderPreOrder();
         $pickup = StoreShippingMethod::factory()->for($this->store)->pickup()->create();
 
-        builder()
+        orderBuilder()
             ->set('qty', '2')
             ->set('shippingMethodId', $pickup->id)
             ->assertSeeHtmlInOrder(['aria-labelledby="ringkasan-judul"', 'Jantan 300-400 g', '2 kg', 'Sabtu, 17 Okt', ShippingMethodType::Pickup->label(), 'data-order-total="370000"', 'Segera hadir']);
