@@ -25,8 +25,11 @@ use Spatie\Activitylog\Support\LogOptions;
  *
  * `status`, `verified_at`, and `rejection_reason` are not fillable: they only
  * change through the admin verification actions, never from seller input.
+ * `is_demo` is not fillable either: only the demo seeder marks a store as a
+ * demo store ("Toko contoh").
  *
  * @property StoreStatus $status
+ * @property bool $is_demo
  * @property Carbon|null $verified_at
  */
 #[Fillable([
@@ -37,6 +40,16 @@ class Store extends Model
 {
     /** @use HasFactory<StoreFactory> */
     use HasFactory, LogsActivity;
+
+    /**
+     * The database defaults, so a new store is known to be real before it is
+     * read back and the activity log does not see `is_demo` change from null.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_demo' => false,
+    ];
 
     /**
      * Great-circle distance in km from a point (bindings: lat, lat, lng) to
@@ -56,7 +69,7 @@ class Store extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['status', 'verified_at', 'rejection_reason', 'name', 'phone', 'address', 'city', 'lat', 'lng'])
+            ->logOnly(['status', 'verified_at', 'rejection_reason', 'is_demo', 'name', 'phone', 'address', 'city', 'lat', 'lng'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
@@ -73,6 +86,7 @@ class Store extends Model
         return [
             'status' => StoreStatus::class,
             'verified_at' => 'datetime',
+            'is_demo' => 'boolean',
             'bank_account_no' => 'encrypted',
             'lat' => 'decimal:7',
             'lng' => 'decimal:7',
@@ -145,6 +159,28 @@ class Store extends Model
         }
 
         $query->selectRaw(self::HAVERSINE_KM.' as distance_km', [$lat, $lat, $lng]);
+    }
+
+    /**
+     * Keep the real stores, leaving out the demo stores.
+     *
+     * @param  Builder<Store>  $query
+     */
+    #[Scope]
+    protected function real(Builder $query): void
+    {
+        $query->where('stores.is_demo', false);
+    }
+
+    /**
+     * Keep the demo stores ("Toko contoh") only.
+     *
+     * @param  Builder<Store>  $query
+     */
+    #[Scope]
+    protected function demo(Builder $query): void
+    {
+        $query->where('stores.is_demo', true);
     }
 
     /**

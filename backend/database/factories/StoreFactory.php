@@ -87,6 +87,16 @@ class StoreFactory extends Factory
     }
 
     /**
+     * Indicate that the store is a demo store ("Toko contoh").
+     */
+    public function demo(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_demo' => true,
+        ]);
+    }
+
+    /**
      * Attach an owner to the store: the given user, or a new one.
      */
     public function withOwner(?User $user = null): static

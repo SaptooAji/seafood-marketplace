@@ -2,6 +2,7 @@
     :title="$store->name.', '.$store->city"
     :description="$store->metaDescription()"
     :image="$store->logoUrl()"
+    :noindex="$store->is_demo"
 >
     @push('head')
         {{-- JSON_HEX_TAG turns < and > into < and >, so seller text cannot close this tag. --}}
