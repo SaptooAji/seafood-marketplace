@@ -591,3 +591,44 @@ describe('nearby stores', function () {
         expect($count())->toBe($few);
     });
 });
+
+describe('map', function () {
+    it('gives the map its coordinates and a label through attributes', function () {
+        expect(storePageHtml())
+            ->toMatch('#<div[^>]*data-store-map[^>]*>#')
+            ->toContain('data-lat="-6.1065000"')
+            ->toContain('data-lng="106.7765000"')
+            ->toMatch('#data-store-map[^>]*role="img"[^>]*aria-label="Peta lokasi Toko Bahari"#');
+    });
+
+    it('keeps the drawn map inside as the fallback', function () {
+        $map = Str::before(Str::after(storePageHtml(), 'data-store-map'), '</svg>');
+
+        expect($map)->toContain('<svg');
+    });
+
+    it('shows the map of a demo store without a Google Maps link', function () {
+        Store::factory()->active()->demo()->create(['slug' => 'toko-contoh', 'lat' => '-6.1000000', 'lng' => '106.8000000']);
+
+        expect($this->get('/toko/toko-contoh')->assertOk()->getContent())
+            ->toContain('data-store-map')
+            ->toContain('data-lat="-6.1000000"')
+            ->not->toContain('google.com/maps');
+    });
+
+    it('loads no map script, style, or tile from another site', function () {
+        expect(storePageHtml())
+            ->not->toContain('unpkg.com')
+            ->not->toContain('cdnjs')
+            ->not->toContain('openstreetmap.org')
+            ->not->toContain('leaflet.css');
+    });
+
+    it('escapes the store name in the map label', function () {
+        $this->store->update(['name' => 'Toko <script>alert(1)</script>']);
+
+        expect(storePageHtml())
+            ->toContain('aria-label="Peta lokasi Toko &lt;script&gt;alert(1)&lt;/script&gt;"')
+            ->not->toContain('<script>alert(1)</script>');
+    });
+});
