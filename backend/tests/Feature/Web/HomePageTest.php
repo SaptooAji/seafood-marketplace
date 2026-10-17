@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Enums\ProductCondition;
 use App\Enums\Unit;
 use App\Models\Category;
 use App\Models\Product;
@@ -81,96 +80,199 @@ function homePageQueryCount(): int
     return $count;
 }
 
-describe('hero', function () {
-    it('shows the most recently confirmed product with a photo as the background, with its caption', function () {
+/**
+ * A highlight entry for config('home.highlights'), linking the given product.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function homeHighlight(string $slug, array $overrides = []): array
+{
+    return [
+        'product' => $slug,
+        'title' => 'Sorotan '.$slug,
+        'text' => 'Teks sorotan '.$slug,
+        'button' => 'Lihat produk',
+        'photo' => null,
+        ...$overrides,
+    ];
+}
+
+/**
+ * A recipe entry for config('recipes').
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function homeRecipe(string $slug, bool $featured = true, array $overrides = []): array
+{
+    return [
+        'slug' => $slug,
+        'name' => 'Resep '.$slug,
+        'description' => 'Deskripsi.',
+        'photo' => 'images/resep/kepiting-saus-padang.jpg',
+        'category' => 'kepiting',
+        'minutes' => 30,
+        'servings' => 4,
+        'level' => 'Mudah',
+        'group' => 'cepat',
+        'needs' => ['category' => 'bakau', 'kg' => '1.000', 'label' => '1 kg kepiting bakau'],
+        'ingredients' => [],
+        'steps' => ['Masak.'],
+        'swaps' => [],
+        'featured' => $featured,
+        ...$overrides,
+    ];
+}
+
+describe('hero highlights', function () {
+    beforeEach(function () {
+        config(['home.highlights' => [], 'recipes' => []]);
+    });
+
+    it('shows the first highlight over its product photo, with a white product card', function () {
         $store = Store::factory()->active()->create(['name' => 'Toko Bahari']);
-        $older = homeProductWithPhoto(['name' => 'Cumi Segar'], confirmedAt: now()->subHours(3));
-        $newest = homeProductWithPhoto(['name' => 'Kepiting Bakau', 'slug' => 'kepiting-bakau'], confirmedAt: now()->subMinutes(90), store: $store);
-        $newest->variants()->first()->update(['price' => 185_000, 'unit' => Unit::Kg]);
+        $product = homeProductWithPhoto(['name' => 'Kepiting Bakau Jumbo', 'slug' => 'kepiting-bakau-jumbo'], confirmedAt: now()->subMinutes(90), store: $store);
+        $product->variants()->first()->update(['price' => 240_000, 'unit' => Unit::Kg]);
+        config(['home.highlights' => [homeHighlight('kepiting-bakau-jumbo', ['title' => 'Kepiting hidup, dipilih per ekor', 'text' => 'Diikat dan dipilih satu per satu.', 'button' => 'Pilih kepiting'])]]);
 
         $hero = homeSection('beranda-judul');
 
         expect($hero)
-            ->toContain($newest->images()->first()->url())
-            ->toContain('Kepiting Bakau')
+            ->toContain('Kepiting hidup, dipilih per ekor')
+            ->toContain('Diikat dan dipilih satu per satu.')
+            ->toContain('Pilih kepiting')
+            ->toContain($product->images()->first()->url())
+            ->toContain('data-highlight-card')
+            ->toContain('Kepiting Bakau Jumbo')
             ->toContain('Toko Bahari')
-            ->toContain('06.30')
-            ->toContain('Rp185.000')
-            ->toContain('href="'.url('/produk/kepiting-bakau').'"')
-            ->and(strpos($hero, 'Kepiting Bakau'))->toBeLessThan(strpos($hero, 'Cumi Segar'));
+            ->toContain('Rp240.000')
+            ->toContain('Dicek 06.30')
+            ->toContain('href="'.url('/produk/kepiting-bakau-jumbo').'"');
     });
 
-    it('has one tab per hero product, at most 5, with the first selected', function () {
-        foreach (range(1, 7) as $hour) {
-            homeProductWithPhoto(['name' => "Produk Jam {$hour}"], confirmedAt: now()->subHours($hour));
+    it('uses the photo set in the config instead of the product photo', function () {
+        homeProductWithPhoto(['slug' => 'cumi-segar']);
+        config(['home.highlights' => [homeHighlight('cumi-segar', ['photo' => 'images/resep/cumi-saus-tiram.jpg'])]]);
+
+        expect(homeSection('beranda-judul'))->toContain('src="'.asset('images/resep/cumi-saus-tiram.jpg').'"');
+    });
+
+    it('has one tab per highlight in the config order, the first selected, without autoplay', function () {
+        foreach (['udang', 'cumi', 'kerang'] as $slug) {
+            homeProductWithPhoto(['name' => 'Produk '.$slug, 'slug' => $slug]);
         }
+        config(['home.highlights' => [homeHighlight('kerang'), homeHighlight('udang'), homeHighlight('cumi')]]);
 
         $hero = homeSection('beranda-judul');
 
-        expect(substr_count($hero, 'role="tab"'))->toBe(5)
+        expect(substr_count($hero, 'role="tab"'))->toBe(3)
             ->and(substr_count($hero, 'aria-selected="true"'))->toBe(1)
-            ->and(substr_count($hero, 'aria-selected="false"'))->toBe(4)
-            ->and($hero)->toContain('Produk Jam 5')->not->toContain('Produk Jam 6');
+            ->and(Str::position($hero, 'Sorotan kerang'))->toBeLessThan(Str::position($hero, 'Sorotan udang'))
+            ->and(Str::position($hero, 'Sorotan udang'))->toBeLessThan(Str::position($hero, 'Sorotan cumi'))
+            ->and($hero)->not->toContain('setInterval');
     });
 
-    it('leaves products without photos out of the hero but lists them below', function () {
-        homeProductWithPhoto(['name' => 'Kepiting Berfoto'], confirmedAt: now()->subHours(2));
-        homeProduct(['name' => 'Tiram Tanpa Foto'], confirmedAt: now()->subMinutes(5));
+    it('skips a highlight whose product buyers cannot see', function (Closure $hide) {
+        homeProductWithPhoto(['name' => 'Produk Tampil', 'slug' => 'tampil']);
+        $hidden = homeProductWithPhoto(['name' => 'Produk Tersembunyi', 'slug' => 'tersembunyi']);
+        $hide($hidden);
+        config(['home.highlights' => [homeHighlight('tersembunyi'), homeHighlight('tidak-ada'), homeHighlight('tampil')]]);
 
-        expect(homeSection('beranda-judul'))->toContain('Kepiting Berfoto')->not->toContain('Tiram Tanpa Foto')
-            ->and(homeSection('baru-judul'))->toContain('Tiram Tanpa Foto');
+        $hero = homeSection('beranda-judul');
+
+        expect($hero)->toContain('Sorotan tampil')
+            ->not->toContain('Sorotan tersembunyi')
+            ->not->toContain('Sorotan tidak-ada')
+            ->not->toContain('role="tab"');
+    })->with([
+        'suspended store' => [fn (Product $product) => $product->store->forceFill(['status' => 'suspended'])->save()],
+        'blocked product' => [fn (Product $product) => $product->forceFill(['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.'])->save()],
+        'inactive product' => [fn (Product $product) => $product->forceFill(['is_active' => false])->save()],
+    ]);
+
+    it('falls back to a plain photo without a product card when every highlight is skipped', function () {
+        config(['home.highlights' => [homeHighlight('tidak-ada')], 'home.fallback_photo' => 'images/resep/kepiting-saus-padang.jpg']);
+
+        $this->get('/')->assertOk();
+        $hero = homeSection('beranda-judul');
+
+        expect($hero)->toContain('src="'.asset('images/resep/kepiting-saus-padang.jpg').'"')
+            ->not->toContain('data-highlight-card')
+            ->not->toContain('role="tab"');
     });
 
-    it('links the main button to the nearest stores button in the catalog', function () {
+    it('no longer shows the hero numbers or the nearest stores button', function () {
+        homeProduct();
+        Store::factory()->active()->count(2)->create();
+
         expect(homeSection('beranda-judul'))
-            ->toContain('href="'.url('/produk').'#toko-terdekat"')
-            ->toContain('Cari lapak terdekat');
+            ->not->toContain('Lapak aktif')
+            ->not->toContain('Stok dicek dalam')
+            ->not->toContain('Belanja menurut kondisi')
+            ->not->toContain('Cari lapak terdekat');
+    });
+
+    it('runs the same number of queries for one and four highlights', function () {
+        foreach (range(1, 4) as $number) {
+            homeProductWithPhoto(['slug' => "sorotan-{$number}"]);
+        }
+
+        config(['home.highlights' => [homeHighlight('sorotan-1')]]);
+        $one = homePageQueryCount();
+
+        config(['home.highlights' => array_map(fn (int $number) => homeHighlight("sorotan-{$number}"), range(1, 4))]);
+
+        expect(homePageQueryCount())->toBe($one);
+    });
+
+    it('escapes the highlight text and the product name', function () {
+        homeProductWithPhoto(['name' => '<script>alert(5)</script>', 'slug' => 'berbahaya']);
+        config(['home.highlights' => [homeHighlight('berbahaya', ['title' => '<b>Judul</b>', 'text' => '<i>Teks</i>'])]]);
+
+        $hero = homeSection('beranda-judul');
+
+        expect($hero)->not->toContain('<script>alert(5)</script>')
+            ->not->toContain('<b>Judul</b>')
+            ->not->toContain('<i>Teks</i>')
+            ->toContain('&lt;script&gt;alert(5)&lt;/script&gt;');
     });
 });
 
-describe('hero numbers', function () {
-    it('counts the products whose stock was checked within the stale stock window', function () {
-        homeProduct(confirmedAt: now()->subHours(2));
-        homeProduct(confirmedAt: now()->subHours(23));
-        homeProduct(confirmedAt: now()->subHours(30));
-        homeProduct(confirmedAt: null);
-
-        expect(homeSection('beranda-judul'))->toContain('2 produk');
+describe('recipe picks', function () {
+    beforeEach(function () {
+        config(['home.highlights' => []]);
     });
 
-    it('counts the active stores', function () {
-        Store::factory()->active()->count(3)->create();
-        Store::factory()->pending()->create();
-        Store::factory()->suspended()->create();
+    it('shows up to 4 featured recipes and links to all recipes', function () {
+        config(['recipes' => [
+            homeRecipe('satu'), homeRecipe('dua'), homeRecipe('bukan', featured: false),
+            homeRecipe('tiga'), homeRecipe('empat'), homeRecipe('lima'),
+        ]]);
 
-        expect(homeSection('beranda-judul'))->toContain('3 lapak');
+        $section = homeSection('resep-pilihan');
+
+        expect($section)->toContain('Mau masak apa hari ini?')
+            ->toContain('href="'.url('/resep/satu').'"')
+            ->toContain('href="'.url('/resep/empat').'"')
+            ->not->toContain('href="'.url('/resep/lima').'"')
+            ->not->toContain('href="'.url('/resep/bukan').'"')
+            ->toContain('href="'.url('/resep').'"')
+            ->toContain('Semua resep')
+            ->toContain('30 menit');
     });
 
-    it('links each condition that has products to the catalog with its count', function () {
-        homeProduct(['condition' => ProductCondition::Live]);
-        homeProduct(['condition' => ProductCondition::Live]);
-        homeProduct(['condition' => ProductCondition::Frozen]);
+    it('shows only the featured recipes there are, without empty slots', function () {
+        config(['recipes' => [homeRecipe('satu'), homeRecipe('dua'), homeRecipe('bukan', featured: false)]]);
 
-        $hero = homeSection('beranda-judul');
-
-        expect($hero)
-            ->toContain('href="'.url('/produk').'?kondisi=live"')
-            ->toContain('href="'.url('/produk').'?kondisi=frozen"')
-            ->not->toContain('?kondisi=fresh')
-            ->not->toContain('?kondisi=marinated')
-            ->toMatch('/Hidup\s*<span[^>]*>\s*2\s*</s')
-            ->toMatch('/Beku\s*<span[^>]*>\s*1\s*</s');
+        // url() drops a trailing slash, so add it after: only the recipe links count, not "Semua resep".
+        expect(substr_count(homeSection('resep-pilihan'), 'href="'.url('/resep').'/'))->toBe(2);
     });
 
-    it('does not count products buyers may not see', function () {
-        homeProduct(['condition' => ProductCondition::Live]);
-        homeProduct(['condition' => ProductCondition::Live, 'blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.']);
-        homeProduct(['condition' => ProductCondition::Fresh, 'is_active' => false]);
+    it('is not rendered when no recipe is featured', function () {
+        config(['recipes' => [homeRecipe('bukan', featured: false)]]);
 
-        expect(homeSection('beranda-judul'))
-            ->toContain('1 produk')
-            ->toMatch('/Hidup\s*<span[^>]*>\s*1\s*</s')
-            ->not->toContain('?kondisi=fresh');
+        expect(homeSection('resep-pilihan'))->toBe('');
     });
 });
 
@@ -377,7 +479,7 @@ describe('edge cases', function () {
 
         expect($hero)
             ->not->toBe('')
-            ->not->toContain('<img')
+            ->not->toContain('data-highlight-card')
             ->not->toContain('role="tab"')
             ->and(homeSection('baru-judul'))->toBe('');
     });

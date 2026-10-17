@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web;
 
-use App\Enums\ProductCondition;
+use App\Data\Recipe;
 use App\Enums\StoreStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Store;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as BaseCollection;
 
@@ -19,24 +18,21 @@ class HomeController extends Controller
 {
     public const int LATEST_PRODUCTS = 8;
 
-    public const int HERO_PRODUCTS = 5;
-
     public const int ACTIVE_STORES = 6;
+
+    public const int RECIPE_PICKS = 4;
 
     /**
      * The home page:
-     * - a hero with the recently checked products that have a photo, and
-     *   counts of freshly checked products, active stores, and products per
-     *   condition;
+     * - a hero with the highlights from config/home.php, each over a photo
+     *   with a card of its product, and up to four featured recipes;
      * - the products buyers can see, most recently checked first, each with
      *   its first photo, cheapest active variant, and root category for the
      *   chips;
      * - the most recently verified stores, never a demo store.
      *
-     * Products of real stores come before those of demo stores.
-     *
-     * Only the public store columns are loaded, so bank details never reach
-     * the view.
+     * Products of real stores come before those of demo stores. Only the
+     * public store columns are loaded, so bank details never reach the view.
      */
     public function __invoke(): View
     {
@@ -44,8 +40,7 @@ class HomeController extends Controller
             ->select(['id', 'store_id', 'category_id', 'name', 'slug', 'created_at'])
             ->visibleInCatalog()
             ->withCardDetails()
-            ->withMax(['variants as last_checked_at' => fn (Builder $variant) => $variant->where('is_active', true)], 'stock_confirmed_at')
-            ->withCasts(['last_checked_at' => 'datetime'])
+            ->withLastCheckedAt()
             ->realStoresFirst()
             ->orderByRaw('last_checked_at desc nulls last')
             ->latest()
@@ -65,14 +60,51 @@ class HomeController extends Controller
 
         return view('home', [
             'products' => $products,
-            'heroProducts' => $products->filter(fn (Product $product) => $product->images->isNotEmpty())->take(self::HERO_PRODUCTS)->values(),
+            'highlights' => $this->highlights(),
+            'fallbackPhoto' => asset(config()->string('home.fallback_photo')),
+            'recipes' => array_slice(Recipe::featured(), 0, self::RECIPE_PICKS),
             'rootSlugs' => $rootSlugs,
             'chips' => $chips,
-            'freshCount' => $this->freshlyCheckedCount(),
-            'activeStoreCount' => Store::query()->where('status', StoreStatus::Active)->count(),
-            'conditionCounts' => $this->conditionCounts(),
             'stores' => $stores,
         ]);
+    }
+
+    /**
+     * The highlights whose product buyers can see, in config order, each with
+     * its product and background photo. One query for all of their products.
+     *
+     * @return list<array{title: string, text: string, button: string, photo: string, product: Product}>
+     */
+    private function highlights(): array
+    {
+        /** @var list<array{product: string, title: string, text: string, button: string, photo: string|null}> $highlights */
+        $highlights = config()->array('home.highlights');
+
+        if ($highlights === []) {
+            return [];
+        }
+
+        $products = Product::query()
+            ->select(['id', 'store_id', 'name', 'slug'])
+            ->visibleInCatalog()
+            ->withCardDetails()
+            ->withLastCheckedAt()
+            ->whereIn('slug', array_column($highlights, 'product'))
+            ->get()
+            ->keyBy('slug');
+
+        $shown = [];
+
+        foreach ($highlights as $highlight) {
+            $product = $products->get($highlight['product']);
+            $photo = $highlight['photo'] !== null ? asset($highlight['photo']) : $product?->images->first()?->url();
+
+            if ($product !== null && $photo !== null) {
+                $shown[] = [...$highlight, 'photo' => $photo, 'product' => $product];
+            }
+        }
+
+        return $shown;
     }
 
     /**
@@ -123,48 +155,5 @@ class HomeController extends Controller
 
         // Chips only help when there is more than one category to choose from.
         return [$slugs, $chips->count() > 1 ? $chips : collect()];
-    }
-
-    /**
-     * Visible products with an active variant whose stock was checked within
-     * `catalog.stale_stock_hours`, the same window that decides the stock
-     * warning on the product page.
-     */
-    private function freshlyCheckedCount(): int
-    {
-        $since = now()->subHours(config()->integer('catalog.stale_stock_hours'));
-
-        return Product::query()
-            ->visibleInCatalog()
-            ->whereHas('variants', fn (Builder $variant) => $variant->where('is_active', true)->where('stock_confirmed_at', '>=', $since))
-            ->count();
-    }
-
-    /**
-     * The number of visible products per condition, in the enum's order,
-     * leaving out conditions without products.
-     *
-     * @return array<string, array{condition: ProductCondition, count: int}>
-     */
-    private function conditionCounts(): array
-    {
-        $counts = Product::query()
-            ->visibleInCatalog()
-            ->toBase()
-            ->selectRaw('condition, count(*) as aggregate')
-            ->groupBy('condition')
-            ->pluck('aggregate', 'condition');
-
-        $result = [];
-
-        foreach (ProductCondition::cases() as $condition) {
-            $count = (int) ($counts[$condition->value] ?? 0);
-
-            if ($count > 0) {
-                $result[$condition->value] = ['condition' => $condition, 'count' => $count];
-            }
-        }
-
-        return $result;
     }
 }

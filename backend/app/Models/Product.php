@@ -92,6 +92,19 @@ class Product extends Model
     }
 
     /**
+     * Add `last_checked_at`: when the stock of the product's active variants
+     * was last checked, as a date, or null when it never was.
+     *
+     * @param  Builder<Product>  $query
+     */
+    #[Scope]
+    protected function withLastCheckedAt(Builder $query): void
+    {
+        $query->withMax(['variants as last_checked_at' => fn (Builder $variant) => $variant->where('is_active', true)], 'stock_confirmed_at')
+            ->withCasts(['last_checked_at' => 'datetime']);
+    }
+
+    /**
      * Put the products of real stores before those of demo stores. Call it
      * before any other order, so the buyer's sort applies within each group.
      *

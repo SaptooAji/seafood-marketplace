@@ -221,8 +221,4 @@ describe('verified stores on the home page', function () {
 
         $this->get('/produk')->assertOk()->assertSee('Kepiting Contoh')->assertSee('Toko contoh');
     });
-
-    it('counts demo stores in the number of active stores', function () {
-        $this->get('/')->assertOk()->assertSee('2 lapak');
-    });
 });
