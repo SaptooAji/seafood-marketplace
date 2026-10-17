@@ -7,6 +7,9 @@
         <loc>{{ route('catalog') }}</loc>
     </url>
     <url>
+        <loc>{{ route('recipes.index') }}</loc>
+    </url>
+    <url>
         <loc>{{ route('credits') }}</loc>
     </url>
 @foreach ($products as $product)

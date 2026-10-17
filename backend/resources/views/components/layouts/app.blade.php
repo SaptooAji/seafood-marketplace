@@ -58,6 +58,7 @@
 
             <nav aria-label="Utama" class="ml-auto flex items-center gap-5 text-sm font-semibold sm:ml-0">
                 <a href="{{ route('catalog') }}" class="hover:text-primary-700">Katalog</a>
+                <a href="{{ route('recipes.index') }}" class="hover:text-primary-700">Resep</a>
                 {{-- The bare layout skips the auth check: a signed-in session would query the users table. --}}
                 @if (! $bare && auth()->guest())
                     <a href="{{ route('login') }}" class="flex h-11 items-center rounded-full border-[1.5px] border-ink px-4 hover:bg-surface">Masuk</a>
@@ -85,6 +86,7 @@
                     @endforeach
                 </ul>
                 <ul class="flex flex-col gap-2">
+                    <li><a href="{{ route('recipes.index') }}" class="hover:underline">Semua resep</a></li>
                     <li><a href="{{ url('/seller') }}" class="hover:underline">Buka lapak</a></li>
                     <li><a href="{{ route('credits') }}" class="hover:underline">Kredit foto</a></li>
                 </ul>
