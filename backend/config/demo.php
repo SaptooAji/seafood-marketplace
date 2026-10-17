@@ -9,8 +9,8 @@ return [
     | Demo Data
     |--------------------------------------------------------------------------
     |
-    | Password for the demo accounts created by DemoUserSeeder and
-    | DemoStoreSeeder. Those seeders never run in production.
+    | Password for the demo admin accounts created by DemoUserSeeder, which
+    | never runs in production. The demo store owners have no password.
     |
     */
 
