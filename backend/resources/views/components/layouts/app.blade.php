@@ -37,7 +37,7 @@
     <a href="#konten" class="sr-only rounded-full bg-ink px-4 py-2 font-bold text-white focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50">Lewati ke konten</a>
     @php($categories = $rootCategories())
 
-    <header class="border-b border-line bg-white">
+    <header class="border-b border-line bg-white print:hidden">
         <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
             <x-logo />
 
@@ -72,7 +72,7 @@
         {{ $slot }}
     </main>
 
-    <footer class="bg-ink text-white">
+    <footer class="bg-ink text-white print:hidden">
         <div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:flex-row sm:justify-between">
             <div class="flex max-w-sm flex-col gap-2">
                 <span class="text-lg font-extrabold tracking-tight">{{ config('app.name') }}</span>

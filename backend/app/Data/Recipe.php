@@ -137,4 +137,149 @@ readonly class Recipe
     {
         return "{$this->minutes} menit, {$this->servings} porsi";
     }
+
+    /**
+     * How a cook measures each unit, in thousandths: the rounding step and
+     * the smallest amount. Pieces are whole, spoons and centimetres halves,
+     * millilitres tens; anything else keeps two decimals.
+     *
+     * @var array<string, array{int, int}>
+     */
+    private const array MEASURES = [
+        'siung' => [1000, 1000],
+        'buah' => [1000, 1000],
+        'lembar' => [1000, 1000],
+        'batang' => [1000, 1000],
+        'butir' => [1000, 1000],
+        'sdm' => [500, 500],
+        'cm' => [500, 500],
+        'ml' => [10_000, 10_000],
+    ];
+
+    /**
+     * An amount for `$from` servings scaled to `$to` servings and rounded the
+     * way the unit is measured (see MEASURES). Decimal strings in and out;
+     * the arithmetic is in whole thousandths, never floats (VAL-2).
+     */
+    public static function scaleAmount(string $amount, ?string $unit, int $from, int $to): string
+    {
+        [$step, $minimum] = self::MEASURES[$unit ?? ''] ?? [10, 10];
+
+        $scaled = self::divideRounded(self::thousandths($amount) * $to, $from);
+
+        return self::fromThousandths(max($minimum, self::divideRounded($scaled, $step) * $step));
+    }
+
+    /**
+     * A decimal string as buyers read it: "2.500" becomes "2,5".
+     */
+    public static function formatAmount(string $amount): string
+    {
+        $trimmed = str_contains($amount, '.') ? rtrim(rtrim($amount, '0'), '.') : $amount;
+
+        return str_replace('.', ',', $trimmed);
+    }
+
+    /**
+     * Each ingredient with its amount for 1 to 12 servings, as the servings
+     * stepper shows it: "10 siung". An ingredient without an amount
+     * ("secukupnya") has none.
+     *
+     * @return list<array{name: string, amounts: array<int, string>}>
+     */
+    public function ingredientsByServings(): array
+    {
+        return array_map(fn (array $ingredient): array => [
+            'name' => $ingredient['name'],
+            'amounts' => $ingredient['amount'] === null ? [] : self::byServings(
+                fn (int $servings): string => trim(self::formatAmount(self::scaleAmount((string) $ingredient['amount'], $ingredient['unit'], $this->servings, $servings)).' '.$ingredient['unit']),
+            ),
+        ], $this->ingredients);
+    }
+
+    /**
+     * The seafood to buy for the given servings, in kg with three decimals.
+     */
+    public function neededKg(int $servings): string
+    {
+        $grams = self::divideRounded(self::thousandths($this->needs['kg']) * $servings, $this->servings);
+
+        return intdiv($grams, 1000).'.'.str_pad((string) ($grams % 1000), 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * What to buy for the given servings, in kg from one kilo up and in grams
+     * below it: "1,25 kg kepiting bakau", "500 g kepiting bakau".
+     */
+    public function neededLabel(int $servings): string
+    {
+        $grams = self::thousandths($this->neededKg($servings));
+        $amount = $grams >= 1000 ? self::formatAmount(self::fromThousandths($grams)).' kg' : $grams.' g';
+
+        return $amount.' '.$this->neededName();
+    }
+
+    /**
+     * The seafood's name without the amount: "kepiting bakau".
+     */
+    public function neededName(): string
+    {
+        return (string) preg_replace('/^[\d.,]+\s*(kg|g)\s+/u', '', $this->needs['label']);
+    }
+
+    /**
+     * The price of the seafood for the given servings at a price per kg, in
+     * whole rupiah, rounded half up.
+     */
+    public function seafoodCost(int $pricePerKg, int $servings): int
+    {
+        return self::divideRounded($pricePerKg * self::thousandths($this->needs['kg']) * $servings, 1000 * $this->servings);
+    }
+
+    /**
+     * A value for each number of servings the stepper offers, 1 to 12.
+     *
+     * @template TValue
+     *
+     * @param  callable(int): TValue  $value
+     * @return array<int, TValue>
+     */
+    public static function byServings(callable $value): array
+    {
+        $values = [];
+
+        foreach (range(1, 12) as $servings) {
+            $values[$servings] = $value($servings);
+        }
+
+        return $values;
+    }
+
+    /**
+     * A decimal string as whole thousandths: "2.5" becomes 2500.
+     */
+    private static function thousandths(string $amount): int
+    {
+        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
+
+        return (int) $whole * 1000 + (int) str_pad(substr($fraction, 0, 3), 3, '0');
+    }
+
+    /**
+     * Whole thousandths as the shortest decimal string: 2500 becomes "2.5".
+     */
+    private static function fromThousandths(int $thousandths): string
+    {
+        $fraction = rtrim(str_pad((string) ($thousandths % 1000), 3, '0', STR_PAD_LEFT), '0');
+
+        return intdiv($thousandths, 1000).($fraction === '' ? '' : '.'.$fraction);
+    }
+
+    /**
+     * Integer division rounded half up, for non-negative numbers.
+     */
+    private static function divideRounded(int $dividend, int $divisor): int
+    {
+        return intdiv($dividend * 2 + $divisor, $divisor * 2);
+    }
 }

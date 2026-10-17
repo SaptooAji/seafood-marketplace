@@ -18,6 +18,7 @@ Route::livewire('/produk', Catalog::class)->name('catalog');
 Route::livewire('/produk/{slug}', ProductPage::class)->name('products.show');
 Route::get('/toko/{slug}', StoreController::class)->name('stores.show');
 Route::get('/resep', [RecipeController::class, 'index'])->name('recipes.index');
+Route::get('/resep/{slug}', [RecipeController::class, 'show'])->name('recipes.show');
 Route::get('/kredit-foto', PhotoCreditController::class)->name('credits');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/robots.txt', RobotsController::class)->name('robots');
