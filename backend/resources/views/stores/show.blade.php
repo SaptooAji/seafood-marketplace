@@ -120,15 +120,21 @@
                         <p class="leading-relaxed whitespace-pre-line">{{ $store->description }}</p>
                     </section>
                 @endif
-                {{-- A drawn map, not map tiles: no third-party script or request. --}}
-                <svg aria-hidden="true" viewBox="0 0 300 180" preserveAspectRatio="xMidYMid slice" class="h-44 w-full bg-primary-50">
-                    <path d="M0 130 C 70 115, 120 150, 180 138 S 260 112, 300 124 L 300 180 L 0 180 Z" fill="#CFE3D7"/>
-                    <path d="M30 0 L 70 180 M 0 60 L 300 82 M 200 0 L 178 180" stroke="#FFFFFF" stroke-width="7" fill="none" opacity="0.85"/>
-                    <g transform="translate(128 52) scale(1.8)">
-                        <path d="M12 22s-7-6.2-7-11.5A7 7 0 0 1 19 10.5C19 15.8 12 22 12 22z" fill="#2F5D46" stroke="#FFFFFF" stroke-width="1.5"/>
-                        <circle cx="12" cy="10.5" r="2.5" fill="#FFFFFF"/>
-                    </g>
-                </svg>
+                {{--
+                    resources/js/store-map.js draws a still Leaflet map with our pin over
+                    the drawn map once this scrolls into view; without JavaScript the
+                    drawing stays. The coordinates are already public (JSON-LD, DATA-4).
+                --}}
+                <div data-store-map data-lat="{{ $store->lat }}" data-lng="{{ $store->lng }}" role="img" aria-label="Peta lokasi {{ $store->name }}" class="relative isolate h-44 overflow-hidden bg-primary-50">
+                    <svg aria-hidden="true" viewBox="0 0 300 180" preserveAspectRatio="xMidYMid slice" class="h-44 w-full bg-primary-50">
+                        <path d="M0 130 C 70 115, 120 150, 180 138 S 260 112, 300 124 L 300 180 L 0 180 Z" fill="#CFE3D7"/>
+                        <path d="M30 0 L 70 180 M 0 60 L 300 82 M 200 0 L 178 180" stroke="#FFFFFF" stroke-width="7" fill="none" opacity="0.85"/>
+                        <g transform="translate(128 52) scale(1.8)">
+                            <path d="M12 22s-7-6.2-7-11.5A7 7 0 0 1 19 10.5C19 15.8 12 22 12 22z" fill="#2F5D46" stroke="#FFFFFF" stroke-width="1.5"/>
+                            <circle cx="12" cy="10.5" r="2.5" fill="#FFFFFF"/>
+                        </g>
+                    </svg>
+                </div>
                 <div class="flex flex-col gap-2.5 px-6 pt-4 pb-5">
                     <p class="leading-normal">{{ $store->address }}</p>
                     @unless ($store->is_demo)
