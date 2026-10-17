@@ -111,7 +111,7 @@ Komponen anonim di `backend/resources/views/components/`. Atribut tambahan seper
 | `<x-price>` | Harga rupiah `Rp185.000` dengan satuan opsional `/ kg`. Tidak ada `number_format` harga di view | `<x-price :amount="$variant->price" :unit="$variant->unit->label()" />` |
 | `<x-badge>` | Label kecil: `neutral` (kondisi), `ink` (jam stok dicek), `success` (siap kirim), `warning` (stok belum dikonfirmasi), `danger` (stok habis) | `<x-badge variant="warning">Belum dikonfirmasi</x-badge>` |
 | `<x-empty-state>` | Saat tidak ada isi, dengan aksi opsional (`action` dan `href`). `compact` untuk bingkai foto kosong | `<x-empty-state title="Belum ada produk" action="Hapus semua filter" href="/produk" />` |
-| `<x-product-card>` | Kartu produk di beranda, katalog, dan halaman toko | `<x-product-card :product="$product" :distance="$product->distance_km" />` |
+| `<x-product-card>` | Kartu produk putih di beranda, katalog, dan halaman toko. `tone="surface"` memberi kartu pasir untuk bagian berlatar putih | `<x-product-card :product="$product" :distance="$product->distance_km" />` |
 | `<x-logo>` | Tanda dan nama aplikasi di header | `<x-logo />` |
 
 ## Latar
