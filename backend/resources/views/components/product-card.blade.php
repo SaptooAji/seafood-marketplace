@@ -4,6 +4,7 @@
     A product in a list, on a white card: the photo with an optional label
     over it (when the stock was checked), the name, the store, and the
     starting price. `tone="surface"` gives a sand card for white bands.
+    Products of a demo store carry the "Toko contoh" label.
 --}}
 @php
     $image = $product->images->first();
@@ -21,6 +22,10 @@
 
         @if (filled($label))
             <x-badge variant="ink" class="absolute top-2 left-2">{{ $label }}</x-badge>
+        @endif
+
+        @if ($product->store->is_demo)
+            <x-badge variant="demo" class="absolute right-2 bottom-2">Toko contoh</x-badge>
         @endif
     </div>
 

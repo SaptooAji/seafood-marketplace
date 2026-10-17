@@ -92,6 +92,18 @@ class Product extends Model
     }
 
     /**
+     * Put the products of real stores before those of demo stores. Call it
+     * before any other order, so the buyer's sort applies within each group.
+     *
+     * @param  Builder<Product>  $query
+     */
+    #[Scope]
+    protected function realStoresFirst(Builder $query): void
+    {
+        $query->orderBy(Store::query()->select('is_demo')->whereColumn('stores.id', 'products.store_id'));
+    }
+
+    /**
      * The meta description for the product page: the seller's SEO summary, or
      * else the description on one line, cut at a word to fit with an ellipsis.
      */
@@ -115,7 +127,7 @@ class Product extends Model
     protected function withCardDetails(Builder $query): void
     {
         $query->with([
-            'store:id,name,slug,city',
+            'store:id,name,slug,city,is_demo',
             'images' => fn (HasMany $images) => $images->limit(1),
             'variants' => fn (HasMany $variants) => $variants
                 ->where('is_active', true)

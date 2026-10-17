@@ -116,9 +116,11 @@
                         <span>Tambah ke keranjang</span>
                         <span class="text-xs font-semibold">Segera hadir</span>
                     </x-button>
-                    <x-button variant="secondary" :href="$whatsappUrl" target="_blank" rel="noopener noreferrer" class="min-h-13 flex-[1_1_11rem]">
-                        Tanya lewat WhatsApp
-                    </x-button>
+                    @if ($whatsappUrl)
+                        <x-button variant="secondary" :href="$whatsappUrl" target="_blank" rel="noopener noreferrer" class="min-h-13 flex-[1_1_11rem]">
+                            Tanya lewat WhatsApp
+                        </x-button>
+                    @endif
                 </div>
 
                 @if ($product->sales_mode === \App\Enums\SalesMode::PreOrder)
@@ -140,7 +142,12 @@
                     @endif
                     <span class="flex min-w-0 flex-1 flex-col">
                         <span class="text-xs text-muted">Dijual oleh</span>
-                        <span class="truncate font-bold">{{ $product->store->name }}</span>
+                        <span class="flex min-w-0 items-center gap-2">
+                            <span class="truncate font-bold">{{ $product->store->name }}</span>
+                            @if ($product->store->is_demo)
+                                <x-badge variant="demo" class="shrink-0">Toko contoh</x-badge>
+                            @endif
+                        </span>
                         <span class="truncate text-sm text-muted">{{ $product->store->city }}</span>
                     </span>
                     <span class="shrink-0 text-sm font-semibold text-primary-700 group-hover:underline">Lihat toko</span>

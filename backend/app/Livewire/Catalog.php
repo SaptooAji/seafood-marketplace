@@ -200,6 +200,8 @@ class Catalog extends Component
 
         $this->applyDistance($query);
 
+        $query->realStoresFirst();
+
         match (true) {
             $this->sort === 'termurah' => $query->orderBy('min_price'),
             $this->sort === 'termahal' => $query->orderByDesc('min_price'),
