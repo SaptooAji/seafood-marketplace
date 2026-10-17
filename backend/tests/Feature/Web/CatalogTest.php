@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Enums\ProductCondition;
+use App\Enums\SalesMode;
+use App\Livewire\Catalog;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -232,15 +234,14 @@ describe('filters', function () {
             ->assertDontSee('Kepiting Bakau Super');
     })->with([
         'unknown category' => ['kategori=paus'],
-        'unknown store' => ['toko=toko-hantu'],
-        'suspended store' => ['toko=toko-ditangguhkan'],
         'unknown condition' => ['kondisi=busuk'],
         'minimum above maximum' => ['harga_min=200000&harga_maks=100000'],
     ]);
 
     it('keeps the filters in the URL', function () {
-        Livewire::withQueryParams(['q' => 'bakau', 'kategori' => 'kepiting', 'kondisi' => 'live', 'toko' => 'toko-bahari', 'harga_min' => '1000', 'harga_maks' => '200000', 'urut' => 'termurah'])
+        Livewire::withQueryParams(['q' => 'bakau', 'kategori' => 'kepiting', 'kondisi' => 'live', 'toko' => 'toko-bahari', 'pre_order' => '1', 'harga_min' => '1000', 'harga_maks' => '200000', 'urut' => 'termurah'])
             ->test('catalog')
+            ->assertSet('preOrder', '1')
             ->assertSet('q', 'bakau')
             ->assertSet('category', 'kepiting')
             ->assertSet('condition', 'live')
@@ -546,6 +547,7 @@ describe('active filters', function () {
             ->assertSet('category', '')
             ->assertSet('condition', '')
             ->assertSet('store', '')
+            ->assertSet('preOrder', '')
             ->assertSet('minPrice', '')
             ->assertSet('maxPrice', '')
             ->assertSet('radius', '')
@@ -571,7 +573,7 @@ describe('active filters', function () {
 });
 
 describe('filter panel and results', function () {
-    it('has a button that opens the filter panel on a phone', function () {
+    it('has a "Saring" button that opens the filter panel on a phone', function () {
         $this->get('/produk')
             ->assertOk()
             ->assertSee('aria-controls="panel-filter"', escape: false)
@@ -585,7 +587,7 @@ describe('filter panel and results', function () {
         $html = $this->get('/produk?kategori=kepiting&kondisi=live&urut=termurah')->assertOk()->getContent();
 
         expect(Str::between($html, 'aria-controls="panel-filter"', '</button>'))
-            ->toContain('Filter')
+            ->toContain('Saring')
             ->toMatch('/<span[^>]*>\s*2\s*<\/span>/');
     });
 
@@ -795,5 +797,361 @@ describe('category cards', function () {
         $many = catalogQueryCount('/produk?kondisi=live');
 
         expect($many)->toBe($few);
+    });
+});
+
+describe('condition filter', function () {
+    it('counts the visible products of each condition', function () {
+        catalogFixture();
+        catalogProduct(['category_id' => $this->cumiSegar->id, 'condition' => ProductCondition::Frozen]);
+        catalogProduct(['blocked_at' => now(), 'block_reason' => 'Foto tidak sesuai.', 'condition' => ProductCondition::Frozen]);
+
+        $this->get('/produk')
+            ->assertOk()
+            ->assertSee('data-condition-option="" data-count="4"', escape: false)
+            ->assertSee('data-condition-option="live" data-count="1"', escape: false)
+            ->assertSee('data-condition-option="fresh" data-count="1"', escape: false)
+            ->assertSee('data-condition-option="frozen" data-count="2"', escape: false)
+            ->assertSee('data-condition-option="marinated" data-count="0"', escape: false);
+    });
+
+    it('counts by the other filters but not by the condition itself', function () {
+        catalogFixture();
+
+        $this->get('/produk?kategori=kepiting&kondisi=live')
+            ->assertOk()
+            ->assertSee('data-condition-option="" data-count="2"', escape: false)
+            ->assertSee('data-condition-option="live" data-count="1"', escape: false)
+            ->assertSee('data-condition-option="frozen" data-count="1"', escape: false)
+            ->assertSee('data-condition-option="fresh" data-count="0"', escape: false);
+    });
+
+    it('offers the conditions as radio buttons bound to the filter', function () {
+        $html = $this->get('/produk')->assertOk()->getContent();
+
+        expect(substr_count($html, 'type="radio" name="condition"'))->toBe(count(ProductCondition::cases()) + 1)
+            ->and($html)->toContain('wire:model.live="condition"');
+    });
+
+    it('renders the panel with zero counts for an empty catalog', function () {
+        $this->get('/produk')
+            ->assertOk()
+            ->assertSee('id="panel-filter"', escape: false)
+            ->assertSee('data-condition-option="" data-count="0"', escape: false)
+            ->assertSee('data-condition-option="live" data-count="0"', escape: false);
+    });
+});
+
+describe('pre-order filter', function () {
+    beforeEach(function () {
+        catalogProduct(['name' => 'Kepiting Siap Kirim']);
+        catalogProduct(['name' => 'Kepiting Pesan Dulu', 'sales_mode' => SalesMode::PreOrder, 'daily_quota' => '20.000', 'lead_time_days' => 2, 'cutoff_time' => '15:00']);
+    });
+
+    it('shows only pre-order products with pre_order=1', function () {
+        $this->get('/produk?pre_order=1')
+            ->assertOk()
+            ->assertSee('Kepiting Pesan Dulu')
+            ->assertDontSee('Kepiting Siap Kirim')
+            ->assertSee('aria-label="Hapus filter Hanya pre order"', escape: false);
+    });
+
+    it('ignores any other value', function (string $value) {
+        $this->get('/produk?pre_order='.$value)
+            ->assertOk()
+            ->assertSee('Kepiting Pesan Dulu')
+            ->assertSee('Kepiting Siap Kirim')
+            ->assertDontSee('aria-label="Hapus filter Hanya pre order"', escape: false);
+    })->with(['ya', '0', '2', 'true']);
+
+    it('switches the filter on and off', function () {
+        Livewire::test('catalog')
+            ->call('togglePreOrder')
+            ->assertSet('preOrder', '1')
+            ->assertDontSee('Kepiting Siap Kirim')
+            ->call('togglePreOrder')
+            ->assertSet('preOrder', '')
+            ->assertSee('Kepiting Siap Kirim');
+    });
+
+    it('shows the switch with its state', function () {
+        expect($this->get('/produk?pre_order=1')->assertOk()->getContent())
+            ->toMatch('/role="switch"[^>]*aria-checked="true"/')
+            ->toContain('Hanya pre order')
+            ->toContain('wire:click="togglePreOrder"');
+    });
+
+    it('keeps the filter in the URL and removes it from its chip', function () {
+        Livewire::withQueryParams(['pre_order' => '1'])
+            ->test('catalog')
+            ->assertSet('preOrder', '1')
+            ->call('removeFilter', 'preOrder')
+            ->assertSet('preOrder', '')
+            ->assertSee('Kepiting Siap Kirim');
+    });
+
+    it('goes back to the first page when switched', function () {
+        Livewire::withQueryParams(['page' => 2])
+            ->test('catalog')
+            ->call('togglePreOrder')
+            ->assertSet('paginators.page', 1);
+    });
+});
+
+describe('store filter', function () {
+    beforeEach(function () {
+        $this->alpha = Store::factory()->active()->create(['name' => 'Toko Alpha', 'slug' => 'toko-alpha']);
+        $this->beta = Store::factory()->active()->create(['name' => 'Toko Beta', 'slug' => 'toko-beta']);
+        $this->gamma = Store::factory()->active()->create(['name' => 'Toko Gamma', 'slug' => 'toko-gamma']);
+
+        catalogProduct(['name' => 'Produk Alpha', 'condition' => ProductCondition::Live], store: $this->alpha);
+        catalogProduct(['name' => 'Produk Beta', 'condition' => ProductCondition::Frozen], store: $this->beta);
+        catalogProduct(['name' => 'Produk Gamma', 'condition' => ProductCondition::Live], store: $this->gamma);
+    });
+
+    it('filters by several stores at once', function () {
+        $this->get('/produk?toko=toko-alpha,toko-beta')
+            ->assertOk()
+            ->assertSee('Produk Alpha')
+            ->assertSee('Produk Beta')
+            ->assertDontSee('Produk Gamma')
+            ->assertSee('aria-label="Hapus filter Toko Alpha, Toko Beta"', escape: false);
+    });
+
+    it('still filters one store from an old link', function () {
+        $this->get('/produk?toko=toko-gamma')
+            ->assertOk()
+            ->assertSee('Produk Gamma')
+            ->assertDontSee('Produk Alpha');
+    });
+
+    it('ignores the slugs it does not know', function (string $stores, array $shown, array $hidden) {
+        Store::factory()->suspended()->create(['slug' => 'toko-ditangguhkan']);
+
+        $response = $this->get('/produk?toko='.$stores)->assertOk();
+
+        foreach ($shown as $name) {
+            $response->assertSee($name);
+        }
+        foreach ($hidden as $name) {
+            $response->assertDontSee($name);
+        }
+    })->with([
+        'only an unknown slug' => ['tidak-ada', ['Produk Alpha', 'Produk Beta', 'Produk Gamma'], []],
+        'a suspended store' => ['toko-ditangguhkan', ['Produk Alpha', 'Produk Beta', 'Produk Gamma'], []],
+        'a known and an unknown slug' => ['toko-alpha,tidak-ada', ['Produk Alpha'], ['Produk Beta', 'Produk Gamma']],
+        'empty items and spaces' => [',toko-beta,, ', ['Produk Beta'], ['Produk Alpha', 'Produk Gamma']],
+        'a slug longer than 100 characters' => [str_repeat('a', 101).',toko-beta', ['Produk Beta'], ['Produk Alpha', 'Produk Gamma']],
+    ]);
+
+    it('uses only the first 10 slugs', function () {
+        $slugs = [];
+
+        foreach (range(1, 11) as $number) {
+            $store = Store::factory()->active()->create(['slug' => "lapak-{$number}"]);
+            catalogProduct(['name' => "Produk Lapak {$number}."], store: $store);
+            $slugs[] = $store->slug;
+        }
+
+        $this->get('/produk?toko='.implode(',', $slugs))
+            ->assertOk()
+            ->assertSee('Produk Lapak 1.')
+            ->assertSee('Produk Lapak 10.')
+            ->assertDontSee('Produk Lapak 11.')
+            ->assertDontSee('Produk Alpha');
+    });
+
+    it('treats SQL in the slugs as plain text', function () {
+        $this->get('/produk?toko='.urlencode("a' OR 1=1--"))
+            ->assertOk()
+            ->assertSee('Produk Alpha')
+            ->assertSee('Produk Beta')
+            ->assertSee('Produk Gamma');
+
+        $this->get('/produk?toko='.urlencode("toko-alpha' OR 1=1--,toko-beta"))
+            ->assertOk()
+            ->assertSee('Produk Beta')
+            ->assertDontSee('Produk Alpha');
+    });
+
+    it('counts the products of each store by the other filters but not by the store itself', function () {
+        $this->get('/produk?kondisi=live&toko=toko-alpha')
+            ->assertOk()
+            ->assertSee('data-store-option="toko-alpha" data-count="1"', escape: false)
+            ->assertSee('data-store-option="toko-gamma" data-count="1"', escape: false)
+            ->assertSee('data-store-option="toko-beta" data-count="0"', escape: false);
+    });
+
+    it('offers the stores as checkboxes with their state', function () {
+        expect($this->get('/produk?toko=toko-beta')->assertOk()->getContent())
+            ->toMatch('/type="checkbox"[^>]*wire:click="toggleStore\(\'toko-beta\'\)"[^>]*checked/')
+            ->not->toMatch('/type="checkbox"[^>]*wire:click="toggleStore\(\'toko-alpha\'\)"[^>]*checked/');
+    });
+
+    it('adds and removes a store from the list', function () {
+        Livewire::test('catalog')
+            ->call('toggleStore', 'toko-alpha')
+            ->assertSet('store', 'toko-alpha')
+            ->call('toggleStore', 'toko-beta')
+            ->assertSet('store', 'toko-alpha,toko-beta')
+            ->assertDontSee('Produk Gamma')
+            ->call('toggleStore', 'toko-alpha')
+            ->assertSet('store', 'toko-beta')
+            ->call('toggleStore', 'toko-beta')
+            ->assertSet('store', '');
+    });
+
+    it('ignores a store it does not offer', function (string $slug) {
+        Store::factory()->suspended()->create(['slug' => 'toko-ditangguhkan']);
+
+        Livewire::test('catalog')->call('toggleStore', $slug)->assertSet('store', '');
+    })->with(['tidak-ada', 'toko-ditangguhkan']);
+
+    it('lists demo stores last with their label', function () {
+        $demo = Store::factory()->active()->demo()->create(['name' => 'Aaa Lapak Contoh', 'slug' => 'aaa-lapak-contoh']);
+        catalogProduct(store: $demo);
+
+        $html = $this->get('/produk')->assertOk()->getContent();
+        $option = Str::before(Str::after($html, 'data-store-option="aaa-lapak-contoh"'), '</label>');
+
+        expect($html)->toMatch('/data-store-option="toko-gamma".*data-store-option="aaa-lapak-contoh"/s')
+            ->and($option)->toContain('Toko contoh');
+    });
+
+    it('escapes the store names in the list', function () {
+        $store = Store::factory()->active()->create(['name' => '<script>alert(1)</script>', 'slug' => 'toko-jahat']);
+        catalogProduct(store: $store);
+
+        $this->get('/produk')
+            ->assertOk()
+            ->assertDontSee('<script>alert(1)</script>', escape: false)
+            ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', escape: false);
+    });
+
+    it('runs the same number of queries for 2 and 20 stores', function () {
+        $addStores = function (int $count) {
+            foreach (range(1, $count) as $i) {
+                catalogProduct(store: Store::factory()->active()->create());
+            }
+        };
+
+        $url = '/produk?toko=toko-alpha,toko-beta&kondisi=live&pre_order=1&harga_maks=500000';
+
+        $addStores(2);
+        $few = catalogQueryCount($url);
+
+        $addStores(18);
+        $many = catalogQueryCount($url);
+
+        expect($many)->toBe($few);
+    });
+});
+
+describe('price histogram', function () {
+    it('puts each product in the bar of its price range', function () {
+        catalogProduct(price: 20_000);
+        catalogProduct(price: 25_000);
+        catalogProduct(price: 180_000);
+
+        $html = $this->get('/produk')->assertOk()->getContent();
+
+        preg_match_all('/data-price-bar="(\d+)" data-count="(\d+)"/', $html, $bars);
+
+        expect($bars[1])->toBe(['1', '2', '3', '4', '5', '6', '7', '8'])
+            ->and($bars[2])->toBe(['2', '0', '0', '0', '0', '0', '0', '1'])
+            ->and(array_sum(array_map('intval', $bars[2])))->toBe(3);
+    });
+
+    it('uses the cheapest active variant of each product', function () {
+        $product = catalogProduct(price: 180_000);
+        ProductVariant::factory()->for($product)->create(['price' => 20_000]);
+        ProductVariant::factory()->for($product)->create(['price' => 5_000, 'is_active' => false]);
+        catalogProduct(price: 100_000);
+
+        preg_match_all('/data-price-bar="(\d+)" data-count="(\d+)"/', $this->get('/produk')->assertOk()->getContent(), $bars);
+
+        expect($bars[2][0])->toBe('1')
+            ->and(array_sum(array_map('intval', $bars[2])))->toBe(2);
+    });
+
+    it('shows one bar when every product has the same price', function () {
+        catalogProduct(price: 50_000);
+        catalogProduct(price: 50_000);
+
+        preg_match_all('/data-price-bar="(\d+)" data-count="(\d+)"/', $this->get('/produk')->assertOk()->getContent(), $bars);
+
+        expect($bars[1])->toBe(['1'])->and($bars[2])->toBe(['2']);
+    });
+
+    it('follows the other filters but not the price filter', function () {
+        catalogProduct(['condition' => ProductCondition::Live], 20_000);
+        catalogProduct(['condition' => ProductCondition::Live], 180_000);
+        catalogProduct(['condition' => ProductCondition::Frozen], 100_000);
+
+        preg_match_all('/data-price-bar="(\d+)" data-count="(\d+)"/', $this->get('/produk?kondisi=live&harga_maks=30000')->assertOk()->getContent(), $bars);
+
+        expect($bars[2])->toBe(['1', '0', '0', '0', '0', '0', '0', '1']);
+    });
+
+    it('shows no bars for an empty catalog', function () {
+        expect($this->get('/produk')->assertOk()->getContent())->not->toContain('data-price-bar=');
+    });
+
+    it('keeps the minimum and maximum price fields', function () {
+        $this->get('/produk')
+            ->assertOk()
+            ->assertSee('aria-label="Harga minimum"', escape: false)
+            ->assertSee('aria-label="Harga maksimum"', escape: false);
+    });
+});
+
+describe('radius segments', function () {
+    it('disables the radius options until the location is shared', function () {
+        $html = $this->get('/produk')->assertOk()->getContent();
+
+        foreach (Catalog::RADII as $km) {
+            expect($html)->toMatch('/data-radius-option="'.$km.'"[^>]*disabled/');
+        }
+
+        expect($html)->toContain('id="toko-terdekat"');
+    });
+
+    it('enables them once the location is known', function () {
+        $html = Livewire::test('catalog')->call('locate', -6.1754, 106.8272)->html();
+
+        foreach (Catalog::RADII as $km) {
+            expect($html)->toMatch('/data-radius-option="'.$km.'"/')
+                ->not->toMatch('/data-radius-option="'.$km.'"[^>]*disabled/');
+        }
+
+        expect($html)->toContain('wire:model.live="radius"');
+    });
+});
+
+describe('phone filter sheet', function () {
+    it('opens the filters as a sheet from a sticky bar', function () {
+        catalogFixture();
+
+        expect($this->get('/produk')->assertOk()->getContent())
+            ->toContain('aria-controls="panel-filter"')
+            ->toContain('Saring')
+            ->toContain('x-bind:aria-modal')
+            ->toContain('aria-label="Tutup saring"')
+            ->toContain('Atur ulang')
+            ->toContain('Tampilkan 3 produk')
+            ->toContain('x-on:keydown.escape');
+    });
+
+    it('counts the filtered products on the sheet button', function () {
+        catalogFixture();
+
+        $this->get('/produk?kategori=kepiting')->assertOk()->assertSee('Tampilkan 2 produk');
+    });
+
+    it('resets the filters from the sheet only when a filter is set', function () {
+        catalogFixture();
+
+        expect($this->get('/produk')->assertOk()->getContent())->toMatch('/data-reset-filters[^>]*disabled/')
+            ->and($this->get('/produk?kondisi=live')->assertOk()->getContent())->toMatch('/data-reset-filters[^>]*wire:click="clearFilters"/');
     });
 });
