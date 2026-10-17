@@ -18,6 +18,33 @@
         </button>
     </div>
 
+    @if ($categoryCards !== [])
+        {{-- Scrolls sideways on a phone; from lg six cards fill the row. --}}
+        <ul aria-label="Kategori" class="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 lg:mx-0 lg:scroll-px-0 lg:px-0">
+            @foreach ($categoryCards as $card)
+                <li wire:key="category-card-{{ $card['category']->id }}" class="w-36 shrink-0 snap-start lg:w-[calc((100%-3.75rem)/6)]">
+                    <button
+                        type="button"
+                        data-category-card="{{ $card['category']->slug }}"
+                        wire:click="toggleCategory({{ \Illuminate\Support\Js::from($card['category']->slug) }})"
+                        aria-pressed="{{ $category === $card['category']->slug ? 'true' : 'false' }}"
+                        class="group flex w-full flex-col gap-2 rounded-card bg-white p-2 text-left hover:bg-subtle focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-600 aria-pressed:bg-ink aria-pressed:text-white"
+                    >
+                        @if ($card['photo'])
+                            <img src="{{ $card['photo']->thumbnailUrl() }}" alt="" loading="lazy" class="aspect-[4/3] w-full rounded-photo bg-subtle object-cover">
+                        @else
+                            <x-empty-state compact title="Belum ada foto" class="aspect-[4/3] w-full rounded-photo" />
+                        @endif
+                        <span class="flex flex-col px-1 pb-1">
+                            <span class="truncate font-semibold">{{ $card['category']->name }}</span>
+                            <span class="text-xs text-muted group-aria-pressed:text-white/80">{{ $card['count'] }} produk</span>
+                        </span>
+                    </button>
+                </li>
+            @endforeach
+        </ul>
+    @endif
+
     <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
         <aside
             id="panel-filter"

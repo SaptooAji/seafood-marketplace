@@ -8,6 +8,7 @@ use App\Enums\ProductCondition;
 use App\Enums\StoreStatus;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Store;
 use App\View\Components\Layouts\App as Layout;
@@ -15,6 +16,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -146,6 +148,27 @@ class Catalog extends Component
         $this->resetPage();
     }
 
+    /**
+     * Filter by a root category from its card, or remove the filter when the
+     * card is already chosen. Any other slug is ignored.
+     */
+    public function toggleCategory(string $slug): void
+    {
+        if ($this->category === $slug) {
+            $this->category = '';
+            $this->resetPage();
+
+            return;
+        }
+
+        if (! Category::query()->whereNull('parent_id')->where('slug', $slug)->exists()) {
+            return;
+        }
+
+        $this->category = $slug;
+        $this->resetPage();
+    }
+
     public function updatedQ(): void
     {
         $this->q = $this->cutQuery($this->q);
@@ -171,6 +194,7 @@ class Catalog extends Component
             'located' => $this->isLocated(),
             'radii' => self::RADII,
             'categories' => $this->categoryOptions(),
+            'categoryCards' => $this->categoryCards(),
             'stores' => $stores,
             'activeFilters' => $this->activeFilters($category, $stores),
             'filtered' => $this->isFiltered() || $this->radius !== '',
@@ -218,13 +242,13 @@ class Catalog extends Component
      * @param  Builder<Product>  $query
      * @return bool false when a filter names something unknown, so nothing matches
      */
-    private function applyFilters(Builder $query, ?Category $category): bool
+    private function applyFilters(Builder $query, ?Category $category, bool $byCategory = true): bool
     {
         if ($this->q !== '') {
             $query->whereLike('products.name', '%'.$this->escapeLike($this->q).'%');
         }
 
-        if ($this->category !== '') {
+        if ($byCategory && $this->category !== '') {
             if ($category === null) {
                 return false;
             }
@@ -286,9 +310,41 @@ class Catalog extends Component
         $query->joinSub($distances, 'store_distances', 'store_distances.id', '=', 'products.store_id')
             ->addSelect('store_distances.distance_km');
 
-        if (in_array((int) $this->radius, self::RADII, true) && ctype_digit($this->radius)) {
-            $query->where('store_distances.distance_km', '<=', (int) $this->radius);
+        $radius = $this->radiusKm();
+
+        if ($radius !== null) {
+            $query->where('store_distances.distance_km', '<=', $radius);
         }
+    }
+
+    /**
+     * Keep only the products of stores within the chosen radius, without
+     * adding the distance to the selected columns.
+     *
+     * @param  Builder<Product>  $query
+     */
+    private function applyRadius(Builder $query): void
+    {
+        $radius = $this->radiusKm();
+
+        if ($this->lat === null || $this->lng === null || $radius === null) {
+            return;
+        }
+
+        $nearby = DB::query()
+            ->fromSub(Store::query()->select('stores.id')->withDistanceFrom($this->lat, $this->lng), 'store_distances')
+            ->where('distance_km', '<=', $radius)
+            ->select('id');
+
+        $query->whereIn('products.store_id', $nearby);
+    }
+
+    /**
+     * The chosen radius in km, or null when it is not one of the options.
+     */
+    private function radiusKm(): ?int
+    {
+        return ctype_digit($this->radius) && in_array((int) $this->radius, self::RADII, true) ? (int) $this->radius : null;
     }
 
     private function isLocated(): bool
@@ -334,6 +390,99 @@ class Catalog extends Component
     }
 
     /**
+     * A card for each root category with products matching every filter but
+     * the category itself, in admin order: the number of those products,
+     * subcategories included, and the first photo of the newest one that has
+     * a photo. Three queries, however many categories there are; the
+     * category tree is small enough to walk in memory.
+     *
+     * @return list<array{category: Category, count: int, photo: ProductImage|null}>
+     */
+    private function categoryCards(): array
+    {
+        $matching = Product::query()->visibleInCatalog();
+
+        if (! $this->applyFilters($matching, null, byCategory: false)) {
+            return [];
+        }
+
+        $this->applyRadius($matching);
+
+        /** @var array<int, int> $counts */
+        $counts = (clone $matching)->toBase()
+            ->select('products.category_id')
+            ->selectRaw('count(*) as product_count')
+            ->groupBy('products.category_id')
+            ->pluck('product_count', 'category_id')
+            ->all();
+
+        if ($counts === []) {
+            return [];
+        }
+
+        // The first photo of the newest product with a photo in each category.
+        $photos = ProductImage::query()
+            ->join('products', 'products.id', '=', 'product_images.product_id')
+            ->whereIn('product_images.product_id', $matching->select('products.id'))
+            ->selectRaw('distinct on (products.category_id) product_images.*, products.category_id as card_category_id, products.created_at as card_created_at')
+            ->orderBy('products.category_id')
+            ->orderByDesc('products.created_at')
+            ->orderByDesc('products.id')
+            ->orderBy('product_images.sort_order')
+            ->orderBy('product_images.id')
+            ->get()
+            ->sortByDesc('card_created_at');
+
+        $categories = Category::query()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'parent_id', 'name', 'slug'])
+            ->keyBy('id');
+
+        $rootOf = function (int $id) use ($categories): ?Category {
+            $category = $categories->get($id);
+            $seen = [];
+
+            while ($category !== null && $category->parent_id !== null && ! isset($seen[$category->id])) {
+                $seen[$category->id] = true;
+                $category = $categories->get($category->parent_id);
+            }
+
+            return $category;
+        };
+
+        $countByRoot = [];
+
+        foreach ($counts as $categoryId => $count) {
+            $root = $rootOf((int) $categoryId);
+
+            if ($root !== null) {
+                $countByRoot[$root->id] = ($countByRoot[$root->id] ?? 0) + (int) $count;
+            }
+        }
+
+        $photoByRoot = [];
+
+        foreach ($photos as $photo) {
+            $root = $rootOf((int) $photo->getAttribute('card_category_id'));
+
+            if ($root !== null && ! isset($photoByRoot[$root->id])) {
+                $photoByRoot[$root->id] = $photo;
+            }
+        }
+
+        $cards = [];
+
+        foreach ($categories as $category) {
+            if ($category->parent_id === null && isset($countByRoot[$category->id])) {
+                $cards[] = ['category' => $category, 'count' => $countByRoot[$category->id], 'photo' => $photoByRoot[$category->id] ?? null];
+            }
+        }
+
+        return $cards;
+    }
+
+    /**
      * The filters in effect, each with the label of its chip. A value that
      * names nothing known (it already empties the list) has no chip.
      *
@@ -344,7 +493,7 @@ class Catalog extends Component
     {
         $minPrice = $this->price($this->minPrice);
         $maxPrice = $this->price($this->maxPrice);
-        $radius = (int) $this->radius;
+        $radius = $this->radiusKm();
 
         $labels = [
             'q' => $this->q !== '' ? '“'.$this->q.'”' : null,
@@ -353,7 +502,7 @@ class Catalog extends Component
             'store' => $this->store !== '' ? $stores->firstWhere('slug', $this->store)?->name : null,
             'minPrice' => $minPrice !== null ? 'Mulai Rp'.number_format($minPrice, 0, ',', '.') : null,
             'maxPrice' => $maxPrice !== null ? 'Sampai Rp'.number_format($maxPrice, 0, ',', '.') : null,
-            'radius' => $this->isLocated() && ctype_digit($this->radius) && in_array($radius, self::RADII, true) ? "Dalam {$radius} km" : null,
+            'radius' => $this->isLocated() && $radius !== null ? "Dalam {$radius} km" : null,
         ];
 
         $filters = [];
