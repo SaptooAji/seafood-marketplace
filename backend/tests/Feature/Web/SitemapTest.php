@@ -80,6 +80,20 @@ describe('sitemap', function () {
         ]);
     });
 
+    it('leaves out demo stores and their products', function () {
+        sitemapProduct($this->store, ['slug' => 'produk-asli']);
+        $demo = Store::factory()->active()->demo()->create(['slug' => 'toko-contoh']);
+        sitemapProduct($demo, ['slug' => 'produk-toko-contoh']);
+        sitemapProduct(Store::factory()->suspended()->demo()->create(['slug' => 'toko-contoh-ditangguhkan']), ['slug' => 'produk-contoh-ditangguhkan']);
+
+        expect(array_keys(sitemapEntries($this->get('/sitemap.xml')->assertOk()->getContent())))->toEqualCanonicalizing([
+            url('/'),
+            url('/produk'),
+            url('/produk/produk-asli'),
+            url('/toko/toko-bahari'),
+        ]);
+    });
+
     it('is valid with only the home page and catalog when nothing is listed', function () {
         $this->store->forceFill(['status' => StoreStatus::Pending])->save();
 

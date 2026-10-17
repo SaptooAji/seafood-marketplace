@@ -9,6 +9,7 @@ use App\Filament\Admin\Resources\Stores\Actions\StoreStatusActions;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -29,6 +30,12 @@ class StoresTable
                     ->badge()
                     ->formatStateUsing(fn (StoreStatus $state): string => $state->label())
                     ->color(fn (StoreStatus $state): string => self::statusColor($state)),
+                // Read only: demo stores are only made by the demo seeder.
+                TextColumn::make('is_demo')
+                    ->label('Jenis')
+                    ->badge()
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Toko contoh' : 'Toko asli')
+                    ->color(fn (bool $state): string => $state ? 'gray' : 'success'),
                 TextColumn::make('rejection_reason')
                     ->label('Alasan penolakan')
                     ->placeholder('-')
@@ -44,6 +51,10 @@ class StoresTable
                     ->options(collect(StoreStatus::cases())->mapWithKeys(
                         fn (StoreStatus $status): array => [$status->value => $status->label()],
                     )),
+                TernaryFilter::make('is_demo')
+                    ->label('Toko contoh')
+                    ->trueLabel('Hanya toko contoh')
+                    ->falseLabel('Hanya toko asli'),
             ])
             ->recordActions([
                 ViewAction::make(),

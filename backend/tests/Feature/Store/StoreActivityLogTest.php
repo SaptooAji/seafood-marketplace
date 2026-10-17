@@ -91,3 +91,14 @@ it('never logs the bank account number', function () {
         ->and(json_encode(Activity::query()->get()->toArray()))->not->toContain('9876543210')
         ->and(storeUpdates($store))->toHaveCount(1);
 });
+
+it('records when a store becomes a demo store', function () {
+    $store = Store::factory()->create();
+
+    $store->forceFill(['is_demo' => true])->save();
+
+    $activity = storeUpdates($store)->sole();
+
+    expect($activity->attribute_changes['old']['is_demo'])->toBeFalse()
+        ->and($activity->attribute_changes['attributes']['is_demo'])->toBeTrue();
+});

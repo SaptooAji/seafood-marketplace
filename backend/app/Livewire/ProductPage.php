@@ -195,7 +195,7 @@ class ProductPage extends Component
     public function render(): View
     {
         $product = $this->product->load([
-            'store:id,name,slug,city,phone,logo',
+            'store:id,name,slug,city,phone,logo,is_demo',
             'category:id,name,slug,parent_id',
             'category.parent:id,name,slug',
             'images',
@@ -214,6 +214,8 @@ class ProductPage extends Component
             'description' => $product->metaDescription(),
             'ogType' => 'product',
             'image' => $product->images->first()?->url(),
+            // Demo stores are labelled examples; keep them out of search results.
+            'noindex' => $product->store->is_demo,
         ]);
     }
 

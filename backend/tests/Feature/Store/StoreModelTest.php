@@ -7,6 +7,7 @@ use App\Enums\StoreStatus;
 use App\Models\Store;
 use App\Models\StoreMember;
 use App\Models\User;
+use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -118,4 +119,37 @@ it('encrypts the bank account number at rest', function () {
     expect($stored)->not->toBe('1234567890')
         ->and($stored)->not->toContain('1234567890')
         ->and($store->fresh()->bank_account_no)->toBe('1234567890');
+});
+
+describe('demo stores (#184)', function () {
+    it('is a real store by default', function () {
+        $store = Store::factory()->create();
+
+        expect($store->fresh()->is_demo)->toBeFalse();
+    });
+
+    it('marks a store as a demo store with the factory state', function () {
+        expect(Store::factory()->demo()->create()->fresh()->is_demo)->toBeTrue();
+    });
+
+    it('defaults to false in the database', function () {
+        $store = Store::factory()->create();
+
+        expect(DB::table('stores')->where('id', $store->id)->value('is_demo'))->toBeFalse();
+    });
+
+    it('separates real stores from demo stores', function () {
+        $real = Store::factory()->create();
+        $demo = Store::factory()->demo()->create();
+
+        expect(Store::query()->real()->pluck('id')->all())->toBe([$real->id])
+            ->and(Store::query()->demo()->pluck('id')->all())->toBe([$demo->id]);
+    });
+
+    it('cannot be mass assigned', function () {
+        $store = Store::factory()->create();
+
+        expect(fn () => $store->fill(['is_demo' => true]))->toThrow(MassAssignmentException::class)
+            ->and($store->fresh()->is_demo)->toBeFalse();
+    });
 });

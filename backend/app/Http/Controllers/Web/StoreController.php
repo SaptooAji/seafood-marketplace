@@ -23,7 +23,7 @@ class StoreController extends Controller
         $store = Store::query()
             ->where('status', StoreStatus::Active)
             ->where('slug', $slug)
-            ->firstOrFail(['id', 'name', 'slug', 'description', 'phone', 'address', 'city', 'lat', 'lng', 'logo']);
+            ->firstOrFail(['id', 'name', 'slug', 'description', 'phone', 'address', 'city', 'lat', 'lng', 'logo', 'is_demo']);
 
         $products = $store->products()
             ->visibleInCatalog()
