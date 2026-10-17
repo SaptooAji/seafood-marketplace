@@ -745,7 +745,7 @@ describe('category cards', function () {
         catalogProduct();
 
         expect(categoryCard($this->get('/produk')->assertOk()->getContent(), 'kepiting'))
-            ->toContain('wire:click="toggleCategory(&#039;kepiting&#039;)"');
+            ->toContain('wire:click="toggleCategory(\'kepiting\')"');
     });
 
     it('counts only the products matching the other filters', function () {
@@ -783,12 +783,12 @@ describe('category cards', function () {
             foreach (range(1, $count) as $i) {
                 $root = Category::factory()->create();
                 $child = Category::factory()->childOf($root)->create();
-                ProductImage::factory()->for(catalogProduct(['category_id' => $child->id]))->create();
+                ProductImage::factory()->for(catalogProduct(['category_id' => $child->id, 'condition' => ProductCondition::Live]))->create();
             }
         };
 
-        catalogProduct();
-        catalogProduct(['category_id' => $this->cumiSegar->id]);
+        catalogProduct(['condition' => ProductCondition::Live]);
+        catalogProduct(['category_id' => $this->cumiSegar->id, 'condition' => ProductCondition::Live]);
         $few = catalogQueryCount('/produk?kondisi=live');
 
         $addCategories(6);
