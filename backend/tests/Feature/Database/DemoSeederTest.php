@@ -8,6 +8,7 @@ use App\Data\ShippingMethodData;
 use App\Enums\PlatformRole;
 use App\Enums\ProductCondition;
 use App\Enums\SalesMode;
+use App\Enums\ShippingMethodType;
 use App\Enums\StockMovementType;
 use App\Enums\StoreStatus;
 use App\Models\Category;
@@ -200,6 +201,21 @@ describe('demo stores', function () {
             expect($store->bank_account_no)->toBe('0000000000')
                 ->and($store->bank_account_name)->toBe('Toko contoh');
         }
+    });
+
+    it('gives every demo store active pickup, and a second choice when it delivers', function () {
+        $this->seed();
+
+        foreach (Store::query()->demo()->with('shippingMethods')->get() as $store) {
+            $active = $store->shippingMethods->where('is_active', true);
+            $delivers = $store->shippingMethods->contains('type', ShippingMethodType::OwnDelivery);
+
+            expect($active->pluck('type'))->toContain(ShippingMethodType::Pickup)
+                ->and($active)->toHaveCount($delivers ? 2 : 1);
+        }
+
+        expect(Store::query()->demo()->whereHas('shippingMethods', fn ($method) => $method->where('type', ShippingMethodType::OwnDelivery))->count())
+            ->toBeGreaterThan(0);
     });
 
     it('creates shipping methods that pass the SaveShippingMethod rules', function () {
