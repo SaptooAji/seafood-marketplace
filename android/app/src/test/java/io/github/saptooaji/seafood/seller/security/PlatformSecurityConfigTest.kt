@@ -1,5 +1,6 @@
 package io.github.saptooaji.seafood.seller.security
 
+import io.github.saptooaji.seafood.seller.core.session.data.SessionModule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -59,6 +60,16 @@ class PlatformSecurityConfigTest {
     }
 
     @Test
+    fun `backups and device transfers leave out the Tink keyset too`() {
+        val keyset = "${SessionModule.KEYSET_PREFS}.xml"
+        val rules = xml("src/main/res/xml/data_extraction_rules.xml")
+        for (section in listOf("cloud-backup", "device-transfer")) {
+            assertTrue(rules.single(section).excludes("sharedpref", keyset), "$section must exclude $keyset")
+        }
+        assertTrue(xml("src/main/res/xml/backup_rules.xml").documentElement.excludes("sharedpref", keyset))
+    }
+
+    @Test
     fun `only the main activity is exported`() {
         val application = xml("src/main/AndroidManifest.xml").single("application")
         val exported =
@@ -70,11 +81,12 @@ class PlatformSecurityConfigTest {
         assertEquals(listOf(".MainActivity"), exported)
     }
 
-    private fun Element.excludesDataStore(): Boolean =
-        all("exclude").any {
-            it.getAttribute("domain") == "file" &&
-                it.getAttribute("path") == "datastore/"
-        }
+    private fun Element.excludesDataStore(): Boolean = excludes("file", "datastore/")
+
+    private fun Element.excludes(
+        domain: String,
+        path: String,
+    ): Boolean = all("exclude").any { it.getAttribute("domain") == domain && it.getAttribute("path") == path }
 
     private fun xml(path: String): Document {
         val file = File(path)

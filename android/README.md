@@ -59,13 +59,22 @@ Di Git Bash Windows, jalankan `sh ./gradlew ...` kalau `./gradlew` tidak bisa di
 - **Test manifest rilis**: `app/src/testRelease`. Misalnya, hanya activity peluncur yang bisa dibuka aplikasi lain (MOB-8). Komponen tooling khusus debug tidak ikut diperiksa.
 - Robolectric menjalankan test di API 34 (`app/src/test/resources/robolectric.properties`). API 35 ke atas di Robolectric butuh Java 21, sedangkan proyek ini memakai JDK 17.
 
+## Memanggil API
+
+Setiap fitur membuat service Retrofit dari `Retrofit` yang disediakan Hilt (`NetworkModule`), lalu membungkus panggilannya dengan `apiCall(json) { service.something() }`. Hasilnya `ApiResult`, bukan exception: `Success`, `Invalid` (galat 422 per field), `Forbidden`, `NotFound`, `Conflict`, `TooManyRequests`, `ServerError`, atau `NetworkError`.
+
+- Token dipasang otomatis oleh `AuthInterceptor`, hanya ke host API dan tidak ke `auth/login`, `auth/register`, atau `auth/google`.
+- Jawaban 401 dari endpoint lain berarti token kedaluwarsa atau dicabut. Token dihapus, `SessionEvents` memancarkan `SignedOut`, dan aplikasi kembali ke layar pertama dengan back stack bersih. Layar tidak perlu menangani 401 sendiri.
+- Log HTTP hanya ada di build debug (tag `Http` di Logcat), dengan token, password, ID token Google, dan nomor rekening tersamar.
+
 ## Struktur
 
 ```
 app/src/main/java/io/github/saptooaji/seafood/seller/
   core/
     designsystem/theme/   # tema dari design/android/theme
-    network/              # ApiBaseUrl, nanti klien API (#230)
+    network/              # ApiBaseUrl, klien HTTP (Retrofit), ApiResult, AuthInterceptor
+    session/              # TokenStore terenkripsi (DataStore + Tink), SessionEvents
     util/                 # dispatcher coroutine (Hilt)
   feature/<nama>/{data,domain,ui}/
   navigation/             # NavHost dan route type-safe

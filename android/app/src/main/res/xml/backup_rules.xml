@@ -2,4 +2,5 @@
 <!-- Android 11 and older: the same rule as data_extraction_rules.xml (MOB-7). -->
 <full-backup-content>
     <exclude domain="file" path="datastore/" />
+    <exclude domain="sharedpref" path="seafood_session_keyset.xml" />
 </full-backup-content>
