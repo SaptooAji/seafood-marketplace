@@ -136,7 +136,7 @@ describe('404', function () {
         ProductVariant::factory()->for($product)->create([
             'price' => 185000,
             'unit' => 'kg',
-            'stock_confirmed_at' => Carbon::parse('2026-10-18 06:30', 'Asia/Jakarta'),
+            'stock_confirmed_at' => Carbon::parse('2026-10-18 06:30', 'Asia/Jakarta')->utc(),
         ]);
 
         $html = $this->get('/halaman-yang-tidak-ada')->assertNotFound()->getContent();
