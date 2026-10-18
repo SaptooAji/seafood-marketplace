@@ -128,13 +128,54 @@ jobs:
     needs: changes
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+
     steps:
       - uses: actions/checkout@v7
 
-      - name: Placeholder
-        run: |
-          echo "Android checks are added in Tahap 4."
-          if [ -d android ]; then ls -la android; fi
+      # JDK 17 compiles and runs the tests (jvmToolchain(17)); the Gradle
+      # daemon asks for JDK 21 (gradle/gradle-daemon-jvm.properties). The last
+      # version listed becomes JAVA_HOME.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+
+      # Also checks the Gradle wrapper JAR against the published checksums.
+      # The open-source `basic` cache keeps the Gradle home between runs.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          validate-wrappers: true
+
+      - name: ktlint
+        run: ./gradlew ktlintCheck
+
+      - name: detekt
+        run: ./gradlew detekt
+
+      - name: Android Lint
+        run: ./gradlew lintDebug
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest testReleaseUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/
+            android/app/build/test-results/
+          retention-days: 7
 
   # The only required status check in the main ruleset. Skipped jobs count as passed,
   # so new jobs only need to be added to `needs` here.

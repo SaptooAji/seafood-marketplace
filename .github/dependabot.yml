@@ -28,6 +28,21 @@ updates:
       npm-minor-and-patch:
         update-types: [minor, patch]
 
+  # Reads android/gradle/libs.versions.toml and the Gradle wrapper. Android
+  # Studio limits the AGP version (see the comment in libs.versions.toml), so
+  # an AGP bump may need to wait for an Android Studio update.
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [chore, android]
+    groups:
+      gradle-minor-and-patch:
+        update-types: [minor, patch]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
