@@ -74,9 +74,9 @@ class LoginScreenTest {
 
     @Test
     fun tooManyAttemptsShowsTheWaitAndDisablesTheButton() {
-        show(LoginUiState(retryAfterSeconds = 45, generalError = UiText.Resource(R.string.login_error_too_many, listOf(45L))))
+        show(LoginUiState(retryAfterSeconds = 45, generalError = UiText.Resource(R.string.auth_error_too_many, listOf(45L))))
 
-        compose.onNodeWithText(context.getString(R.string.login_error_too_many, 45L)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.auth_error_too_many, 45L)).assertIsDisplayed()
         compose.onNodeWithTag(LoginTags.SUBMIT).assertIsNotEnabled()
     }
 
