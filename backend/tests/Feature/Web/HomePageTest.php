@@ -575,10 +575,10 @@ describe('pre-order band', function () {
         expect(Str::position($panel, 'Pre Order Asli'))->toBeLessThan(Str::position($panel, 'Pre Order Contoh'));
     });
 
-    it('links to all pre-orders in the catalog', function () {
+    it('links to the all pre-orders page', function () {
         homePreOrder();
 
-        expect(homeSection('preorder-judul'))->toContain('Semua pre order')->toContain('href="'.url('/produk').'"');
+        expect(homeSection('preorder-judul'))->toContain('Semua pre order')->toContain('href="'.url('/pre-order').'"');
     });
 
     it('is not rendered without pre-order products, not even its heading', function () {

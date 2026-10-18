@@ -16,7 +16,7 @@ class SitemapController extends Controller
 {
     /**
      * The XML sitemap: the home page, the catalog, the recipe list and every
-     * recipe, the photo credits, every product buyers can see, and every
+     * recipe, the photo credits, the all pre-orders page, every product buyers can see, and every
      * active store. Demo stores and their
      * products are left out. Only slugs and dates are loaded, read in chunks
      * so memory stays small as the catalog grows.
