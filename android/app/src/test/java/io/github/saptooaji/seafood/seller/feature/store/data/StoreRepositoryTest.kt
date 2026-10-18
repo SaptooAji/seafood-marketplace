@@ -73,7 +73,7 @@ class StoreRepositoryTest {
             lat = BigDecimal("-6.1067000"),
             lng = BigDecimal("106.7740000"),
             bankName = "BCA",
-            bankAccountNo = "1234567890",
+            bankAccountNo = "7700112233",
             bankAccountName = "Budi Santoso",
         )
 
@@ -95,7 +95,7 @@ class StoreRepositoryTest {
         assertEquals("-6.1067000", body["lat"]!!.jsonPrimitive.content)
         assertEquals("106.7740000", body["lng"]!!.jsonPrimitive.content)
         assertEquals("BCA", body["bank_name"]!!.jsonPrimitive.content)
-        assertEquals("1234567890", body["bank_account_no"]!!.jsonPrimitive.content)
+        assertEquals("7700112233", body["bank_account_no"]!!.jsonPrimitive.content)
         assertEquals("Budi Santoso", body["bank_account_name"]!!.jsonPrimitive.content)
         // An empty description goes as null, never as "".
         assertTrue(body["description"] == null || body["description"] == JsonNull)
@@ -174,14 +174,14 @@ class StoreRepositoryTest {
 
         val log = lines.joinToString("\n")
         assertTrue(log.contains("seller/store"))
-        assertFalse(log.contains("1234567890"))
+        assertFalse(log.contains("7700112233"))
     }
 
     @Test
     fun `store details and a bank account never print the account number`() {
-        assertFalse(details.toString().contains("1234567890"))
-        assertFalse(BankAccount("BCA", "1234567890", "Budi Santoso").toString().contains("1234567890"))
-        assertFalse(FakeStoreRepository.PENDING_STORE.toString().contains("1234567890"))
+        assertFalse(details.toString().contains("7700112233"))
+        assertFalse(BankAccount("BCA", "7700112233", "Budi Santoso").toString().contains("7700112233"))
+        assertFalse(FakeStoreRepository.PENDING_STORE.toString().contains("7700112233"))
     }
 }
 
@@ -191,7 +191,7 @@ private const val PENDING_STORE_JSON =
         """"phone":"081234567890","address":"Jl. Dermaga Ujung No. 12, Muara Angke","city":"Jakarta Utara",""" +
         """"lat":"-6.1067000","lng":"106.7740000","status":{"value":"pending","label":"Menunggu Persetujuan"},""" +
         """"verified_at":null,"rejection_reason":null,"stock_reminder_time":null,""" +
-        """"bank":{"name":"BCA","account_no":"1234567890","account_name":"Budi Santoso"}}"""
+        """"bank":{"name":"BCA","account_no":"7700112233","account_name":"Budi Santoso"}}"""
 
 // The server's message under APP_LOCALE=en; the app shows its own text instead.
 private const val ACCOUNT_REFUSED = "The bank account no field format is invalid."

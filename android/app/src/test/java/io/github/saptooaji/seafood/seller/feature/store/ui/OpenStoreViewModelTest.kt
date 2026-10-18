@@ -182,7 +182,8 @@ class OpenStoreViewModelTest {
     @Test
     fun `an account number the server refuses shows under the account field`() =
         runTest(main.dispatcher) {
-            repository.openResult = ApiResult.Invalid(mapOf("bank_account_no" to listOf("The bank account no field format is invalid.")), null)
+            repository.openResult =
+                ApiResult.Invalid(mapOf("bank_account_no" to listOf("The bank account no field format is invalid.")), null)
             val vm = viewModel()
             vm.fill()
 

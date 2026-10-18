@@ -30,7 +30,13 @@ class MapTilesTest {
     fun `tile requests carry the app's user agent instead of the map library's`() {
         MockWebServer().use { server ->
             server.start()
-            server.enqueue(MockResponse.Builder().code(200).body("png").build())
+            server.enqueue(
+                MockResponse
+                    .Builder()
+                    .code(200)
+                    .body("png")
+                    .build(),
+            )
 
             MapTiles
                 .httpClient("0.4.0")
@@ -53,7 +59,11 @@ class MapTilesTest {
     fun `tiles come from the OpenStreetMap tile server`() {
         assertEquals("https://tile.openstreetmap.org/{z}/{x}/{y}.png", MapTiles.TILE_URL)
 
-        val source = style()["sources"]!!.jsonObject.values.single().jsonObject
+        val source =
+            style()["sources"]!!
+                .jsonObject.values
+                .single()
+                .jsonObject
         assertEquals("raster", source["type"]!!.jsonPrimitive.content)
         assertEquals(listOf(MapTiles.TILE_URL), source["tiles"]!!.jsonArray.map { it.jsonPrimitive.content })
         assertEquals(256, source["tileSize"]!!.jsonPrimitive.int)

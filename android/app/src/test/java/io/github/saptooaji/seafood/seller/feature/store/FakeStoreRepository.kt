@@ -38,7 +38,7 @@ class FakeStoreRepository : StoreRepository {
                 status = StoreStatus.Pending,
                 statusLabel = "Menunggu Persetujuan",
                 rejectionReason = null,
-                bank = BankAccount(name = "BCA", accountNo = "1234567890", accountName = "Budi Santoso"),
+                bank = BankAccount(name = "BCA", accountNo = "7700112233", accountName = "Budi Santoso"),
             )
     }
 }

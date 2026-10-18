@@ -1,7 +1,6 @@
 package io.github.saptooaji.seafood.seller.feature.store.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -77,7 +76,8 @@ class OpenStoreScreenTest {
             .performClick()
 
         val fields = StoreField.entries.filter { it != StoreField.Pin }
-        val changed = events.filterIsInstance<OpenStoreEvent.FieldChanged>()
+        // A field of a stateless screen also reports "" when the focus leaves it.
+        val changed = events.filterIsInstance<OpenStoreEvent.FieldChanged>().filter { it.value.isNotEmpty() }
         assertEquals(fields.zip(typed.map { it.second }).toSet(), changed.map { it.field to it.value }.toSet())
         assertEquals(OpenStoreEvent.Submit, events.last())
     }
