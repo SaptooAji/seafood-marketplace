@@ -3,6 +3,8 @@
     <string name="app_name">Seafood Marketplace</string>
     <string name="welcome_tagline">Aplikasi penjual</string>
 
+    <string name="action_back">Kembali</string>
+
     <!-- Errors any screen can show -->
     <string name="error_network">Tidak ada koneksi. Periksa internet lalu coba lagi.</string>
     <string name="error_server">Server sedang bermasalah. Coba lagi sebentar lagi.</string>
@@ -22,10 +24,33 @@
     <string name="login_register_prompt">Belum punya akun?</string>
     <string name="login_register_link">Daftar sebagai penjual</string>
     <string name="login_session_expired">Sesi berakhir, silakan masuk lagi.</string>
-    <string name="login_error_email_required">Email wajib diisi.</string>
-    <string name="login_error_email_invalid">Format email belum benar, contoh: budi@example.com.</string>
-    <string name="login_error_email_too_long">Email maksimal 255 karakter.</string>
+    <string name="auth_error_email_required">Email wajib diisi.</string>
+    <string name="auth_error_email_invalid">Format email belum benar, contoh: budi@example.com.</string>
+    <string name="auth_error_email_too_long">Email maksimal 255 karakter.</string>
     <string name="login_error_password_required">Password wajib diisi.</string>
     <string name="login_error_credentials">Email atau password salah.</string>
-    <string name="login_error_too_many">Terlalu banyak percobaan. Coba lagi dalam %1$d detik.</string>
+    <string name="auth_error_too_many">Terlalu banyak percobaan. Coba lagi dalam %1$d detik.</string>
+
+    <!-- Registration (VD-Daftar) -->
+    <string name="register_title">Buat akun penjual</string>
+    <string name="register_subtitle">Akun dulu, lalu data toko. Admin memeriksa toko sebelum tampil ke pembeli.</string>
+    <string name="register_step_account">1. Akun</string>
+    <string name="register_step_store">2. Data toko</string>
+    <string name="register_name_label">Nama lengkap</string>
+    <string name="register_email_label">Email</string>
+    <string name="register_phone_label">Nomor HP</string>
+    <string name="register_phone_help">Diawali 08 atau +628</string>
+    <string name="register_password_label">Password</string>
+    <string name="register_password_help">Minimal 8 karakter</string>
+    <string name="register_password_confirmation_label">Ulangi password</string>
+    <string name="register_submit">Lanjut ke data toko</string>
+    <string name="register_submitting">Membuat akun…</string>
+    <string name="register_login_prompt">Sudah punya akun?</string>
+    <string name="register_login_link">Masuk</string>
+    <string name="register_error_name_required">Nama wajib diisi.</string>
+    <string name="register_error_name_too_long">Nama maksimal 255 karakter.</string>
+    <string name="register_error_email_taken">Email ini sudah dipakai. Masuk dengan email ini, atau pakai email lain.</string>
+    <string name="register_error_phone_invalid">Nomor HP diawali 08 atau +628, lalu 8–13 angka.</string>
+    <string name="register_error_password_too_short">Password minimal 8 karakter.</string>
+    <string name="register_error_password_mismatch">Password tidak sama.</string>
 </resources>

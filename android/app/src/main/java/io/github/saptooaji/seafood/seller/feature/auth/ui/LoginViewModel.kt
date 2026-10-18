@@ -7,9 +7,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.util.UiText
+import io.github.saptooaji.seafood.seller.core.util.launchCountdown
 import io.github.saptooaji.seafood.seller.feature.auth.domain.AuthRepository
 import io.github.saptooaji.seafood.seller.feature.auth.domain.User
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,7 +56,7 @@ class LoginViewModel
 
             // The email is trimmed; the password is sent exactly as typed.
             val email = state.email.trim()
-            val emailError = validateEmail(email)
+            val emailError = AuthInput.emailError(email)
             val passwordError = if (state.password.isEmpty()) UiText.Resource(R.string.login_error_password_required) else null
             if (emailError != null || passwordError != null) {
                 _uiState.update { it.copy(emailError = emailError, passwordError = passwordError) }
@@ -77,22 +77,22 @@ class LoginViewModel
                 // AUTH-3: one message whatever the reason, in the app's own words.
                 is ApiResult.Invalid, ApiResult.Unauthorized ->
                     _uiState.update { it.copy(emailError = UiText.Resource(R.string.login_error_credentials)) }
-                is ApiResult.TooManyRequests -> countDown(result.retryAfterSeconds ?: DEFAULT_RETRY_AFTER_SECONDS)
+                is ApiResult.TooManyRequests -> countDown(result.retryAfterSeconds ?: AuthInput.DEFAULT_RETRY_AFTER_SECONDS)
                 ApiResult.NetworkError -> showGeneralError(UiText.Resource(R.string.error_network))
                 else -> showGeneralError(UiText.Resource(R.string.error_server))
             }
         }
 
         private fun countDown(seconds: Long) {
-            viewModelScope.launch {
-                for (left in seconds downTo 1) {
+            viewModelScope.launchCountdown(
+                seconds = seconds,
+                onTick = { left ->
                     _uiState.update {
-                        it.copy(retryAfterSeconds = left, generalError = UiText.Resource(R.string.login_error_too_many, listOf(left)))
+                        it.copy(retryAfterSeconds = left, generalError = UiText.Resource(R.string.auth_error_too_many, listOf(left)))
                     }
-                    delay(ONE_SECOND_MILLIS)
-                }
-                _uiState.update { it.copy(retryAfterSeconds = 0, generalError = null) }
-            }
+                },
+                onDone = { _uiState.update { it.copy(retryAfterSeconds = 0, generalError = null) } },
+            )
         }
 
         private fun showGeneralError(text: UiText) {
@@ -102,24 +102,10 @@ class LoginViewModel
         /** A 429 message stays until its countdown ends; other general errors clear on typing. */
         private fun LoginUiState.clearGeneralError() = if (retryAfterSeconds > 0) this else copy(generalError = null)
 
-        private fun validateEmail(email: String): UiText? =
-            when {
-                email.isEmpty() -> UiText.Resource(R.string.login_error_email_required)
-                email.length > MAX_EMAIL_LENGTH -> UiText.Resource(R.string.login_error_email_too_long)
-                !EMAIL_PATTERN.matches(email) -> UiText.Resource(R.string.login_error_email_invalid)
-                else -> null
-            }
-
         private companion object {
             const val KEY_EMAIL = "email"
 
             /** The argument of `LoginRoute`, filled in by Navigation. */
             const val KEY_SESSION_EXPIRED = "sessionExpired"
-            const val MAX_EMAIL_LENGTH = 255
-            const val DEFAULT_RETRY_AFTER_SECONDS = 60L
-            const val ONE_SECOND_MILLIS = 1_000L
-
-            // A light check before sending; the server has the final say.
-            val EMAIL_PATTERN = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")
         }
     }

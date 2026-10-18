@@ -12,6 +12,11 @@ interface AuthApi {
         @Body request: LoginRequest,
     ): Response<TokenResponse>
 
+    @POST("auth/register")
+    suspend fun register(
+        @Body request: RegisterRequest,
+    ): Response<TokenResponse>
+
     @GET("me")
     suspend fun me(): Response<DataEnvelope<UserDto>>
 }

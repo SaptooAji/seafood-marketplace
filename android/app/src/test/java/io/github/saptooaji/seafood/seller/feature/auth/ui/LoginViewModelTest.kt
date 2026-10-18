@@ -101,7 +101,7 @@ class LoginViewModelTest {
             advanceUntilIdle()
 
             assertTrue(repository.loginCalls.isEmpty())
-            assertEquals(UiText.Resource(R.string.login_error_email_too_long), vm.uiState.value.emailError)
+            assertEquals(UiText.Resource(R.string.auth_error_email_too_long), vm.uiState.value.emailError)
         }
 
     @Test
@@ -158,12 +158,12 @@ class LoginViewModelTest {
             vm.onEvent(LoginEvent.Submit)
             runCurrent()
 
-            assertEquals(UiText.Resource(R.string.login_error_too_many, listOf(45L)), vm.uiState.value.generalError)
+            assertEquals(UiText.Resource(R.string.auth_error_too_many, listOf(45L)), vm.uiState.value.generalError)
             assertFalse(vm.uiState.value.canSubmit)
 
             advanceTimeBy(30_000)
             runCurrent()
-            assertEquals(UiText.Resource(R.string.login_error_too_many, listOf(15L)), vm.uiState.value.generalError)
+            assertEquals(UiText.Resource(R.string.auth_error_too_many, listOf(15L)), vm.uiState.value.generalError)
 
             advanceTimeBy(15_000)
             runCurrent()

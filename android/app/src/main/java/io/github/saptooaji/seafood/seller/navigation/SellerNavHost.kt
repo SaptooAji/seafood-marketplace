@@ -2,12 +2,14 @@ package io.github.saptooaji.seafood.seller.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginScreen
+import io.github.saptooaji.seafood.seller.feature.auth.ui.RegisterScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
 import io.github.saptooaji.seafood.seller.feature.welcome.ui.WelcomeScreen
 import kotlinx.coroutines.flow.Flow
@@ -41,8 +43,17 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
         composable<LoginRoute> {
             LoginScreen(
                 onLoggedIn = { navController.startOver(WelcomeRoute) },
-                // Registration arrives in #232.
-                onRegister = {},
+                onRegister = dropUnlessResumed { navController.navigate(RegisterRoute) },
+            )
+        }
+        composable<RegisterRoute> {
+            // Drops a second tap while the pop animates, so it never pops sign-in too.
+            val backToLogin = dropUnlessResumed { navController.popBackStack() }
+            RegisterScreen(
+                // Opening a store (#234) comes next; until then the placeholder home.
+                onRegistered = { navController.startOver(WelcomeRoute) },
+                onBack = backToLogin,
+                onLogin = backToLogin,
             )
         }
         composable<WelcomeRoute> { WelcomeScreen() }

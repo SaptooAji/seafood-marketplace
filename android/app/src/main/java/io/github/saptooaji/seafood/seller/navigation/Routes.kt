@@ -15,6 +15,10 @@ data class LoginRoute(
     val sessionExpired: Boolean = false,
 )
 
+/** Creating a seller account, opened from sign-in. */
+@Serializable
+data object RegisterRoute
+
 /** Where a signed-in seller lands, until the store status route in #235. */
 @Serializable
 data object WelcomeRoute

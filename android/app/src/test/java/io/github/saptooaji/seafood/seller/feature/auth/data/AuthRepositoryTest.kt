@@ -6,6 +6,7 @@ import io.github.saptooaji.seafood.seller.core.network.FakeTokenStore
 import io.github.saptooaji.seafood.seller.core.network.HttpClients
 import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.core.session.SessionEvents
+import io.github.saptooaji.seafood.seller.feature.auth.domain.Registration
 import io.github.saptooaji.seafood.seller.feature.auth.domain.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -101,6 +102,45 @@ class AuthRepositoryTest {
         assertNull(io { tokenStore.token().first() })
     }
 
+    private val registration = Registration("Budi Santoso", "budi@example.com", "081234567890", "rahasia123", "rahasia123")
+
+    @Test
+    fun `registering stores the token and returns the new user`() {
+        server.enqueue(json(201, """{"token":"sfm_new","user":$BUDI_JSON}"""))
+
+        val result = io { repository.register(registration) }
+
+        assertEquals(ApiResult.Success(User(7, "Budi Santoso", "budi@example.com", "081234567890", null)), result)
+        assertEquals("sfm_new", io { tokenStore.token().first() })
+    }
+
+    @Test
+    fun `registering sends every field, the confirmation, and the device name`() {
+        server.enqueue(json(201, """{"token":"sfm_new","user":$BUDI_JSON}"""))
+
+        io { repository.register(registration) }
+
+        val request = server.takeRequest()
+        assertEquals("/api/v1/auth/register", request.url.encodedPath)
+        val body = Json.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals("Budi Santoso", body["name"]!!.jsonPrimitive.content)
+        assertEquals("budi@example.com", body["email"]!!.jsonPrimitive.content)
+        assertEquals("081234567890", body["phone"]!!.jsonPrimitive.content)
+        assertEquals("rahasia123", body["password"]!!.jsonPrimitive.content)
+        assertEquals("rahasia123", body["password_confirmation"]!!.jsonPrimitive.content)
+        assertEquals("Google Pixel 9", body["device_name"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `a refused registration stores no token`() {
+        server.enqueue(json(422, """{"message":"$TAKEN","errors":{"email":["$TAKEN"]}}"""))
+
+        val result = io { repository.register(registration) }
+
+        assertEquals(ApiResult.Invalid(mapOf("email" to listOf(TAKEN)), TAKEN), result)
+        assertNull(io { tokenStore.token().first() })
+    }
+
     @Test
     fun `me reads the user from the data wrapper`() {
         tokenStore.state.value = "sfm_abc"
@@ -139,3 +179,4 @@ private const val BUDI_WITH_AVATAR_JSON = """{$BUDI_FIELDS,"avatar":"https://exa
 
 // The server's message under APP_LOCALE=en; the app shows its own text instead (AUTH-3).
 private const val REFUSED = "These credentials do not match our records."
+private const val TAKEN = "The email has already been taken."
