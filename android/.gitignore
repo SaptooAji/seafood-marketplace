@@ -1,0 +1,20 @@
+# Machine-specific settings: SDK path, API URL, Google client ID.
+local.properties
+
+# Build output and caches
+build/
+.gradle/
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio
+*.iml
+.idea/
+.DS_Store
+
+# Secrets: signing keys and Firebase config never go to Git
+*.jks
+*.keystore
+google-services.json
