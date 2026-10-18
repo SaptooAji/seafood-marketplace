@@ -25,6 +25,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Test the area detection
+        run: sh .githooks/tests/areas.sh
+
       - name: Compare with base
         id: filter
         env:
@@ -37,15 +40,18 @@ jobs:
             exit 0
           fi
 
-          changed=$(git diff --name-only "$BASE_SHA" "$GITHUB_SHA")
+          changed=$(git -c core.quotePath=false diff --name-only "$BASE_SHA" "$GITHUB_SHA")
           echo "$changed"
 
-          # A change to this workflow runs every job.
-          match() {
-            if echo "$changed" | grep -qE "^($1|\.github/workflows/ci\.yml$)"; then echo true; else echo false; fi
+          # Same rules as the pre-push hook: a change to this workflow or a
+          # hook runs every job.
+          . .githooks/_areas.sh
+          areas=$(printf '%s\n' "$changed" | areas_for_files)
+          has() {
+            if echo "$areas" | grep -qx "$1"; then echo true; else echo false; fi
           }
-          echo "backend=$(match 'backend/')" >> "$GITHUB_OUTPUT"
-          echo "android=$(match 'android/')" >> "$GITHUB_OUTPUT"
+          echo "backend=$(has backend)" >> "$GITHUB_OUTPUT"
+          echo "android=$(has android)" >> "$GITHUB_OUTPUT"
 
   backend:
     name: Backend
