@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Data\ShippingMethodData;
 use App\Data\StoreData;
+use App\Enums\ShippingFeeType;
+use App\Enums\ShippingMethodType;
 use App\Enums\StoreRole;
 use App\Exceptions\UserAlreadyOwnsStore;
 use App\Models\Store;
@@ -17,9 +20,13 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateStore
 {
+    public function __construct(private SaveShippingMethod $saveShippingMethod) {}
+
     /**
-     * Create a pending store with a unique slug and make the user its owner.
-     * The store and the membership are saved together or not at all.
+     * Create a pending store with a unique slug, make the user its owner, and
+     * give it an active pickup method, the default way to receive an order.
+     * The store, the membership, and the method are saved together or not at
+     * all.
      *
      * @throws UserAlreadyOwnsStore when the user already owns a store
      */
@@ -36,6 +43,8 @@ class CreateStore
             ]);
 
             $store->users()->attach($owner, ['role' => StoreRole::Owner->value]);
+
+            $this->saveShippingMethod->handle($store, new ShippingMethodData(ShippingMethodType::Pickup, ShippingFeeType::Flat, null, 0, null, null));
 
             // Load the database defaults, such as the pending status.
             return $store->refresh();

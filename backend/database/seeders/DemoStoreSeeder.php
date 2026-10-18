@@ -75,14 +75,14 @@ class DemoStoreSeeder extends Seeder
     }
 
     /**
-     * The demo stores by slug.
+     * The demo stores by slug. Every store gets pickup from CreateStore
+     * (and existing ones from the default pickup migration); `shipping`
+     * lists only the extra ways to receive an order.
      *
      * @return array<string, array{owner: string, data: StoreData, shipping: list<ShippingMethodData>}>
      */
     private function stores(): array
     {
-        $pickup = new ShippingMethodData(ShippingMethodType::Pickup, ShippingFeeType::Flat, null, 0, null, null);
-
         return [
             'ud-kepiting-pak-budi' => [
                 'owner' => 'Budi Santoso',
@@ -96,7 +96,6 @@ class DemoStoreSeeder extends Seeder
                 ),
                 'shipping' => [
                     new ShippingMethodData(ShippingMethodType::OwnDelivery, ShippingFeeType::PerKm, '20', null, 3_000, 10_000),
-                    $pickup,
                 ],
             ],
             'lapak-bu-sari' => [
@@ -111,7 +110,6 @@ class DemoStoreSeeder extends Seeder
                 ),
                 'shipping' => [
                     new ShippingMethodData(ShippingMethodType::OwnDelivery, ShippingFeeType::Flat, '10', 10_000, null, null),
-                    $pickup,
                 ],
             ],
             'pantai-indah' => [
@@ -126,7 +124,6 @@ class DemoStoreSeeder extends Seeder
                 ),
                 'shipping' => [
                     new ShippingMethodData(ShippingMethodType::OwnDelivery, ShippingFeeType::Flat, '12', 15_000, null, null),
-                    $pickup,
                 ],
             ],
             'bahari-kalibaru' => [
@@ -139,7 +136,7 @@ class DemoStoreSeeder extends Seeder
                     '-6.1030000',
                     '106.9230000',
                 ),
-                'shipping' => [$pickup],
+                'shipping' => [],
             ],
             'muara-baru-jaya' => [
                 'owner' => 'Agus Prasetyo',
@@ -153,7 +150,6 @@ class DemoStoreSeeder extends Seeder
                 ),
                 'shipping' => [
                     new ShippingMethodData(ShippingMethodType::OwnDelivery, ShippingFeeType::PerKm, '25', null, 2_500, 12_000),
-                    $pickup,
                 ],
             ],
             'tambak-marunda' => [

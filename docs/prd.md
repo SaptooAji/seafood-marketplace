@@ -33,7 +33,7 @@ Ada tiga peran di MVP. Aplikasi kurir belum dibuat; setiap toko memilih metode p
 **Penjual (Android)**
 
 - Register sebagai penjual, isi profil toko, **pin lokasi toko di peta**, dan rekening bank, menunggu verifikasi admin
-- Atur **metode pengiriman** toko: diantar sendiri (radius, tarif flat atau per km dengan minimum), ambil di tempat, ojek online, ekspedisi
+- Atur **metode pengiriman** toko: diantar sendiri (radius, tarif flat atau per km dengan minimum), ambil di tempat, ojek online, ekspedisi. Setiap toko baru langsung punya "Ambil sendiri" yang aktif dan gratis sebagai cara terima bawaan. Penjual boleh mematikannya, asalkan toko tetap punya minimal satu metode aktif, sehingga pembeli selalu punya pilihan
 - CRUD produk: foto (beberapa), nama, deskripsi, kategori beserta atribut wajibnya, kondisi, mode penjualan (ready stock, atau pre-order dengan kuota harian, lead time, dan jam tutup pesanan), varian (grade/ukuran, satuan, harga, stok)
 - **Deskripsi dengan AI:** tombol "Buat deskripsi dengan AI" menyusun deskripsi dan ringkasan SEO dari nama, kategori, atribut, kondisi, mode jual, dan cara penyimpanan; hanya fakta yang diisi penjual, tanpa harga dan klaim kesehatan. Hasilnya saran yang ditinjau dan bisa diedit penjual sebelum disimpan
 - **Stok harian:** pengingat di jam pilihan penjual membuka layar Stok hari ini; tombol "Sama seperti kemarin" atau +/- cepat per varian
