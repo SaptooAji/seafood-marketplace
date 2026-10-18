@@ -6,4 +6,5 @@ object LoginTags {
     const val PASSWORD = "login_password"
     const val SUBMIT = "login_submit"
     const val REGISTER = "login_register"
+    const val GOOGLE = "login_google"
 }

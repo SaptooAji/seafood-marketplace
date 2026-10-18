@@ -38,6 +38,17 @@ Setelah itu `localhost:8000` di HP diteruskan ke komputer. HP tidak perlu satu W
 | --- | --- | --- |
 | `seafood.apiBaseUrl` | Alamat API build debug. Boleh alamat root (`http://localhost:8000`) atau lengkap; `/api/v1/` ditambahkan otomatis | `http://10.0.2.2:8000/api/v1/` |
 | `seafood.releaseApiBaseUrl` | Alamat API build rilis, wajib `https://`. Build gagal kalau memakai `http://` | `https://seafood.invalid/api/v1/` (diisi di Tahap 7) |
+| `seafood.googleServerClientId` | Client ID **web** Google (sama dengan `GOOGLE_CLIENT_ID` di `backend/.env`). Aplikasi meminta ID token untuk client ini, dan server memeriksanya di `GOOGLE_ALLOWED_CLIENT_IDS`. Publik, bukan rahasia (MOB-2) | kosong: tombol "Masuk dengan Google" tidak tampil |
+
+### Login Google
+
+Selain `seafood.googleServerClientId`, project Google Cloud yang sama butuh **OAuth client Android** dengan package `io.github.saptooaji.seafood.seller` dan SHA-1 kunci penanda tangan. Untuk debug, SHA-1 diambil dari `~/.android/debug.keystore`:
+
+```
+keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android | grep SHA1
+```
+
+Client Android hanya mendaftarkan aplikasi; ID token tetap ditujukan ke client web. Kunci rilis (Tahap 7) punya SHA-1 lain yang perlu didaftarkan juga.
 
 ## Pemeriksaan
 

@@ -10,6 +10,12 @@ interface AuthRepository {
         password: String,
     ): ApiResult<User>
 
+    /**
+     * Trades a Google ID token for an API token (`POST auth/google`). The
+     * server links or creates the account; only the API token is stored.
+     */
+    suspend fun loginWithGoogle(idToken: String): ApiResult<User>
+
     /** Creates an account and signs it in; on success the token is stored (MOB-1). */
     suspend fun register(registration: Registration): ApiResult<User>
 
