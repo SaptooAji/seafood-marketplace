@@ -121,8 +121,8 @@ Dependency yang disetujui pemilik repo (Tahap 4). Menambah dependency di luar da
 
 | Kelompok | Dependency |
 | --- | --- |
-| UI dan navigasi | Compose BOM, Navigation Compose |
-| DI dan jaringan | Hilt, Retrofit, OkHttp (termasuk `mockwebserver` untuk test), kotlinx.serialization, kotlinx.coroutines |
+| UI dan navigasi | Compose BOM, Navigation Compose, Lifecycle Runtime Compose (`collectAsStateWithLifecycle`) |
+| DI dan jaringan | Hilt (termasuk `hilt-lifecycle-viewmodel-compose` untuk `hiltViewModel()`), Retrofit, OkHttp (termasuk `mockwebserver` untuk test), kotlinx.serialization, kotlinx.coroutines |
 | Gambar dan foto | Coil, cropper foto (uCrop atau cropper Compose, dipilih di issue foto) |
 | Penyimpanan token | DataStore, Tink |
 | Login Google | Credential Manager, `googleid` |

@@ -23,8 +23,8 @@ import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.SeafoodTheme
 
 /**
- * The first screen: the logo and the app's name on the sand background. The
- * sign-in flow (#231) takes its place.
+ * Where a signed-in seller lands for now: the logo and the app's name. The
+ * store status screen (#235) takes its place.
  */
 @Composable
 fun WelcomeScreen(modifier: Modifier = Modifier) {
