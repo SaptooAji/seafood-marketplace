@@ -118,7 +118,8 @@ function storeStatusRequests(): array
             'type' => 'own_delivery', 'fee_type' => 'flat', 'max_radius_km' => 10, 'flat_fee' => 10_000,
         ]]],
         'api.seller.shipping-methods.update' => [fn (array $f) => ['PUT', "/api/v1/seller/shipping-methods/{$f['method']->id}", [
-            'fee_type' => 'flat', 'flat_fee' => 0, 'is_active' => false,
+            // Kept on: the store's only method may not be turned off (#212).
+            'fee_type' => 'flat', 'flat_fee' => 0, 'is_active' => true,
         ]]],
         'api.seller.products.description-suggestion' => [fn (array $f) => ['POST', '/api/v1/seller/products/description-suggestion', $productData($f)]],
         'api.seller.products.index' => [fn (array $f) => ['GET', '/api/v1/seller/products', []]],
