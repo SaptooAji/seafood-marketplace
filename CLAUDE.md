@@ -102,7 +102,7 @@ Utamakan issue kecil yang bisa dipelajari dan direview sekali duduk:
 | `composer analyse` | Larastan level 6 |
 | `php artisan test --filter=OrderStatus` | Jalankan test tertentu |
 
-Hook git ada di `.githooks/` (aktif lewat `core.hooksPath`): pre-commit memformat file PHP yang di-stage, pre-push menjalankan `composer check`, post-checkout memindahkan issue ke In Progress di project saat branch issue dibuat. Lingkungan pemilik repo adalah Windows 11 dengan Laravel Herd dan Git Bash; di Git Bash, `vendor/bin/*` tidak bisa dijalankan langsung, jadi pakai `composer exec <tool>` atau script composer.
+Hook git ada di `.githooks/` (aktif lewat `core.hooksPath`): pre-commit memformat file PHP yang di-stage, pre-push menjalankan pemeriksaan hanya untuk area yang berubah di push itu (`composer check` untuk `backend/`, `./gradlew check` untuk `android/`, keduanya untuk `ci.yml` atau `.githooks/`, tidak ada untuk dokumen saja; aturannya di `.githooks/_areas.sh`, dipakai juga oleh CI), post-checkout memindahkan issue ke In Progress di project saat branch issue dibuat. Lingkungan pemilik repo adalah Windows 11 dengan Laravel Herd dan Git Bash; di Git Bash, `vendor/bin/*` tidak bisa dijalankan langsung, jadi pakai `composer exec <tool>` atau script composer.
 
 ## Konvensi backend
 

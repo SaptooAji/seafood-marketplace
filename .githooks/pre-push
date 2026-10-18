@@ -1,11 +1,37 @@
 #!/bin/sh
-# Run the same checks as CI before pushing.
+# Run the CI checks for the areas this push changes (#252): composer check
+# for backend/, ./gradlew check for android/, nothing for docs only. The
+# areas follow the same rules as the CI `changes` job (.githooks/_areas.sh).
 ROOT="$(git rev-parse --show-toplevel)"
 . "$ROOT/.githooks/_composer.sh"
-cd "$ROOT/backend" || exit 0
+. "$ROOT/.githooks/_areas.sh"
 
-echo "pre-push: running composer check (Pint, Larastan, Pest)"
-composer_run check || {
-  echo "pre-push: checks failed, push cancelled. Fix the errors or run 'composer fix'."
-  exit 1
-}
+# Git commands run from the root: in a linked worktree Git hands hooks a
+# GIT_DIR without a work tree, so Git takes the current directory as the root.
+cd "$ROOT" || exit 0
+AREAS=$(push_areas "$1")
+
+if [ -z "$AREAS" ]; then
+  echo "pre-push: no backend or android changes, skipping checks"
+  exit 0
+fi
+
+if echo "$AREAS" | grep -qx backend; then
+  echo "pre-push: running composer check (Pint, Larastan, Pest)"
+  (cd "$ROOT/backend" && composer_run check) || {
+    echo "pre-push: backend checks failed, push cancelled. Fix the errors or run 'composer fix'."
+    exit 1
+  }
+fi
+
+if echo "$AREAS" | grep -qx android; then
+  if [ -f "$ROOT/android/gradlew" ]; then
+    echo "pre-push: running ./gradlew check (ktlint, detekt, Android Lint, tests)"
+    (cd "$ROOT/android" && sh ./gradlew check) || {
+      echo "pre-push: android checks failed, push cancelled."
+      exit 1
+    }
+  else
+    echo "pre-push: android/gradlew not found, skipping android checks"
+  fi
+fi
