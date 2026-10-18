@@ -12,9 +12,10 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database. Roles and categories are master data;
-     * the demo seeders skip themselves in production. Every seeder is safe to
-     * run more than once.
+     * Seed the application's database. Roles and categories are master data.
+     * The demo stores and their products are seeded in production too, so the
+     * released marketplace is never empty; only the demo admin accounts skip
+     * themselves there. Every seeder is safe to run more than once.
      */
     public function run(): void
     {
