@@ -144,12 +144,12 @@ Aplikasi penjual di `android/`. Server tetap penentu akses dan validasi; aturan 
 | --- | --- | --- |
 | MOB-1 | Token API disimpan di DataStore yang dienkripsi Tink dengan kunci Android Keystore, tidak di `SharedPreferences` biasa (MASVS-STORAGE) | ⚠️ #230 |
 | MOB-2 | Tidak ada rahasia di APK selain client ID OAuth publik; kunci pihak ketiga (Gemini, dan lain-lain) hanya di backend. Tile peta tanpa API key (MASVS-STORAGE, MASVS-CODE) | ⚠️ #228, #233 |
-| MOB-3 | Build rilis hanya HTTPS (`network_security_config` tanpa cleartext); cleartext hanya di build debug untuk host emulator `10.0.2.2` dan host dari `local.properties` (MASVS-NETWORK) | ⚠️ #228 |
+| MOB-3 | Build rilis hanya HTTPS (`network_security_config` tanpa cleartext); cleartext hanya di build debug untuk host emulator `10.0.2.2` dan `localhost` (HP fisik lewat `adb reverse`); build rilis gagal bila alamat API bukan `https://` (MASVS-NETWORK) | ✅ `PlatformSecurityConfigTest` (#228) |
 | MOB-4 | Log HTTP mati di build rilis; di build debug header `Authorization`, password, ID token Google, dan nomor rekening disensor (MASVS-STORAGE) | ⚠️ #230 |
-| MOB-5 | Build rilis memakai R8 (minify dan shrink resources) (MASVS-RESILIENCE) | ⚠️ #228 |
+| MOB-5 | Build rilis memakai R8 (minify dan shrink resources) (MASVS-RESILIENCE) | ⚠️ #228 dipasang (`isMinifyEnabled`, `isShrinkResources`); belum ada test otomatis |
 | MOB-6 | Token dihapus dari perangkat saat keluar (walau request logout gagal) dan saat API menjawab 401 (MASVS-AUTH) | ⚠️ #230, #235 |
-| MOB-7 | Data token tidak ikut backup Android (`dataExtractionRules` dan `fullBackupContent`) (MASVS-STORAGE) | ⚠️ #228 |
-| MOB-8 | Hanya activity peluncur yang `exported`; `FileProvider` foto tidak `exported` dan hanya membuka folder cache foto (MASVS-PLATFORM) | ⚠️ #228, #241 |
+| MOB-7 | Data token tidak ikut backup Android (`dataExtractionRules` dan `fullBackupContent`) (MASVS-STORAGE) | ✅ `PlatformSecurityConfigTest` (#228); file token dari #230 harus berada di `files/datastore/` |
+| MOB-8 | Hanya activity peluncur yang `exported`; `FileProvider` foto tidak `exported` dan hanya membuka folder cache foto (MASVS-PLATFORM) | ⚠️ activity: `ExportedComponentsTest` pada manifest rilis (#228); `FileProvider` menyusul di #241 |
 
 Password, ID token Google, dan nomor rekening tidak disimpan di perangkat setelah dikirim, termasuk di `SavedStateHandle`; ini dites di issue layar masing-masing.
 

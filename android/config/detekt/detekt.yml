@@ -1,0 +1,26 @@
+# Only the changes from detekt's default rules (buildUponDefaultConfig).
+naming:
+  FunctionNaming:
+    # Composables are named like types (WelcomeScreen), as Compose recommends.
+    ignoreAnnotated: ['Composable']
+    # Test names may use backticks and spaces.
+    excludes: ['**/test/**', '**/testDebug/**']
+
+complexity:
+  LongMethod:
+    # Composable layouts are long by nature; their parts are still small.
+    ignoreAnnotated: ['Composable']
+  LongParameterList:
+    ignoreAnnotated: ['Composable']
+
+style:
+  MagicNumber:
+    # Sizes in dp and sp are design values, not magic numbers.
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    excludes: ['**/test/**', '**/testDebug/**', '**/designsystem/theme/**']
+  UnusedPrivateMember:
+    # @Preview functions are used by Android Studio, not by code.
+    ignoreAnnotated: ['Preview']
+  MaxLineLength:
+    maxLineLength: 140

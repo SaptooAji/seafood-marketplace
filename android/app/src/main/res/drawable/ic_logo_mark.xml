@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The logo mark from design/logo/logo-mark.svg (64 unit grid). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path
+        android:fillColor="@color/brand_ink"
+        android:pathData="M22,4H42A18,18 0,0 1,60 22V42A18,18 0,0 1,42 60H22A18,18 0,0 1,4 42V22A18,18 0,0 1,22 4Z"
+        android:strokeColor="@color/brand_ink"
+        android:strokeWidth="3" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M22,5.5H42A16.5,16.5 0,0 1,58.5 22V42A16.5,16.5 0,0 1,42 58.5H22A16.5,16.5 0,0 1,5.5 42V22A16.5,16.5 0,0 1,22 5.5Z" />
+    <path
+        android:pathData="M14,33C19,26 26,24 34,26L41,21V45L34,40C26,42 19,40 14,33Z"
+        android:strokeColor="@color/brand_ink"
+        android:strokeLineJoin="round"
+        android:strokeWidth="3" />
+    <path
+        android:fillColor="@color/brand_accent_500"
+        android:pathData="M42,15a6,6 0,1 0,12 0a6,6 0,1 0,-12 0" />
+</vector>

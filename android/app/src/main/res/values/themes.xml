@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window theme behind Compose: the sand background shows while the
+         app starts, so there is no white flash. Colors, type, and shapes for
+         the screens come from SeafoodTheme in Compose. -->
+    <style name="Theme.Seafood" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/brand_surface</item>
+    </style>
+</resources>
