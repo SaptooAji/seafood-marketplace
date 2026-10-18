@@ -129,11 +129,32 @@ describe('404', function () {
             ->assertDontSee('Cumi belum dicek');
     });
 
-    it('labels each product with when its stock was checked', function () {
+    it('shows each product as on the board: store and check time, name, and price per unit', function () {
         $this->travelTo(Carbon::parse('2026-10-18 09:00', 'Asia/Jakarta'));
-        errorPageProduct('Kepiting pagi ini', Carbon::parse('2026-10-18 06:30', 'Asia/Jakarta'));
+        $store = Store::factory()->active()->create(['name' => 'UD Kepiting Pak Budi']);
+        $product = Product::factory()->for($store)->create(['name' => 'Kepiting bakau']);
+        ProductVariant::factory()->for($product)->create([
+            'price' => 185000,
+            'unit' => 'kg',
+            'stock_confirmed_at' => Carbon::parse('2026-10-18 06:30', 'Asia/Jakarta'),
+        ]);
 
-        $this->get('/halaman-yang-tidak-ada')->assertSee('Dicek');
+        $html = $this->get('/halaman-yang-tidak-ada')->assertNotFound()->getContent();
+
+        expect($html)->toMatch(
+            '#<a href="'.preg_quote(route('products.show', $product->slug), '#').'"[^>]*data-error-product[^>]*>.*?'
+            .'UD Kepiting Pak Budi, dicek 06\.30.*?'
+            .'Kepiting bakau.*?'
+            .'Rp185\.000.*?/ Kg.*?</a>#s',
+        );
+    });
+
+    it('labels products of a demo store on the board card', function () {
+        $product = Product::factory()->for(Store::factory()->active()->demo())->create(['name' => 'Udang contoh']);
+        ProductVariant::factory()->for($product)->create(['stock_confirmed_at' => now()]);
+
+        $this->get('/halaman-yang-tidak-ada')
+            ->assertSeeInOrder(['data-error-product', 'Toko contoh', 'Udang contoh'], escape: false);
     });
 
     it('leaves out products buyers cannot see', function () {
@@ -155,25 +176,27 @@ describe('404', function () {
             ->assertSee('Atau mulai dari kategori');
     });
 
-    it('runs the same queries for four or ten products', function (int $count) {
-        foreach (range(1, $count) as $i) {
+    it('runs the same queries for four or ten products', function () {
+        foreach (range(1, 4) as $i) {
             errorPageProduct('Produk '.$i, now()->subMinutes($i));
         }
+        $four = errorPageQueries(fn () => $this->get('/halaman-yang-tidak-ada')->assertNotFound());
 
-        $queries = errorPageQueries(fn () => $this->get('/halaman-yang-tidak-ada')->assertNotFound());
+        foreach (range(5, 10) as $i) {
+            errorPageProduct('Produk '.$i, now()->subMinutes($i));
+        }
+        $ten = errorPageQueries(fn () => $this->get('/halaman-yang-tidak-ada')->assertNotFound());
 
-        expect($queries)->toBeLessThanOrEqual(8);
-    })->with([
-        'four products' => [4],
-        'ten products' => [10],
-    ]);
+        expect($ten)->toBe($four)->toBeLessThanOrEqual(8);
+    });
 
     it('still renders without the products when the database is down', function () {
         errorPageWithDatabaseDown(fn () => $this->get('/halaman-yang-tidak-ada'))
             ->assertNotFound()
             ->assertSee('Halaman ini tidak ada di pasar kami')
             ->assertSee('Atau mulai dari kategori')
-            ->assertDontSee('Baru dikonfirmasi pagi ini');
+            ->assertDontSee('Baru dikonfirmasi pagi ini')
+            ->assertDontSee('data-error-category-count', escape: false);
     });
 
     it('does not echo the requested URL', function () {
@@ -285,6 +308,35 @@ describe('category tiles', function () {
         '419' => ['route', 419],
         '429' => ['route', 429],
         '500' => ['route', 500],
+    ]);
+
+    it('counts the products buyers can see in each category and its subcategories on the 404 page', function () {
+        $kepiting = Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+        $bakau = Category::factory()->childOf($kepiting)->create(['slug' => 'bakau']);
+        Category::factory()->create(['name' => 'Udang', 'slug' => 'udang']);
+
+        foreach ([$kepiting, $bakau, $bakau] as $category) {
+            $product = Product::factory()->for($category)->create();
+            ProductVariant::factory()->for($product)->create();
+        }
+        $hidden = Product::factory()->for($bakau)->create(['is_active' => false]);
+        ProductVariant::factory()->for($hidden)->create();
+
+        $html = $this->get('/halaman-yang-tidak-ada')->assertNotFound()->getContent();
+
+        expect($html)
+            ->toMatch('#href="'.preg_quote(route('catalog', ['kategori' => 'kepiting']), '#').'"[^>]*data-error-category.*?<span data-error-category-count[^>]*>3 produk</span>#s')
+            ->toMatch('#href="'.preg_quote(route('catalog', ['kategori' => 'udang']), '#').'"[^>]*data-error-category.*?<span data-error-category-count[^>]*>0 produk</span>#s');
+    });
+
+    it('shows no counts on the pages that run no queries', function (int $status) {
+        $this->get(errorPageRoute($status))
+            ->assertStatus($status)
+            ->assertDontSee('data-error-category-count', escape: false);
+    })->with([
+        'expired session' => [419],
+        'too many requests' => [429],
+        'server error' => [500],
     ]);
 
     it('lists four tiles, each with a photo that exists and is credited', function () {
