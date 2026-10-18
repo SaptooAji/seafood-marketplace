@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginTags
 import org.junit.Rule
 import org.junit.Test
@@ -22,6 +23,8 @@ class MainActivityTest {
             compose.onAllNodesWithTag(LoginTags.EMAIL).fetchSemanticsNodes().isNotEmpty()
         }
 
-        compose.onNodeWithTag(LoginTags.EMAIL).assertIsDisplayed()
+        // The Google button (when local.properties has a client ID) pushes the
+        // field below Robolectric's small screen.
+        compose.onNodeWithTag(LoginTags.EMAIL).performScrollTo().assertIsDisplayed()
     }
 }

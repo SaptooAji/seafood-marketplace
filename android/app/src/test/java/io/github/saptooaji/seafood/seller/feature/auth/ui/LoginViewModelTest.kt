@@ -1,11 +1,15 @@
 package io.github.saptooaji.seafood.seller.feature.auth.ui
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.util.UiText
 import io.github.saptooaji.seafood.seller.feature.auth.FakeAuthRepository
+import io.github.saptooaji.seafood.seller.feature.auth.FakeGoogleIdTokenProvider
+import io.github.saptooaji.seafood.seller.feature.auth.google.GoogleIdTokenResult
 import io.github.saptooaji.seafood.seller.testing.MainDispatcherExtension
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -28,16 +32,15 @@ class LoginViewModelTest {
     val main = MainDispatcherExtension()
 
     private val repository = FakeAuthRepository()
+    private val google = FakeGoogleIdTokenProvider()
 
-    private fun viewModel(sessionExpired: Boolean = false) =
-        LoginViewModel(
-            repository,
-            SavedStateHandle(
-                mapOf(
-                    "sessionExpired" to sessionExpired,
-                ),
-            ),
-        )
+    /** Credential Manager needs an activity; the fake provider never touches it. */
+    private val activity = mockk<Context>()
+
+    private fun viewModel(
+        sessionExpired: Boolean = false,
+        google: FakeGoogleIdTokenProvider = this.google,
+    ) = LoginViewModel(repository, google, SavedStateHandle(mapOf("sessionExpired" to sessionExpired)))
 
     private fun LoginViewModel.fill(
         email: String,
@@ -243,10 +246,10 @@ class LoginViewModelTest {
     fun `the email survives a recreated view model, the password does not`() =
         runTest(main.dispatcher) {
             val handle = SavedStateHandle(mapOf("sessionExpired" to false))
-            val first = LoginViewModel(repository, handle)
+            val first = LoginViewModel(repository, google, handle)
             first.fill("budi@example.com", "rahasia123")
 
-            val second = LoginViewModel(repository, handle)
+            val second = LoginViewModel(repository, google, handle)
 
             assertEquals("budi@example.com", second.uiState.value.email)
             assertEquals("", second.uiState.value.password)
@@ -258,7 +261,7 @@ class LoginViewModelTest {
     fun `the password never goes into the saved state`() =
         runTest(main.dispatcher) {
             val handle = SavedStateHandle(mapOf("sessionExpired" to false))
-            val vm = LoginViewModel(repository, handle)
+            val vm = LoginViewModel(repository, google, handle)
             vm.fill("budi@example.com", "rahasia123")
             vm.onEvent(LoginEvent.Submit)
             advanceUntilIdle()
@@ -274,5 +277,133 @@ class LoginViewModelTest {
             val vm = viewModel(sessionExpired = true)
 
             assertTrue(vm.uiState.value.sessionExpired)
+        }
+
+    // --- Google -----------------------------------------------------------
+
+    @Test
+    fun `a Google account signs in with its ID token`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel()
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            advanceUntilIdle()
+
+            assertEquals(listOf(FakeGoogleIdTokenProvider.ID_TOKEN), repository.googleCalls)
+            assertTrue(vm.uiState.value.loggedIn)
+            assertFalse(vm.uiState.value.isGoogleSubmitting)
+        }
+
+    @Test
+    fun `closing the account picker goes back quietly`() =
+        runTest(main.dispatcher) {
+            google.result = GoogleIdTokenResult.Cancelled
+            val vm = viewModel()
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            advanceUntilIdle()
+
+            assertTrue(repository.googleCalls.isEmpty())
+            assertNull(vm.uiState.value.generalError)
+            assertTrue(vm.uiState.value.canSubmit)
+        }
+
+    @Test
+    fun `no Google account on the device asks to add one`() =
+        runTest(main.dispatcher) {
+            google.result = GoogleIdTokenResult.NoAccount
+            val vm = viewModel()
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            advanceUntilIdle()
+
+            assertEquals(UiText.Resource(R.string.login_google_no_account), vm.uiState.value.generalError)
+            assertTrue(repository.googleCalls.isEmpty())
+        }
+
+    @Test
+    fun `another Credential Manager error shows a general message`() =
+        runTest(main.dispatcher) {
+            google.result = GoogleIdTokenResult.Failed
+            val vm = viewModel()
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            advanceUntilIdle()
+
+            assertEquals(UiText.Resource(R.string.login_google_failed), vm.uiState.value.generalError)
+        }
+
+    @Test
+    fun `an ID token the server refuses shows the Google failure`() =
+        runTest(main.dispatcher) {
+            repository.googleResult = ApiResult.Invalid(mapOf("id_token" to listOf("The Google sign-in could not be verified.")), null)
+            val vm = viewModel()
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            advanceUntilIdle()
+
+            assertEquals(UiText.Resource(R.string.login_google_failed), vm.uiState.value.generalError)
+            assertFalse(vm.uiState.value.loggedIn)
+        }
+
+    @Test
+    fun `too many Google attempts waits out the server`() =
+        runTest(main.dispatcher) {
+            repository.googleResult = ApiResult.TooManyRequests(20)
+            val vm = viewModel()
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            runCurrent()
+
+            assertEquals(UiText.Resource(R.string.auth_error_too_many, listOf(20L)), vm.uiState.value.generalError)
+            assertFalse(vm.uiState.value.canSubmit)
+        }
+
+    @Test
+    fun `while the picker is open neither button sends again`() =
+        runTest(main.dispatcher) {
+            google.gate = CompletableDeferred()
+            val vm = viewModel()
+            vm.fill("budi@example.com", "rahasia123")
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            runCurrent()
+            assertTrue(vm.uiState.value.isGoogleSubmitting)
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            vm.onEvent(LoginEvent.Submit)
+            runCurrent()
+
+            google.gate!!.complete(Unit)
+            advanceUntilIdle()
+            assertEquals(1, google.calls)
+            assertTrue(repository.loginCalls.isEmpty())
+        }
+
+    @Test
+    fun `without a server client ID there is no Google button, and email still works`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel(google = FakeGoogleIdTokenProvider(isAvailable = false))
+            assertFalse(vm.uiState.value.googleAvailable)
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            vm.fill("budi@example.com", "rahasia123")
+            vm.onEvent(LoginEvent.Submit)
+            advanceUntilIdle()
+
+            assertTrue(repository.googleCalls.isEmpty())
+            assertEquals(1, repository.loginCalls.size)
+        }
+
+    @Test
+    fun `the ID token never goes into the saved state`() =
+        runTest(main.dispatcher) {
+            val handle = SavedStateHandle(mapOf("sessionExpired" to false))
+            val vm = LoginViewModel(repository, google, handle)
+
+            vm.onEvent(LoginEvent.GoogleSignIn(activity))
+            advanceUntilIdle()
+
+            val stored = handle.keys().map { key -> handle.get<Any?>(key)?.toString().orEmpty() }
+            assertFalse(stored.any { it.contains(FakeGoogleIdTokenProvider.ID_TOKEN) })
         }
 }

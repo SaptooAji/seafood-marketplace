@@ -17,12 +17,15 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import okhttp3.logging.HttpLoggingInterceptor
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.util.Collections
 
 /** `AuthRepositoryImpl` against a MockWebServer speaking the real API's JSON. */
 class AuthRepositoryTest {
@@ -142,6 +145,55 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun `signing in with Google trades the ID token for an API token`() {
+        server.enqueue(json(200, """{"token":"sfm_google","user":$BUDI_JSON}"""))
+
+        val result = io { repository.loginWithGoogle(GOOGLE_ID_TOKEN) }
+
+        assertEquals(ApiResult.Success(User(7, "Budi Santoso", "budi@example.com", "081234567890", null)), result)
+        // Only the API token is kept; the Google ID token is never stored.
+        assertEquals("sfm_google", io { tokenStore.token().first() })
+        val request = server.takeRequest()
+        assertEquals("/api/v1/auth/google", request.url.encodedPath)
+        val body = Json.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals(GOOGLE_ID_TOKEN, body["id_token"]!!.jsonPrimitive.content)
+        assertEquals("Google Pixel 9", body["device_name"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `a refused ID token stores no token`() {
+        server.enqueue(json(422, """{"message":"$GOOGLE_REFUSED","errors":{"id_token":["$GOOGLE_REFUSED"]}}"""))
+
+        val result = io { repository.loginWithGoogle(GOOGLE_ID_TOKEN) }
+
+        assertTrue(result is ApiResult.Invalid)
+        assertNull(io { tokenStore.token().first() })
+    }
+
+    @Test
+    fun `the debug log masks the ID token and the API token`() {
+        val lines = Collections.synchronizedList(mutableListOf<String>())
+        val baseUrl = server.url("/api/v1/")
+        val client =
+            HttpClients.okHttpClient(
+                baseUrl,
+                tokenStore,
+                sessionEvents,
+                debugLogger = HttpLoggingInterceptor.Logger { lines += it },
+            )
+        val logged =
+            AuthRepositoryImpl(HttpClients.retrofit(baseUrl, client).create(AuthApi::class.java), HttpClients.json, tokenStore, "Pixel")
+        server.enqueue(json(200, """{"token":"sfm_google","user":$BUDI_JSON}"""))
+
+        io { logged.loginWithGoogle(GOOGLE_ID_TOKEN) }
+
+        val log = lines.joinToString("\n")
+        assertTrue(log.contains("auth/google"))
+        assertFalse(log.contains(GOOGLE_ID_TOKEN))
+        assertFalse(log.contains("sfm_google"))
+    }
+
+    @Test
     fun `me reads the user from the data wrapper`() {
         tokenStore.state.value = "sfm_abc"
         server.enqueue(
@@ -180,3 +232,5 @@ private const val BUDI_WITH_AVATAR_JSON = """{$BUDI_FIELDS,"avatar":"https://exa
 // The server's message under APP_LOCALE=en; the app shows its own text instead (AUTH-3).
 private const val REFUSED = "These credentials do not match our records."
 private const val TAKEN = "The email has already been taken."
+private const val GOOGLE_ID_TOKEN = "eyJhbGciOiJSUzI1NiJ9.google-id-token.signature"
+private const val GOOGLE_REFUSED = "The Google sign-in could not be verified."
