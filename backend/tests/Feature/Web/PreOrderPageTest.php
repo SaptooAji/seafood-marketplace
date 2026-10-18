@@ -136,7 +136,7 @@ describe('page', function () {
     });
 
     it('keeps a filtered page out of search results', function (array $query) {
-        Category::factory()->create(['slug' => 'kepiting']);
+        poProduct('Kepiting bakau', ['category_id' => Category::factory()->create(['slug' => 'kepiting'])->id]);
 
         expect(poPage($query))->toContain('<meta name="robots" content="noindex, follow">');
     })->with([
