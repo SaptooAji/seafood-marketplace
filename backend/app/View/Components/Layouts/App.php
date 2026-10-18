@@ -26,8 +26,10 @@ class App extends Component
      * @param  string  $ogType  the Open Graph type, e.g. `product` on a product page
      * @param  string|null  $image  an absolute image URL for link previews
      * @param  bool  $bare  leave out the footer category links and the sign-in
-     *                      link, so the page runs no queries; for error pages,
-     *                      which must render even when the database is down
+     *                      link, so the page runs no queries, and the canonical
+     *                      URL, so the requested address is not printed; for
+     *                      error pages, which must render even when the
+     *                      database is down
      * @param  bool  $fullWidth  let the page lay out its own full-width sections,
      *                           e.g. the home page hero photo
      */

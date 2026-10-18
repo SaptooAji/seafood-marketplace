@@ -1,12 +1,12 @@
-{{-- Generic on purpose (DATA-5): no exception, message, or path. The bare layout runs no queries. --}}
+{{-- Generic on purpose (DATA-5): no exception, message, or path. No queries, so it renders when the database is the problem. --}}
 <x-layouts.app title="Terjadi kesalahan" :bare="true" :noindex="true">
-    <x-empty-state
-        title="Terjadi kesalahan"
-        text="Ada masalah di sisi kami. Muat ulang halaman ini sebentar lagi."
-        action="Kembali ke beranda"
-        :href="url('/')"
-        class="mx-auto my-10 max-w-xl"
+    <x-error-page
+        code="500"
+        title="Ada gangguan di server kami"
+        body="Halaman gagal dimuat karena masalah di sisi kami, bukan karena Anda. Tim kami sudah menerima laporannya. Keranjang Anda tidak hilang."
+        steps-title="Sambil menunggu"
+        :steps="['Muat ulang halaman dalam beberapa menit.', 'Kalau sedang memesan, cek halaman Pesanan saya sebelum memesan ulang agar tidak dobel.', 'Gangguan biasanya pulih dalam waktu singkat.']"
     >
-        <x-button :href="route('catalog')" variant="ghost">Buka katalog</x-button>
-    </x-empty-state>
+        @include('errors.partials.actions', ['reload' => 'Muat ulang'])
+    </x-error-page>
 </x-layouts.app>
