@@ -27,6 +27,12 @@ object EmbunColors {
     /** Chips and secondary buttons. */
     val GlassStrong = Color.White.copy(alpha = 0.75f)
 
+    /** A secondary glass button, such as "Masuk dengan Google". */
+    val GlassButton = Color.White.copy(alpha = 0.85f)
+
+    /** A divider line on glass: ink at 10%. */
+    val Line = Color(0xFF1B2E25).copy(alpha = 0.1f)
+
     /** The bar fixed to the bottom of a form. */
     val BottomBar = Color.White.copy(alpha = 0.72f)
 

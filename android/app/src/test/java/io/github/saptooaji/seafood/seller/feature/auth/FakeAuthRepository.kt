@@ -20,6 +20,9 @@ class FakeAuthRepository : AuthRepository {
     /** When set, register waits for it, so a test can look at the state mid-request. */
     var registerGate: CompletableDeferred<Unit>? = null
 
+    val googleCalls = mutableListOf<String>()
+    var googleResult: ApiResult<User> = ApiResult.Success(BUDI)
+
     var meCalls = 0
     var meResult: ApiResult<User> = ApiResult.Success(BUDI)
 
@@ -36,6 +39,11 @@ class FakeAuthRepository : AuthRepository {
         registerCalls += registration
         registerGate?.await()
         return registerResult
+    }
+
+    override suspend fun loginWithGoogle(idToken: String): ApiResult<User> {
+        googleCalls += idToken
+        return googleResult
     }
 
     override suspend fun me(): ApiResult<User> {

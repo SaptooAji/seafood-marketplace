@@ -39,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,8 +69,10 @@ import io.github.saptooaji.seafood.seller.core.designsystem.embun.EmbunBackgroun
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.EmbunColors
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.GlassBanner
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.GlassCard
+import io.github.saptooaji.seafood.seller.core.designsystem.embun.GlassPillButton
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.GlassTextField
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.PrimaryPillButton
+import io.github.saptooaji.seafood.seller.core.designsystem.embun.TextDivider
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.SeafoodTheme
 import io.github.saptooaji.seafood.seller.core.util.UiText
 import java.time.LocalTime
@@ -148,6 +151,20 @@ private fun LoginForm(
                 text = error.asString(),
                 tone = if (uiState.retryAfterSeconds > 0) BannerTone.Warn else BannerTone.Danger,
             )
+        }
+
+        if (uiState.googleAvailable) {
+            val context = LocalContext.current
+            GlassPillButton(
+                text = stringResource(if (uiState.isGoogleSubmitting) R.string.login_google_submitting else R.string.login_google),
+                onClick = { onEvent(LoginEvent.GoogleSignIn(context)) },
+                enabled = uiState.canSubmit,
+                leading = {
+                    Image(painter = painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(20.dp))
+                },
+                modifier = Modifier.testTag(LoginTags.GOOGLE),
+            )
+            TextDivider(stringResource(R.string.login_or_email))
         }
 
         GlassTextField(

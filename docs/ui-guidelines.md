@@ -238,6 +238,8 @@ Aplikasi penjual memakai variasi D "Embun" dari halaman kanvas "Eksperimen 2.0.0
 - **Panel kaca tanpa blur** (`GlassCard`): putih 62% dengan garis putih 85% setebal 1 dp, radius 28, padding 18. Blur latar butuh API 31 dan dependency baru, jadi tidak dipakai (keputusan pemilik repo 18 Okt 2026). Panel yang lebih menonjol (chip, tombol sekunder) memakai putih 75%.
 - **Isian kaca** (`GlassTextField`): label di atas (`labelMedium`, `#4F5A50`), kotak putih 78% dengan garis putih 95% setebal 1,5 dp, radius 18, tinggi minimal 52 dp. Saat galat, garisnya `danger-700` dan pesan galat menggantikan teks bantuan di bawahnya. Isian menyebut `contentType` untuk autofill (email, password).
 - **Tombol pil utama** (`PrimaryPillButton`): `primary-700`, tinggi 54 dp, bayangan hijau lembut (`primary-700` 28%). Saat nonaktif menjadi kaca putih 55% dengan teks `muted`, tanpa bayangan.
+- **Tombol pil kaca** (`GlassPillButton`): untuk aksi kedua, misalnya "Masuk dengan Google". Putih 85% dengan garis putih, tinggi 54 dp, teks `ink`, ikon di kiri teks. Logo Google tampil dengan warnanya sendiri, tidak diwarnai ulang.
+- **Pemisah bertulisan** (`TextDivider`): garis `ink` 10% di kiri dan kanan kata pendek `muted`, misalnya "atau email" di antara tombol Google dan isian email.
 - **Chip** (`GlassChip`): pil putih 75% dengan garis putih.
 - **Pesan di panel** (`GlassBanner`): radius 18, peach untuk peringatan (misalnya 429) dan merah muda untuk galat, diumumkan pembaca layar (`liveRegion`).
 - **Bar atas formulir** (`EmbunTopBar`): tombol kembali bulat dari kaca (44 dp), lalu judul besar (34 sp, bobot 700) dan satu baris penjelasan `muted`.

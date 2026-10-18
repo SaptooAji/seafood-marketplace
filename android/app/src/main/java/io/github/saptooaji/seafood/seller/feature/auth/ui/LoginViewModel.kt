@@ -10,6 +10,8 @@ import io.github.saptooaji.seafood.seller.core.util.UiText
 import io.github.saptooaji.seafood.seller.core.util.launchCountdown
 import io.github.saptooaji.seafood.seller.feature.auth.domain.AuthRepository
 import io.github.saptooaji.seafood.seller.feature.auth.domain.User
+import io.github.saptooaji.seafood.seller.feature.auth.google.GoogleIdTokenProvider
+import io.github.saptooaji.seafood.seller.feature.auth.google.GoogleIdTokenResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,15 +20,16 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Sign-in with email and password. Only the email is kept in the
- * [SavedStateHandle]; the password lives in memory only, so it never outlives
- * the process.
+ * Sign-in with email and password, or with Google. Only the email is kept in
+ * the [SavedStateHandle]; the password and the Google ID token live in memory
+ * only, so they never outlive the process.
  */
 @HiltViewModel
 class LoginViewModel
     @Inject
     constructor(
         private val repository: AuthRepository,
+        private val google: GoogleIdTokenProvider,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val _uiState =
@@ -34,6 +37,7 @@ class LoginViewModel
                 LoginUiState(
                     email = savedStateHandle[KEY_EMAIL] ?: "",
                     sessionExpired = savedStateHandle[KEY_SESSION_EXPIRED] ?: false,
+                    googleAvailable = google.isAvailable,
                 ),
             )
         val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -47,6 +51,7 @@ class LoginViewModel
                 is LoginEvent.PasswordChanged ->
                     _uiState.update { it.copy(password = event.password, passwordError = null).clearGeneralError() }
                 LoginEvent.Submit -> submit()
+                is LoginEvent.GoogleSignIn -> signInWithGoogle(event)
             }
         }
 
@@ -71,12 +76,51 @@ class LoginViewModel
             }
         }
 
+        private fun signInWithGoogle(event: LoginEvent.GoogleSignIn) {
+            if (!google.isAvailable || !_uiState.value.canSubmit) return
+
+            _uiState.update { it.copy(isGoogleSubmitting = true, generalError = null, sessionExpired = false) }
+            viewModelScope.launch {
+                val result =
+                    when (val picked = google.idToken(event.activityContext)) {
+                        is GoogleIdTokenResult.Success -> repository.loginWithGoogle(picked.idToken)
+                        GoogleIdTokenResult.Cancelled -> null
+                        GoogleIdTokenResult.NoAccount -> {
+                            showGeneralError(UiText.Resource(R.string.login_google_no_account))
+                            null
+                        }
+                        GoogleIdTokenResult.Failed -> {
+                            showGeneralError(UiText.Resource(R.string.login_google_failed))
+                            null
+                        }
+                    }
+                _uiState.update { it.copy(isGoogleSubmitting = false) }
+                if (result != null) handleGoogle(result)
+            }
+        }
+
         private fun handle(result: ApiResult<User>) {
             when (result) {
                 is ApiResult.Success -> _uiState.update { it.copy(loggedIn = true) }
                 // AUTH-3: one message whatever the reason, in the app's own words.
                 is ApiResult.Invalid, ApiResult.Unauthorized ->
                     _uiState.update { it.copy(emailError = UiText.Resource(R.string.login_error_credentials)) }
+                else -> handleCommon(result)
+            }
+        }
+
+        private fun handleGoogle(result: ApiResult<User>) {
+            when (result) {
+                is ApiResult.Success -> _uiState.update { it.copy(loggedIn = true) }
+                // The server could not verify the ID token; nothing the seller typed is wrong.
+                is ApiResult.Invalid, ApiResult.Unauthorized -> showGeneralError(UiText.Resource(R.string.login_google_failed))
+                else -> handleCommon(result)
+            }
+        }
+
+        /** The answers that read the same for both ways of signing in. */
+        private fun handleCommon(result: ApiResult<User>) {
+            when (result) {
                 is ApiResult.TooManyRequests -> countDown(result.retryAfterSeconds ?: AuthInput.DEFAULT_RETRY_AFTER_SECONDS)
                 ApiResult.NetworkError -> showGeneralError(UiText.Resource(R.string.error_network))
                 else -> showGeneralError(UiText.Resource(R.string.error_server))

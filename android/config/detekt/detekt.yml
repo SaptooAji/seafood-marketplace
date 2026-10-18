@@ -12,6 +12,10 @@ complexity:
     ignoreAnnotated: ['Composable']
   LongParameterList:
     ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    # detekt skips src/test by default; the Robolectric UI tests in src/testDebug
+    # grow the same way, one function per case.
+    excludes: ['**/test/**', '**/testDebug/**', '**/testRelease/**']
 
 style:
   MagicNumber:

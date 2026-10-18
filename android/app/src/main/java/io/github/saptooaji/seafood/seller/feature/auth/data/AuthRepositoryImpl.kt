@@ -28,6 +28,9 @@ class AuthRepositoryImpl(
         return signIn(result)
     }
 
+    override suspend fun loginWithGoogle(idToken: String): ApiResult<User> =
+        signIn(apiCall(json) { api.loginWithGoogle(GoogleLoginRequest(idToken, deviceName)) })
+
     override suspend fun register(registration: Registration): ApiResult<User> {
         val request =
             with(registration) {
@@ -39,7 +42,7 @@ class AuthRepositoryImpl(
 
     override suspend fun me(): ApiResult<User> = apiCall(json) { api.me() }.map { it.data.toDomain() }
 
-    /** Keeps the token of a successful sign-in or registration. */
+    /** Keeps the API token of a successful sign-in or registration. */
     private suspend fun signIn(result: ApiResult<TokenResponse>): ApiResult<User> {
         if (result is ApiResult.Success) tokenStore.save(result.data.token)
 

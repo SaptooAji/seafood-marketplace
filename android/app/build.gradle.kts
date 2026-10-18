@@ -25,6 +25,14 @@ val debugApiBaseUrl = localProperties.getProperty("seafood.apiBaseUrl") ?: "http
 
 // The production API is set in Tahap 7; a release build never talks plain HTTP (MOB-3).
 val releaseApiBaseUrl = localProperties.getProperty("seafood.releaseApiBaseUrl") ?: "https://seafood.invalid/api/v1/"
+// The Google web client ID that ID tokens are requested for (MOB-2: public, but
+// kept out of Git so a fork uses its own Google Cloud project). Empty hides the
+// "Masuk dengan Google" button, as in CI.
+val googleServerClientId = localProperties.getProperty("seafood.googleServerClientId")?.trim().orEmpty()
+require(googleServerClientId.isEmpty() || googleServerClientId.endsWith(".apps.googleusercontent.com")) {
+    "seafood.googleServerClientId must be a Google OAuth client ID ending in .apps.googleusercontent.com"
+}
+
 require(releaseApiBaseUrl.trim().startsWith("https://")) {
     "seafood.releaseApiBaseUrl must use https:// (MOB-3), got $releaseApiBaseUrl"
 }
@@ -39,6 +47,7 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.4.0"
+        buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"$googleServerClientId\"")
     }
 
     buildTypes {
@@ -136,6 +145,9 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.datastore)
     implementation(libs.tink.android)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

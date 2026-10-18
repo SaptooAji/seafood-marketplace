@@ -12,6 +12,15 @@ data class LoginRequest(
 )
 
 @Serializable
+data class GoogleLoginRequest(
+    @SerialName("id_token") val idToken: String,
+    @SerialName("device_name") val deviceName: String,
+) {
+    // The ID token is a credential: keep it out of logs (MOB-4).
+    override fun toString() = "GoogleLoginRequest(idToken=██, deviceName=$deviceName)"
+}
+
+@Serializable
 data class RegisterRequest(
     val name: String,
     val email: String,

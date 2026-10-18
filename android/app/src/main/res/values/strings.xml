@@ -21,6 +21,11 @@
     <string name="login_password_hide">Sembunyikan</string>
     <string name="login_submit">Masuk</string>
     <string name="login_submitting">Memeriksa…</string>
+    <string name="login_google">Masuk dengan Google</string>
+    <string name="login_google_submitting">Menghubungi Google…</string>
+    <string name="login_or_email">atau email</string>
+    <string name="login_google_no_account">Tambahkan akun Google di pengaturan perangkat.</string>
+    <string name="login_google_failed">Login Google gagal. Coba lagi.</string>
     <string name="login_register_prompt">Belum punya akun?</string>
     <string name="login_register_link">Daftar sebagai penjual</string>
     <string name="login_session_expired">Sesi berakhir, silakan masuk lagi.</string>

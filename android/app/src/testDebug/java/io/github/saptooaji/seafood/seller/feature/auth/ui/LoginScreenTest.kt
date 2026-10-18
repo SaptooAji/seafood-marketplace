@@ -97,6 +97,36 @@ class LoginScreenTest {
     }
 
     @Test
+    fun theGoogleButtonStartsGoogleSignIn() {
+        show(LoginUiState(googleAvailable = true))
+
+        compose
+            .onNodeWithTag(LoginTags.GOOGLE)
+            .performScrollTo()
+            .assertIsEnabled()
+        compose.onNodeWithText(context.getString(R.string.login_google)).assertIsDisplayed()
+        compose.onNodeWithTag(LoginTags.GOOGLE).performClick()
+
+        assertTrue(events.last() is LoginEvent.GoogleSignIn)
+    }
+
+    @Test
+    fun withoutAServerClientIdThereIsNoGoogleButton() {
+        show(LoginUiState(googleAvailable = false))
+
+        compose.onNodeWithTag(LoginTags.GOOGLE).assertDoesNotExist()
+        compose.onNodeWithTag(LoginTags.SUBMIT).assertExists()
+    }
+
+    @Test
+    fun bothButtonsAreDisabledWhileGoogleSignInRuns() {
+        show(LoginUiState(googleAvailable = true, isGoogleSubmitting = true))
+
+        compose.onNodeWithTag(LoginTags.GOOGLE).assertIsNotEnabled()
+        compose.onNodeWithTag(LoginTags.SUBMIT).assertIsNotEnabled()
+    }
+
+    @Test
     fun theRegisterLinkOpensRegistration() {
         show(LoginUiState())
 

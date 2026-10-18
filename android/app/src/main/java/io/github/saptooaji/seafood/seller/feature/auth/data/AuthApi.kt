@@ -12,6 +12,11 @@ interface AuthApi {
         @Body request: LoginRequest,
     ): Response<TokenResponse>
 
+    @POST("auth/google")
+    suspend fun loginWithGoogle(
+        @Body request: GoogleLoginRequest,
+    ): Response<TokenResponse>
+
     @POST("auth/register")
     suspend fun register(
         @Body request: RegisterRequest,
