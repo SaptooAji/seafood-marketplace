@@ -19,6 +19,7 @@ class ExportedComponentsTest {
     @Test
     fun onlyTheMainActivityIsOpenToOtherApps() {
         val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+
         @Suppress("DEPRECATION")
         val info =
             context.packageManager.getPackageInfo(

@@ -70,12 +70,20 @@ class PlatformSecurityConfigTest {
         assertEquals(listOf(".MainActivity"), exported)
     }
 
-    private fun Element.excludesDataStore(): Boolean = all("exclude").any { it.getAttribute("domain") == "file" && it.getAttribute("path") == "datastore/" }
+    private fun Element.excludesDataStore(): Boolean =
+        all("exclude").any {
+            it.getAttribute("domain") == "file" &&
+                it.getAttribute("path") == "datastore/"
+        }
 
     private fun xml(path: String): Document {
         val file = File(path)
         assertTrue(file.isFile, "missing $path")
-        return DocumentBuilderFactory.newInstance().apply { isNamespaceAware = true }.newDocumentBuilder().parse(file)
+        return DocumentBuilderFactory
+            .newInstance()
+            .apply { isNamespaceAware = true }
+            .newDocumentBuilder()
+            .parse(file)
     }
 
     private fun Document.single(tag: String): Element = documentElement.takeIf { it.tagName == tag } ?: documentElement.all(tag).single()
