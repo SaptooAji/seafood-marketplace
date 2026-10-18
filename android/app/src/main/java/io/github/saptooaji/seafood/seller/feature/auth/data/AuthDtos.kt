@@ -11,7 +11,17 @@ data class LoginRequest(
     @SerialName("device_name") val deviceName: String,
 )
 
-/** The answer to a sign-in: `{"token": "...", "user": {...}}`. */
+@Serializable
+data class RegisterRequest(
+    val name: String,
+    val email: String,
+    val phone: String,
+    val password: String,
+    @SerialName("password_confirmation") val passwordConfirmation: String,
+    @SerialName("device_name") val deviceName: String,
+)
+
+/** The answer to a sign-in or a registration: `{"token": "...", "user": {...}}`. */
 @Serializable
 data class TokenResponse(
     val token: String,

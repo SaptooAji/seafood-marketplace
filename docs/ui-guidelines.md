@@ -240,5 +240,8 @@ Aplikasi penjual memakai variasi D "Embun" dari halaman kanvas "Eksperimen 2.0.0
 - **Tombol pil utama** (`PrimaryPillButton`): `primary-700`, tinggi 54 dp, bayangan hijau lembut (`primary-700` 28%). Saat nonaktif menjadi kaca putih 55% dengan teks `muted`, tanpa bayangan.
 - **Chip** (`GlassChip`): pil putih 75% dengan garis putih.
 - **Pesan di panel** (`GlassBanner`): radius 18, peach untuk peringatan (misalnya 429) dan merah muda untuk galat, diumumkan pembaca layar (`liveRegion`).
+- **Bar atas formulir** (`EmbunTopBar`): tombol kembali bulat dari kaca (44 dp), lalu judul besar (34 sp, bobot 700) dan satu baris penjelasan `muted`.
+- **Bar bawah kaca** (`GlassBottomBar`): putih 72% dengan sudut atas radius 26, menempel di bawah layar dan naik di atas keyboard. Isinya tombol utama formulir dan tautan kecil di bawahnya; isian di atasnya bergulir sendiri.
+- **Langkah alur** (`StepIndicator`): satu garis 5 dp per langkah, `primary-700` sampai langkah sekarang dan putih 70% sesudahnya, dengan nama langkah bernomor di bawah garis ("1. Akun", "2. Data toko").
 - **Foto bulat**: foto produk dipotong bulat dengan bayangan gelap lembut, dipakai sebagai hiasan (tanpa `contentDescription`). Foto di layar masuk berasal dari foto demo berlisensi CC0, jadi tidak perlu kredit.
 - **Teks**: semua dari `strings.xml`. Pesan galat server untuk login memakai teks aplikasi sendiri, bukan pesan server (AUTH-3).

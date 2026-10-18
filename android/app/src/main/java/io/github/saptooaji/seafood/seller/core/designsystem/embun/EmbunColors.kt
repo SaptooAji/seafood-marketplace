@@ -27,6 +27,12 @@ object EmbunColors {
     /** Chips and secondary buttons. */
     val GlassStrong = Color.White.copy(alpha = 0.75f)
 
+    /** The bar fixed to the bottom of a form. */
+    val BottomBar = Color.White.copy(alpha = 0.72f)
+
+    /** A step of a flow not reached yet. */
+    val StepTodo = Color.White.copy(alpha = 0.7f)
+
     /** A disabled primary button: the glass shows through, the label is muted. */
     val Disabled = Color.White.copy(alpha = 0.55f)
 
