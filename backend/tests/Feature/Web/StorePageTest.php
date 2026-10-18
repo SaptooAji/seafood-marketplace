@@ -13,6 +13,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 
 beforeEach(function () {
     $this->store = Store::factory()->active()->create([
@@ -310,7 +311,7 @@ describe('layout', function () {
             ->assertSee('aria-current="page"', escape: false)
             ->assertSee('aria-label="Halaman 2"', escape: false)
             ->assertSee('href="'.e(url('/toko/toko-bahari?page=2')).'"', escape: false)
-            ->assertDontSee('wire:click', escape: false);
+            ->assertSee('wire:click.prevent="gotoPage(2, &#039;page&#039;)"', escape: false);
     });
 
     it('opens every new tab with noopener noreferrer', function () {
@@ -630,5 +631,113 @@ describe('map', function () {
         expect(storePageHtml())
             ->toContain('aria-label="Peta lokasi Toko &lt;script&gt;alert(1)&lt;/script&gt;"')
             ->not->toContain('<script>alert(1)</script>');
+    });
+});
+
+describe('tabs without reload', function () {
+    beforeEach(function () {
+        $this->kepiting = Category::factory()->create(['name' => 'Kepiting', 'slug' => 'kepiting']);
+        $this->bakau = Category::factory()->childOf($this->kepiting)->create(['name' => 'Bakau', 'slug' => 'bakau']);
+        $this->cumi = Category::factory()->create(['name' => 'Cumi', 'slug' => 'cumi']);
+
+        storePageProduct($this->store, ['name' => 'Kepiting Bakau Super', 'category_id' => $this->bakau->id]);
+        storePageProduct($this->store, ['name' => 'Cumi Segar Pagi', 'category_id' => $this->cumi->id]);
+    });
+
+    it('renders the products as a Livewire component', function () {
+        $this->get('/toko/toko-bahari')->assertOk()->assertSeeLivewire('store-products');
+    });
+
+    it('switches the category in place and goes back to the first page', function () {
+        Livewire::withQueryParams(['page' => 2])
+            ->test('store-products', ['store' => $this->store])
+            ->call('chooseCategory', 'kepiting')
+            ->assertSet('category', 'kepiting')
+            ->assertSet('paginators.page', 1)
+            ->assertSee('Kepiting Bakau Super')
+            ->assertDontSee('Cumi Segar Pagi')
+            ->assertSeeHtml('aria-current="page"')
+            ->call('chooseCategory', '')
+            ->assertSet('category', '')
+            ->assertSee('Cumi Segar Pagi');
+    });
+
+    it('ignores a category the store does not sell as a root category', function (string $slug) {
+        Category::factory()->create(['slug' => 'udang']);
+
+        Livewire::test('store-products', ['store' => $this->store])
+            ->call('chooseCategory', 'kepiting')
+            ->call('chooseCategory', $slug)
+            ->assertSet('category', '')
+            ->assertSee('Kepiting Bakau Super')
+            ->assertSee('Cumi Segar Pagi');
+    })->with(['a subcategory' => ['bakau'], 'not sold here' => ['udang'], 'unknown' => ['tidak-ada']]);
+
+    it('reads the category from the URL', function () {
+        Livewire::withQueryParams(['kategori' => 'cumi'])
+            ->test('store-products', ['store' => $this->store])
+            ->assertSet('category', 'cumi')
+            ->assertSee('Cumi Segar Pagi')
+            ->assertDontSee('Kepiting Bakau Super');
+    });
+
+    it('keeps the tabs as real links that Livewire takes over', function () {
+        $html = storePageHtml();
+
+        expect($html)
+            ->toMatch('#<a[^>]*href="'.preg_quote(e(url('/toko/toko-bahari?kategori=kepiting')), '#').'"[^>]*wire:click\.prevent="chooseCategory\(\'kepiting\'\)"#')
+            ->toMatch('#<a[^>]*href="'.preg_quote(url('/toko/toko-bahari'), '#').'"[^>]*wire:click\.prevent="chooseCategory\(\'\'\)"#');
+    });
+
+    it('keeps the chosen category in the page links, which lead back to this store', function () {
+        foreach (range(1, 25) as $i) {
+            storePageProduct($this->store, ['category_id' => $this->bakau->id]);
+        }
+
+        expect(storePageHtml('?kategori=kepiting'))
+            ->toContain('href="'.e(url('/toko/toko-bahari?kategori=kepiting&page=2')).'"');
+    });
+
+    it('dims the list and announces loading while it changes', function () {
+        expect(storePageHtml())
+            ->toContain('wire:loading.class="opacity-60"')
+            ->toMatch('#<[^>]*wire:loading[^>]*role="status"[^>]*>\s*Memuat produk#');
+    });
+
+    it('does not let the browser swap the store', function () {
+        $other = Store::factory()->active()->create();
+
+        expect(fn () => Livewire::test('store-products', ['store' => $this->store])->set('store', $other->id))
+            ->toThrow(Exception::class);
+    });
+
+    it('escapes the category names in the tabs', function () {
+        $this->cumi->update(['name' => 'Cumi <script>alert(1)</script>']);
+
+        expect(storePageHtml())
+            ->toContain('Cumi &lt;script&gt;alert(1)&lt;/script&gt;')
+            ->not->toContain('<script>alert(1)</script>');
+    });
+
+    it('runs the same number of queries to switch tabs for 3 and 30 products', function () {
+        $count = function (): int {
+            $component = Livewire::test('store-products', ['store' => $this->store]);
+
+            DB::flushQueryLog();
+            DB::enableQueryLog();
+            $component->call('chooseCategory', 'kepiting');
+            $queries = count(DB::getQueryLog());
+            DB::disableQueryLog();
+
+            return $queries;
+        };
+
+        $few = $count();
+
+        foreach (range(1, 27) as $i) {
+            storePageProduct($this->store, ['category_id' => $this->bakau->id]);
+        }
+
+        expect($count())->toBe($few);
     });
 });

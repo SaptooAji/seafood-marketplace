@@ -75,43 +75,7 @@
 
         {{-- From lg the about card sits on the left and follows the scroll; on a phone it comes after the products. --}}
         <div class="grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-10">
-            <section aria-labelledby="produk-toko" class="flex min-w-0 flex-col gap-5 lg:col-start-2 lg:row-start-1">
-                <h2 id="produk-toko" class="text-[1.5rem] font-medium tracking-tight lg:text-[1.875rem]">Produk di lapak ini</h2>
-
-                @if ($tabs !== [])
-                    <nav aria-label="Kategori di lapak ini" class="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
-                        <ul class="flex min-w-max gap-6 border-b border-line">
-                            <li>
-                                <a href="{{ route('stores.show', $store->slug) }}" @if ($chosenTab === null) aria-current="page" @endif class="-mb-px flex h-12 items-center gap-1.5 border-b-3 border-transparent px-0.5 font-medium aria-[current=page]:border-ink aria-[current=page]:font-bold">Semua <span class="font-medium text-muted">{{ $productCount }}</span></a>
-                            </li>
-                            @foreach ($tabs as $tab)
-                                <li>
-                                    <a href="{{ route('stores.show', ['slug' => $store->slug, 'kategori' => $tab['slug']]) }}" @if ($chosenTab === $tab['slug']) aria-current="page" @endif class="-mb-px flex h-12 items-center gap-1.5 border-b-3 border-transparent px-0.5 font-medium aria-[current=page]:border-ink aria-[current=page]:font-bold">{{ $tab['name'] }} <span class="font-medium text-muted">{{ $tab['count'] }}</span></a>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </nav>
-                @endif
-
-                @if ($products->isEmpty())
-                    <x-empty-state
-                        title="Toko ini belum punya produk yang dijual"
-                        text="Lihat produk dari toko lain di katalog."
-                        action="Lihat katalog"
-                        :href="route('catalog')"
-                    />
-                @else
-                    <ul class="grid grid-cols-2 gap-x-3 gap-y-5 lg:grid-cols-3 lg:gap-x-5 lg:gap-y-7">
-                        @foreach ($products as $product)
-                            <li>
-                                <x-product-card :product="$product" />
-                            </li>
-                        @endforeach
-                    </ul>
-
-                    {{ $products->links('pagination') }}
-                @endif
-            </section>
+            <livewire:store-products :store="$store" />
 
             <aside aria-label="Tentang lapak" class="flex flex-col overflow-hidden rounded-feature bg-white lg:sticky lg:top-6 lg:col-start-1 lg:row-start-1">
                 @if ($store->description)
