@@ -13,20 +13,23 @@ use App\Models\StoreShippingMethod;
 
 /**
  * Creates or updates one of a store's shipping methods. The rules for which
- * fee settings each shipping type may use live here and nowhere else.
+ * fee settings each shipping type may use, and that a store keeps at least
+ * one active method, live here and nowhere else.
  */
 class SaveShippingMethod
 {
     /**
      * Check the combination, then save it as the store's only row for that
      * type. Every fee column is written, so fields the new fee type does not
-     * use are cleared.
+     * use are cleared. A method may be saved inactive only while another
+     * method of the store stays active, so buyers always have a choice.
      *
      * @throws InvalidShippingMethod naming the first field that does not fit
      */
     public function handle(Store $store, ShippingMethodData $data): StoreShippingMethod
     {
         $this->ensureValid($data);
+        $this->ensureAnotherActive($store, $data);
 
         return $store->shippingMethods()->updateOrCreate(
             ['type' => $data->type],
@@ -56,6 +59,24 @@ class SaveShippingMethod
             ShippingMethodType::Pickup => $this->ensurePickup($data),
             ShippingMethodType::Ojol, ShippingMethodType::Expedition => $this->ensureManual($data),
         };
+    }
+
+    /**
+     * @throws InvalidShippingMethod on `is_active` when saving this method
+     *                               inactive leaves the store without an active one
+     */
+    private function ensureAnotherActive(Store $store, ShippingMethodData $data): void
+    {
+        if ($data->isActive) {
+            return;
+        }
+
+        $othersActive = $store->shippingMethods()
+            ->where('type', '!=', $data->type)
+            ->where('is_active', true)
+            ->exists();
+
+        $this->check('is_active', $othersActive, 'Toko harus punya minimal satu cara kirim yang aktif.');
     }
 
     private function ensureOwnDelivery(ShippingMethodData $data): void

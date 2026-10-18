@@ -166,6 +166,8 @@ it('clears the per km fields when own delivery switches to flat', function () {
 
 it('keeps the fee settings of an inactive method', function () {
     $store = Store::factory()->create();
+    // Another active method, so turning this one off is allowed (#212).
+    StoreShippingMethod::factory()->for($store)->pickup()->create();
 
     $method = saveShipping($store, shippingData(ShippingMethodType::OwnDelivery, ShippingFeeType::Flat, [
         'maxRadiusKm' => '15', 'flatFee' => 10_000, 'isActive' => false,

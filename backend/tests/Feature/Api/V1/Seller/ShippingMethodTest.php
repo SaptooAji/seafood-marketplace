@@ -173,6 +173,8 @@ describe('POST /seller/shipping-methods', function () {
 describe('PUT /seller/shipping-methods/{id}', function () {
     it('deactivates a method and keeps its fees', function () {
         $store = actingAsStoreMember();
+        // Another active method, so turning this one off is allowed (#212).
+        StoreShippingMethod::factory()->for($store)->pickup()->create();
         $method = StoreShippingMethod::factory()->for($store)->ownDeliveryFlat()->create();
 
         $this->putJson(SHIPPING_METHODS_URL."/{$method->id}", shippingPayload(['is_active' => false]))
