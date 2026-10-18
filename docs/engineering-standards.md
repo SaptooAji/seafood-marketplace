@@ -85,7 +85,7 @@ Package yang disetujui pemilik repo. Menambah atau mengubah dependency composer 
 - Test: **Pest**. Setiap Action punya unit/feature test; setiap endpoint API punya feature test untuk sukses, validasi gagal, dan akses ditolak.
 - Database test memakai PostgreSQL (sama dengan production), bukan SQLite.
 - Suite lengkap (`composer test`, `composer check`, hook pre-push, CI) berjalan paralel dengan `php artisan test --parallel`: satu proses per core, masing-masing dengan database sendiri (`seafood_marketplace_test_test_1`, `_test_2`, ...) yang dibuat Laravel dari `DB_DATABASE` di `phpunit.xml` dan dimigrasi ulang oleh `RefreshDatabase` di awal setiap run. User database test butuh izin `CREATEDB`. Test tidak boleh bergantung pada urutan baris tanpa `ORDER BY`, urutan file test, atau state bersama di luar database (file di disk tanpa `Storage::fake`). Menjalankan satu file atau `--filter` cukup dengan `php artisan test`, tanpa paralel.
-- **Test-first.** Untuk setiap issue, test ditulis lebih dulu sebagai spesifikasi (kasus valid, kasus yang dilarang, edge case), lalu implementasi ditulis sampai test hijau. Test dan boilerplate boleh dibuat dengan bantuan Claude Code; kode domain (Actions, aturan di Enums, Models) ditulis pemilik repo.
+- **Test-first.** Untuk setiap issue, test ditulis lebih dulu sebagai spesifikasi (kasus valid, kasus yang dilarang, edge case), lalu implementasi ditulis sampai test hijau. Test dan boilerplate boleh dibuat dengan bantuan Claude Code; kode domain (Actions, aturan di Enums, Models) ditulis pemilik repo. Untuk Android, Claude Code menulis test dan implementasi, lalu pemilik repo mereview dan meng-commit implementasinya (lihat CLAUDE.md "Pembagian peran").
 
 ## Android (Kotlin, Jetpack Compose)
 
@@ -107,15 +107,34 @@ android/app/src/main/java/.../
 
 ### Aturan
 
+- Proyek di `android/`, satu modul `app`, `applicationId` `io.github.saptooaji.seafood.seller`, `minSdk` 26, `targetSdk` terbaru yang stabil, JDK 17. Versi dependency dikelola di `gradle/libs.versions.toml`.
 - Dependency injection dengan **Hilt**; tidak ada `new` repository di ViewModel.
 - Coroutines + Flow; tidak ada callback bersarang. Dispatcher di-inject agar bisa dites.
 - Error jaringan dipetakan ke tipe `Result`/sealed class domain, bukan exception mentah sampai ke UI.
 - Semua teks lewat `strings.xml`.
+- Angka desimal (berat, qty, stok) memakai `BigDecimal` dari string API, tidak `Double`; uang `Long` rupiah.
+- Tampilan mengikuti tema di `design/android/theme/` dan `docs/ui-guidelines.md`, tanpa dynamic color. Setiap layar baru punya board `Android: ...` di kanvas desain yang disetujui sebelum test ditulis.
+
+### Dependency
+
+Dependency yang disetujui pemilik repo (Tahap 4). Menambah dependency di luar daftar ini butuh persetujuan lebih dulu.
+
+| Kelompok | Dependency |
+| --- | --- |
+| UI dan navigasi | Compose BOM, Navigation Compose |
+| DI dan jaringan | Hilt, Retrofit, OkHttp (termasuk `mockwebserver` untuk test), kotlinx.serialization, kotlinx.coroutines |
+| Gambar dan foto | Coil, cropper foto (uCrop atau cropper Compose, dipilih di issue foto) |
+| Penyimpanan token | DataStore, Tink |
+| Login Google | Credential Manager, `googleid` |
+| Peta | MapLibre Android |
+| Test | JUnit5, MockK, Turbine, Compose UI test, Robolectric |
+| Lint | ktlint (plugin Gradle), detekt |
 
 ### Kualitas
 
 - Format dan lint: **ktlint** + **detekt**, plus Android Lint.
-- Test: unit test untuk use case dan ViewModel (JUnit5, Turbine, MockK); UI test Compose untuk alur tambah produk.
+- Test: unit test untuk use case dan ViewModel (JUnit5, Turbine, MockK); UI test Compose untuk alur tambah produk, dijalankan di JVM dengan Robolectric.
+- `./gradlew check` (dari `android/`) setara `composer check`: lint, detekt, Android Lint, dan semua test, termasuk UI test Robolectric, sehingga ikut hook pre-push dan CI tanpa emulator.
 
 ## Git dan review
 
