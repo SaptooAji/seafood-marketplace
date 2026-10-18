@@ -1,7 +1,8 @@
-{{-- The page itself is static; only the recently checked products query, and they drop out when the database is down. --}}
+{{-- Only the category counts and the recently checked products query; both drop out when the database is down. --}}
 <x-layouts.app title="Halaman tidak ditemukan" :bare="true" :noindex="true">
     <x-error-page
         code="404"
+        :counted="true"
         title="Halaman ini tidak ada di pasar kami"
         body="Mungkin tautannya salah ketik atau produknya sudah tidak dijual. Cari langsung barang yang Anda butuhkan, atau mulai dari kategori di bawah."
     >
