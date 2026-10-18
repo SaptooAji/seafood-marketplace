@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+: the DataStore files (the API token from #230) never go to a
-     cloud backup or to a new phone (MOB-7). The seller signs in again. -->
+<!-- Android 12+: the DataStore files (the encrypted API token) and the Tink
+     keyset that decrypts them never go to a cloud backup or to a new phone
+     (MOB-7). The keyset is useless without this device's Keystore key anyway.
+     The seller signs in again. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="datastore/" />
+        <exclude domain="sharedpref" path="seafood_session_keyset.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="datastore/" />
+        <exclude domain="sharedpref" path="seafood_session_keyset.xml" />
     </device-transfer>
 </data-extraction-rules>
