@@ -138,12 +138,20 @@ Rincian di #118 dan #119.
 
 ## 11. Android (Tahap 4, MASVS dasar)
 
-Dirinci saat issue Tahap 4 ditulis. Aturan dasarnya:
+Aplikasi penjual di `android/`. Server tetap penentu akses dan validasi; aturan ini menjaga data yang ada di perangkat dan jalur ke API.
 
-- Token disimpan terenkripsi (Android Keystore / EncryptedDataStore), tidak di `SharedPreferences` biasa.
-- Tidak ada rahasia di APK selain client id publik; semua kunci pihak ketiga lewat backend.
-- Hanya HTTPS (`network_security_config` tanpa cleartext di build rilis); log HTTP mati di build rilis.
-- Build rilis memakai R8/minify.
+| Kode | Aturan | Status |
+| --- | --- | --- |
+| MOB-1 | Token API disimpan di DataStore yang dienkripsi Tink dengan kunci Android Keystore, tidak di `SharedPreferences` biasa (MASVS-STORAGE) | ⚠️ #230 |
+| MOB-2 | Tidak ada rahasia di APK selain client ID OAuth publik; kunci pihak ketiga (Gemini, dan lain-lain) hanya di backend. Tile peta tanpa API key (MASVS-STORAGE, MASVS-CODE) | ⚠️ #228, #233 |
+| MOB-3 | Build rilis hanya HTTPS (`network_security_config` tanpa cleartext); cleartext hanya di build debug untuk host emulator `10.0.2.2` dan host dari `local.properties` (MASVS-NETWORK) | ⚠️ #228 |
+| MOB-4 | Log HTTP mati di build rilis; di build debug header `Authorization`, password, ID token Google, dan nomor rekening disensor (MASVS-STORAGE) | ⚠️ #230 |
+| MOB-5 | Build rilis memakai R8 (minify dan shrink resources) (MASVS-RESILIENCE) | ⚠️ #228 |
+| MOB-6 | Token dihapus dari perangkat saat keluar (walau request logout gagal) dan saat API menjawab 401 (MASVS-AUTH) | ⚠️ #230, #235 |
+| MOB-7 | Data token tidak ikut backup Android (`dataExtractionRules` dan `fullBackupContent`) (MASVS-STORAGE) | ⚠️ #228 |
+| MOB-8 | Hanya activity peluncur yang `exported`; `FileProvider` foto tidak `exported` dan hanya membuka folder cache foto (MASVS-PLATFORM) | ⚠️ #228, #241 |
+
+Password, ID token Google, dan nomor rekening tidak disimpan di perangkat setelah dikirim, termasuk di `SavedStateHandle`; ini dites di issue layar masing-masing.
 
 ## Checklist issue dan review PR
 

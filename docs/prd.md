@@ -227,7 +227,9 @@ flowchart LR
 
 - Clean architecture tiga lapis: `ui` (Compose + ViewModel), `domain` (model dan use case), `data` (Retrofit, Room untuk cache, repository)
 - Single-activity dengan Navigation Compose, state lewat `StateFlow`, dependency injection dengan Hilt
-- Coil untuk gambar, kamera dan galeri untuk foto produk, WorkManager untuk upload yang tertunda
+- Coil untuk gambar, kamera dan galeri untuk foto produk, WorkManager untuk upload yang tertunda (setelah Tahap 4)
+- Pin lokasi toko memakai MapLibre dengan tile OpenStreetMap, tanpa API key, sama dengan peta web (Leaflet). Tile dipindah ke penyedia yang sesuai kebijakan pemakaian sebelum production
+- Token API disimpan terenkripsi (DataStore + Tink dengan kunci Android Keystore); setiap 401 mengembalikan penjual ke layar login
 - Firebase Cloud Messaging untuk notifikasi pesanan dan pengingat stok
 - Test: unit test ViewModel dan use case, satu UI test untuk alur tambah produk
 
@@ -238,7 +240,7 @@ Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung 
 1. **Fondasi:** monorepo (`backend/`, `android/`, `docs/`), Laravel + PostgreSQL (lokal via Laravel Herd, CI dengan service PostgreSQL), enum domain, arch test, CI GitHub Actions
 2. **Auth dan toko:** login Google (web) dan token API (Android), role, profil toko dengan pin lokasi, metode pengiriman, verifikasi toko di Filament, kategori
 3. **Produk:** CRUD produk, varian, foto (di-resize); buku stok dan stok harian; endpoint API seller; resource produk dan stok di panel `/seller`, moderasi produk di `/admin`; katalog dengan toko terdekat, detail produk, dan halaman toko di web; deskripsi produk dengan AI; SEO halaman publik (meta, Open Graph, JSON-LD, sitemap). Jadwal produksi pre-order menunggu pesanan di Tahap 5
-4. **Android dasar:** login, daftar dan form produk dengan upload foto, pengaturan
+4. **Android dasar:** login (email + password dan Google) dan daftar akun; buka toko dengan pin peta dan layar status toko; daftar dan form produk dengan atribut kategori, varian, saran deskripsi AI, dan foto (dipotong 1:1 atau 4:3, dengan standar minimal foto di server); Stok hari ini dan Buku stok; pengaturan (profil, profil toko, metode pengiriman, keluar). Aplikasi hanya online di tahap ini; cache Room dan upload tertunda dengan WorkManager menyusul
 5. **Pesanan:** keranjang, checkout per toko, alur status, upload dan verifikasi bukti bayar; layar pesanan di Android
 6. **Notifikasi:** FCM untuk pesanan baru, perubahan status, dan pengingat stok harian
 7. **Rilis portofolio:** deploy web (VPS atau Laravel Cloud), APK di GitHub Releases, README dengan diagram, screenshot, dan video demo
@@ -249,6 +251,7 @@ Backend dan API dibangun lebih dulu karena Android dan web sama-sama bergantung 
 | --- | --- |
 | 2. Auth dan toko | kolom tambahan `users`, `social_accounts`, `roles`, `permissions`, `activity_log`, `stores`, `store_members`, `store_shipping_methods`, `categories`, `category_attributes` |
 | 3. Produk | `products`, `product_variants`, `product_images`, `product_attribute_values`, `stock_movements` |
+| 4. Android dasar | tidak ada tabel baru |
 | 5. Pesanan | `addresses`, `cart_items`, `orders`, `order_items`, `payments`, `settings` |
 | 6. Notifikasi | `device_tokens` |
 

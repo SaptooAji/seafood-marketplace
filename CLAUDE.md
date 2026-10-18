@@ -22,6 +22,7 @@ Pekerjaan dilacak sebagai GitHub issue per milestone (Tahap 1, 2, ...). Kriteria
 - **Pemilik repo** menulis kode domain: logika di Actions, aturan di Enums (misalnya transisi status), Models, Policies. Ini inti portofolio.
 - **Claude Code** menulis test, boilerplate, konfigurasi, migrasi berdasarkan ERD bila diminta, dan dokumentasi.
 - Jangan menulis atau melengkapi implementasi domain kecuali diminta secara eksplisit. Kalau test gagal karena implementasi belum ada, itu memang tahap yang diharapkan; laporkan test mana yang merah dan kenapa.
+- **Android (`android/`)**: Claude Code menulis test dan implementasi. Test di-commit sebagai `test(android): ...`; implementasi dibiarkan belum di-commit sampai `./gradlew check` hijau, lalu pemilik repo mereview, meng-commit, dan push.
 - Saat diminta review, jelaskan masalah dan alasannya; biarkan pemilik repo yang memperbaiki kecuali diminta.
 - Review PR selalu mencakup checklist keamanan di `docs/security-standards.md`. Temuan ditulis dengan kode aturan dan tingkatnya (kritis, tinggi, sedang, rendah). Detail celah yang belum diperbaiki tidak ditulis di issue atau komentar publik.
 
@@ -86,8 +87,8 @@ Utamakan issue kecil yang bisa dipelajari dan direview sekali duduk:
 
 1. Buat branch sesuai "Aturan branch".
 2. Claude Code menulis test lengkap dari bagian **Test case** di issue. Pakai Pest dataset untuk kasus yang berulang, dengan key deskriptif (`'payment review to scheduled' => [...]`). Kalau menemukan kasus penting yang belum tercantum, tambahkan ke test dan sebutkan ke pemilik repo.
-3. Pemilik repo menulis implementasi sampai test hijau.
-4. `composer check` harus hijau sebelum push.
+3. Pemilik repo menulis implementasi sampai test hijau (untuk Android, lihat "Pembagian peran").
+4. `composer check` harus hijau sebelum push; untuk perubahan di `android/`, juga `./gradlew check` dari `android/`.
 5. Commit memakai Conventional Commits. Commit test: `test(<modul>): ...`. Biarkan trailer `Co-Authored-By` pada commit yang dibuat Claude Code.
 6. **Jangan push dan jangan membuka PR.** Pemilik repo yang push dan membuka PR dengan `Closes #<nomor>`; merge memakai squash.
 
