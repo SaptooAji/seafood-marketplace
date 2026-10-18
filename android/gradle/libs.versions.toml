@@ -2,7 +2,7 @@
 # docs/engineering-standards.md ("Dependency") belong here.
 [versions]
 # Android Studio 2026.1 supports AGP up to 9.3; raise this together with Android Studio.
-agp = "9.3.3"
+agp = "9.4.1"
 kotlin = "2.4.21"
 ksp = "2.3.12"
 hilt = "2.60.1"
