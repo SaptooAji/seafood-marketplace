@@ -6,7 +6,9 @@
 
     <title>{{ $fullTitle() }}</title>
     <meta name="description" content="{{ $metaDescription() }}">
-    <link rel="canonical" href="{{ $canonicalUrl() }}">
+    @unless ($bare)
+        <link rel="canonical" href="{{ $canonicalUrl() }}">
+    @endunless
     @if ($noindex)
         <meta name="robots" content="noindex, follow">
     @endif
@@ -16,7 +18,9 @@
     <meta property="og:type" content="{{ $ogType }}">
     <meta property="og:title" content="{{ $fullTitle() }}">
     <meta property="og:description" content="{{ $metaDescription() }}">
-    <meta property="og:url" content="{{ $canonicalUrl() }}">
+    @unless ($bare)
+        <meta property="og:url" content="{{ $canonicalUrl() }}">
+    @endunless
     @if ($image)
         <meta property="og:image" content="{{ $image }}">
     @endif
