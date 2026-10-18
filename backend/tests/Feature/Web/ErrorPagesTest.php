@@ -10,6 +10,7 @@ use Database\Seeders\CategorySeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Testing\TestResponse;
 
 /*
  * Error pages of the buyer web (#168, #197): in Indonesian, in the site
@@ -59,6 +60,26 @@ function errorPageQueries(callable $request): int
     $request();
 
     return $queries;
+}
+
+/**
+ * Handle the request with the default connection pointing at a server that
+ * refuses connections, then point it back so the test transaction can roll
+ * back.
+ */
+function errorPageWithDatabaseDown(callable $request): TestResponse
+{
+    $default = config('database.default');
+    config([
+        'database.connections.broken' => [...config('database.connections.pgsql'), 'host' => '127.0.0.1', 'port' => 1],
+        'database.default' => 'broken',
+    ]);
+
+    try {
+        return $request();
+    } finally {
+        config(['database.default' => $default]);
+    }
 }
 
 describe('404', function () {
@@ -117,9 +138,9 @@ describe('404', function () {
 
     it('leaves out products buyers cannot see', function () {
         $hidden = errorPageProduct('Kepiting nonaktif', now());
-        $hidden->update(['is_active' => false]);
+        $hidden->forceFill(['is_active' => false])->save();
         $blocked = errorPageProduct('Udang diblokir', now());
-        $blocked->update(['blocked_at' => now()]);
+        $blocked->forceFill(['blocked_at' => now()])->save();
 
         $this->get('/halaman-yang-tidak-ada')
             ->assertNotFound()
@@ -148,12 +169,7 @@ describe('404', function () {
     ]);
 
     it('still renders without the products when the database is down', function () {
-        config([
-            'database.connections.broken' => [...config('database.connections.pgsql'), 'host' => '127.0.0.1', 'port' => 1],
-            'database.default' => 'broken',
-        ]);
-
-        $this->get('/halaman-yang-tidak-ada')
+        errorPageWithDatabaseDown(fn () => $this->get('/halaman-yang-tidak-ada'))
             ->assertNotFound()
             ->assertSee('Halaman ini tidak ada di pasar kami')
             ->assertSee('Atau mulai dari kategori')
@@ -229,12 +245,8 @@ describe('419, 429, and 500', function () {
 
     it('renders the server error page when the database is down', function () {
         Route::middleware('web')->get('/__galat-db', fn () => DB::select('select 1'));
-        config([
-            'database.connections.broken' => [...config('database.connections.pgsql'), 'host' => '127.0.0.1', 'port' => 1],
-            'database.default' => 'broken',
-        ]);
 
-        $this->get('/__galat-db')
+        errorPageWithDatabaseDown(fn () => $this->get('/__galat-db'))
             ->assertStatus(500)
             ->assertSee('Ada gangguan di server kami')
             ->assertSee('Atau mulai dari kategori');
