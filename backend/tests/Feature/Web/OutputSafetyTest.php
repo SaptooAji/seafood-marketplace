@@ -35,6 +35,7 @@ const BUYER_PAGES = [
     'catalog' => '/produk',
     'product' => '/produk/ikan-uji',
     'store' => '/toko/toko-uji',
+    'pre-orders' => '/pre-order',
     'sitemap' => '/sitemap.xml',
 ];
 

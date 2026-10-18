@@ -51,7 +51,7 @@ beforeEach(function () {
 });
 
 describe('sitemap', function () {
-    it('lists the home page, the catalog, the recipes, the photo credits, visible products, and active stores', function () {
+    it('lists the home page, the catalog, the recipes, the photo credits, the pre-orders, visible products, and active stores', function () {
         $product = sitemapProduct($this->store, ['slug' => 'kepiting-bakau', 'updated_at' => Carbon::parse('2026-10-01 08:30:00')]);
 
         $response = $this->get('/sitemap.xml')->assertOk();
@@ -62,6 +62,7 @@ describe('sitemap', function () {
                 url('/produk') => null,
                 url('/resep') => null,
                 url('/kredit-foto') => null,
+                url('/pre-order') => null,
                 url('/produk/kepiting-bakau') => $product->updated_at->toAtomString(),
                 url('/toko/toko-bahari') => null,
             ]);
@@ -82,6 +83,7 @@ describe('sitemap', function () {
             url('/produk'),
             url('/resep'),
             url('/kredit-foto'),
+            url('/pre-order'),
             url('/produk/produk-tampil'),
             url('/toko/toko-bahari'),
         ]);
@@ -98,6 +100,7 @@ describe('sitemap', function () {
             url('/produk'),
             url('/resep'),
             url('/kredit-foto'),
+            url('/pre-order'),
             url('/produk/produk-asli'),
             url('/toko/toko-bahari'),
         ]);
@@ -107,7 +110,7 @@ describe('sitemap', function () {
         $this->store->forceFill(['status' => StoreStatus::Pending])->save();
 
         expect(array_keys(sitemapEntries($this->get('/sitemap.xml')->assertOk()->getContent())))
-            ->toEqualCanonicalizing([url('/'), url('/produk'), url('/resep'), url('/kredit-foto')]);
+            ->toEqualCanonicalizing([url('/'), url('/produk'), url('/resep'), url('/kredit-foto'), url('/pre-order')]);
     });
 
     it('stays valid XML when a URL has an ampersand', function () {
