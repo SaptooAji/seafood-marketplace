@@ -62,6 +62,7 @@
 
             <nav aria-label="Utama" class="ml-auto flex items-center gap-5 text-sm font-semibold sm:ml-0">
                 <a href="{{ route('catalog') }}" class="hover:text-primary-700">Katalog</a>
+                <a href="{{ route('pre-orders') }}" class="hover:text-primary-700">Pre order</a>
                 <a href="{{ route('recipes.index') }}" class="hover:text-primary-700">Resep</a>
                 {{-- The bare layout skips the auth check: a signed-in session would query the users table. --}}
                 @if (! $bare && auth()->guest())

@@ -10,12 +10,14 @@ use App\Http\Controllers\Web\RobotsController;
 use App\Http\Controllers\Web\SitemapController;
 use App\Http\Controllers\Web\StoreController;
 use App\Livewire\Catalog;
+use App\Livewire\PreOrders;
 use App\Livewire\ProductPage;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 Route::livewire('/produk', Catalog::class)->name('catalog');
 Route::livewire('/produk/{slug}', ProductPage::class)->name('products.show');
+Route::livewire('/pre-order', PreOrders::class)->name('pre-orders');
 Route::get('/toko/{slug}', StoreController::class)->name('stores.show');
 Route::get('/resep', [RecipeController::class, 'index'])->name('recipes.index');
 Route::get('/resep/{slug}', [RecipeController::class, 'show'])->name('recipes.show');

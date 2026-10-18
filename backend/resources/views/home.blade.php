@@ -187,7 +187,7 @@
                         <h2 id="preorder-judul" class="text-[1.625rem] leading-tight font-medium tracking-tight lg:text-[2.125rem]">Pesan hari ini, tangkapan besok</h2>
                         <p class="max-w-[36em] text-sm text-white/80 lg:text-base">Penjual menyiapkan pesanan dari hasil tangkapan subuh. Jumlahnya per hari terbatas, jadi pesan lebih awal.</p>
                     </div>
-                    <a href="{{ route('catalog') }}" class="flex min-h-11 items-center self-start font-semibold underline underline-offset-4 lg:self-auto">Semua pre order</a>
+                    <a href="{{ route('pre-orders') }}" class="flex min-h-11 items-center self-start font-semibold underline underline-offset-4 lg:self-auto">Semua pre order</a>
                 </div>
 
                 <div role="tablist" aria-label="Hari kirim" class="grid grid-cols-3 gap-2 lg:max-w-xl">

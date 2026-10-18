@@ -12,6 +12,9 @@
     <url>
         <loc>{{ route('credits') }}</loc>
     </url>
+    <url>
+        <loc>{{ route('pre-orders') }}</loc>
+    </url>
 @foreach ($products as $product)
     <url>
         <loc>{{ route('products.show', $product->slug) }}</loc>
