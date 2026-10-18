@@ -229,3 +229,16 @@ Dipakai di `/produk` dan `/pre-order`:
 - **Tanpa database di 419, 429, dan 500:** kotak kategori berasal dari daftar statis `config/error-pages.php`, karena 500 bisa terjadi saat database bermasalah dan 429 tidak boleh menambah beban. Query di 404 dibungkus supaya halaman tetap tampil tanpa bagian produk bila database mati.
 - Tidak ada pesan exception, path, atau URL yang dicoba di halaman (DATA-5). Layout `bare` juga tidak mencetak canonical.
 - Board: "Galat Web 1", "Galat Web 419", "Galat Web 429", "Galat Web 500", dan versi ponselnya (Eksperimen 1.4.0).
+
+## Android: variasi Embun (Tahap 4)
+
+Aplikasi penjual memakai variasi D "Embun" dari halaman kanvas "Eksperimen 2.0.0 variasi D: Embun (kaca)". Setiap layar punya board `VD-*` (misalnya `VD-Masuk`), dan setiap keadaan (galat, kosong, menunggu) punya board sendiri. Variasi E "Cap" disimpan sebagai cadangan. Komponennya ada di `core/designsystem/embun/` dan dipakai ulang oleh semua layar; warna dasar dan huruf tetap dari tema Bakau dan Kepiting (`core/designsystem/theme`).
+
+- **Latar** (`EmbunBackground`): gradien vertikal hijau muda `#DDEBE2` → pasir `#F6F3EC` (42%) → peach `#F8E9DE`, di belakang seluruh layar.
+- **Panel kaca tanpa blur** (`GlassCard`): putih 62% dengan garis putih 85% setebal 1 dp, radius 28, padding 18. Blur latar butuh API 31 dan dependency baru, jadi tidak dipakai (keputusan pemilik repo 18 Okt 2026). Panel yang lebih menonjol (chip, tombol sekunder) memakai putih 75%.
+- **Isian kaca** (`GlassTextField`): label di atas (`labelMedium`, `#4F5A50`), kotak putih 78% dengan garis putih 95% setebal 1,5 dp, radius 18, tinggi minimal 52 dp. Saat galat, garisnya `danger-700` dan pesan galat menggantikan teks bantuan di bawahnya. Isian menyebut `contentType` untuk autofill (email, password).
+- **Tombol pil utama** (`PrimaryPillButton`): `primary-700`, tinggi 54 dp, bayangan hijau lembut (`primary-700` 28%). Saat nonaktif menjadi kaca putih 55% dengan teks `muted`, tanpa bayangan.
+- **Chip** (`GlassChip`): pil putih 75% dengan garis putih.
+- **Pesan di panel** (`GlassBanner`): radius 18, peach untuk peringatan (misalnya 429) dan merah muda untuk galat, diumumkan pembaca layar (`liveRegion`).
+- **Foto bulat**: foto produk dipotong bulat dengan bayangan gelap lembut, dipakai sebagai hiasan (tanpa `contentDescription`). Foto di layar masuk berasal dari foto demo berlisensi CC0, jadi tidak perlu kredit.
+- **Teks**: semua dari `strings.xml`. Pesan galat server untuk login memakai teks aplikasi sendiri, bukan pesan server (AUTH-3).

@@ -2,4 +2,30 @@
 <resources>
     <string name="app_name">Seafood Marketplace</string>
     <string name="welcome_tagline">Aplikasi penjual</string>
+
+    <!-- Errors any screen can show -->
+    <string name="error_network">Tidak ada koneksi. Periksa internet lalu coba lagi.</string>
+    <string name="error_server">Server sedang bermasalah. Coba lagi sebentar lagi.</string>
+
+    <!-- Sign-in (VD-Masuk) -->
+    <string name="login_brand">Penjual</string>
+    <string name="login_greeting_morning">Selamat pagi, lapak Anda menunggu.</string>
+    <string name="login_greeting_afternoon">Selamat siang, lapak Anda menunggu.</string>
+    <string name="login_greeting_evening">Selamat sore, lapak Anda menunggu.</string>
+    <string name="login_greeting_night">Selamat malam, lapak Anda menunggu.</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_password_show">Lihat</string>
+    <string name="login_password_hide">Sembunyikan</string>
+    <string name="login_submit">Masuk</string>
+    <string name="login_submitting">Memeriksa…</string>
+    <string name="login_register_prompt">Belum punya akun?</string>
+    <string name="login_register_link">Daftar sebagai penjual</string>
+    <string name="login_session_expired">Sesi berakhir, silakan masuk lagi.</string>
+    <string name="login_error_email_required">Email wajib diisi.</string>
+    <string name="login_error_email_invalid">Format email belum benar, contoh: budi@example.com.</string>
+    <string name="login_error_email_too_long">Email maksimal 255 karakter.</string>
+    <string name="login_error_password_required">Password wajib diisi.</string>
+    <string name="login_error_credentials">Email atau password salah.</string>
+    <string name="login_error_too_many">Terlalu banyak percobaan. Coba lagi dalam %1$d detik.</string>
 </resources>
