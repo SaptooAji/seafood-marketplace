@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Web;
 use App\Enums\ShippingMethodType;
 use App\Enums\StoreStatus;
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
@@ -17,13 +16,10 @@ use App\Support\StockCheckTime;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class StoreController extends Controller
 {
-    public const int PER_PAGE = 24;
-
     public const int NEARBY_STORES = 3;
 
     public const int NEARBY_PRODUCTS = 3;
@@ -31,41 +27,25 @@ class StoreController extends Controller
     /**
      * The public page of an active store: a cover from its newest product
      * photo, the identity card with how fresh its stock is, the products
-     * newest first with a tab per root category (`?kategori=`), and up to
-     * three other stores nearest to this one.
+     * (the StoreProducts component, with its category tabs), and up to three
+     * other stores nearest to this one.
      *
      * Any other store is a 404, and only public columns are loaded, so bank
      * details never reach the view. Distances are from this store, never
      * from the buyer.
      */
-    public function __invoke(Request $request, string $slug): View
+    public function __invoke(string $slug): View
     {
         $store = Store::query()
             ->where('status', StoreStatus::Active)
             ->where('slug', $slug)
             ->firstOrFail(['id', 'name', 'slug', 'description', 'phone', 'address', 'city', 'lat', 'lng', 'logo', 'is_demo']);
 
-        $tabs = $this->categoryTabs($store);
-        $chosen = $request->query('kategori');
-        $chosenTab = is_string($chosen) ? collect($tabs)->firstWhere('slug', $chosen) : null;
-
-        $products = $store->products()
-            ->visibleInCatalog()
-            ->withCardDetails()
-            ->when($chosenTab !== null, fn (Builder $query) => $query->whereIn('category_id', $chosenTab['categoryIds'] ?? []))
-            ->latest()
-            ->latest('id')
-            ->paginate(self::PER_PAGE, ['id', 'store_id', 'name', 'slug', 'created_at'])
-            ->withQueryString();
-
         $nearby = $this->nearbyStores($store);
 
         return view('stores.show', [
             'store' => $store,
-            'products' => $products,
-            'tabs' => $tabs,
-            'chosenTab' => $chosenTab['slug'] ?? null,
-            'productCount' => array_sum(array_column($tabs, 'count')),
+            'productCount' => $store->products()->visibleInCatalog()->count(),
             'cover' => $this->cover($store),
             'checkedAt' => $this->lastCheckedAt($store),
             'receives' => $this->receives($store),
@@ -74,79 +54,6 @@ class StoreController extends Controller
             'nearbyProducts' => $this->nearbyProducts($nearby),
             'jsonLd' => $this->jsonLd($store),
         ]);
-    }
-
-    /**
-     * A tab per root category the store sells in, in admin order, with its
-     * number of products buyers can see and the ids of the category and its
-     * subcategories. Two queries; the category tree is small enough to walk
-     * in memory.
-     *
-     * @return list<array{slug: string, name: string, count: int, categoryIds: list<int>}>
-     */
-    private function categoryTabs(Store $store): array
-    {
-        /** @var array<int, int> $counts */
-        $counts = $store->products()
-            ->visibleInCatalog()
-            ->toBase()
-            ->select('category_id')
-            ->selectRaw('count(*) as product_count')
-            ->groupBy('category_id')
-            ->pluck('product_count', 'category_id')
-            ->all();
-
-        if ($counts === []) {
-            return [];
-        }
-
-        $categories = Category::query()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'parent_id', 'name', 'slug'])
-            ->keyBy('id');
-
-        $rootOf = function (int $id) use ($categories): ?Category {
-            $category = $categories->get($id);
-            $seen = [];
-
-            while ($category !== null && $category->parent_id !== null && ! isset($seen[$category->id])) {
-                $seen[$category->id] = true;
-                $category = $categories->get($category->parent_id);
-            }
-
-            return $category;
-        };
-
-        $countByRoot = [];
-
-        foreach ($counts as $categoryId => $count) {
-            $root = $rootOf((int) $categoryId);
-
-            if ($root !== null) {
-                $countByRoot[$root->id] = ($countByRoot[$root->id] ?? 0) + (int) $count;
-            }
-        }
-
-        $idsByRoot = [];
-
-        foreach ($categories as $category) {
-            $root = $rootOf($category->id);
-
-            if ($root !== null) {
-                $idsByRoot[$root->id][] = $category->id;
-            }
-        }
-
-        $tabs = [];
-
-        foreach ($categories as $category) {
-            if ($category->parent_id === null && isset($countByRoot[$category->id])) {
-                $tabs[] = ['slug' => $category->slug, 'name' => $category->name, 'count' => $countByRoot[$category->id], 'categoryIds' => $idsByRoot[$category->id]];
-            }
-        }
-
-        return $tabs;
     }
 
     /**
