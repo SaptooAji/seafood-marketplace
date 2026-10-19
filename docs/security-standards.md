@@ -68,7 +68,7 @@ Ini area paling penting di marketplace multi-toko: satu toko tidak boleh melihat
 | VAL-1 | Semua input lewat Form Request dengan tipe, panjang maksimal, dan rentang; aturan bisnis di Action dengan exception yang menyebut field | ✅ |
 | VAL-2 | Angka uang integer, berat dan qty string desimal; tidak ada float | ✅ |
 | VAL-3 | Query database memakai binding; `whereRaw`/`selectRaw` hanya dengan placeholder `?` | ✅ |
-| VAL-4 | Upload foto: ekstensi dan ukuran divalidasi, lalu **di-decode dan di-encode ulang** ke WebP (metadata EXIF/GPS terbuang, file palsu ditolak); nama file UUID, bukan nama dari pengguna | ✅ |
+| VAL-4 | Upload foto: ekstensi dan ukuran divalidasi, lalu **di-decode dan di-encode ulang** ke WebP (metadata EXIF/GPS terbuang, file palsu ditolak); nama file UUID, bukan nama dari pengguna. Dimensi dicek dari header file **sebelum decode** (batas piksel `catalog.photo_max_pixels`, sisi terpendek, dan rasio), sehingga *decompression bomb* tidak menghabiskan memori | ✅ batas piksel sebelum decode dites dengan PNG 20000×20000 (`ProductPhotoProcessorTest`, #236) |
 | VAL-5 | File unggahan disimpan di luar web root dan disajikan lewat disk `public` hanya untuk foto produk; bukti transfer (Tahap 5) di disk privat dengan URL bertanda tangan | ✅ foto; Tahap 5 belum |
 | VAL-6 | Teks dari pengguna dirender ter-escape (`{{ }}`); markdown (standar kualitas) dirender dengan HTML mentah dimatikan | ✅ semua halaman web pembeli dan sitemap, dites lintas halaman (#145) |
 | VAL-7 | JSON-LD dan data yang disisipkan ke `<script>` memakai `Js::from` atau `JSON_HEX_TAG` | ✅ JSON-LD halaman produk dan toko memakai `JSON_HEX_TAG`, satu blok per halaman (#145) |

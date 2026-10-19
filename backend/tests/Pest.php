@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Data\StoreData;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /*
@@ -68,6 +69,38 @@ function storeData(array $overrides = []): StoreData
         'bankAccountName' => 'Budi Santoso',
         'stockReminderTime' => '06:00',
     ], $overrides));
+}
+
+/**
+ * A black-and-white PNG of the given size whose file stays small however
+ * large it claims to be, like a decompression bomb: one bit per pixel, all
+ * zero, compressed. Decoding it fully would take width x height x 4 bytes.
+ */
+function blankPng(int $width, int $height, string $name = 'besar.png'): UploadedFile
+{
+    $row = "\0".str_repeat("\0", intdiv($width + 7, 8));
+    $chunk = fn (string $type, string $data): string => pack('N', strlen($data)).$type.$data.pack('N', crc32($type.$data));
+
+    $png = "\x89PNG\r\n\x1a\n"
+        .$chunk('IHDR', pack('NNCCCCC', $width, $height, 1, 0, 0, 0, 0))
+        .$chunk('IDAT', (string) gzcompress(str_repeat($row, $height), 9))
+        .$chunk('IEND', '');
+
+    return UploadedFile::fake()->createWithContent($name, $png);
+}
+
+/**
+ * A JPEG stored as $width x $height with an EXIF Orientation tag, as phones
+ * save a photo taken sideways (6 = rotate 90° clockwise to view).
+ */
+function rotatedJpeg(int $width, int $height, int $orientation = 6): UploadedFile
+{
+    $jpeg = UploadedFile::fake()->image('miring.jpg', $width, $height)->getContent();
+    // APP1 Exif segment: a big-endian TIFF header and one IFD entry, 0x0112 (Orientation), SHORT.
+    $tiff = "MM\x00\x2A\x00\x00\x00\x08"."\x00\x01"."\x01\x12\x00\x03\x00\x00\x00\x01".pack('n', $orientation)."\x00\x00"."\x00\x00\x00\x00";
+    $exif = "\xFF\xE1".pack('n', 2 + 6 + strlen($tiff))."Exif\x00\x00".$tiff;
+
+    return UploadedFile::fake()->createWithContent('miring.jpg', substr($jpeg, 0, 2).$exif.substr($jpeg, 2));
 }
 
 /**

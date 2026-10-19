@@ -38,7 +38,8 @@ class ImagesRelationManager extends RelationManager
 
     /**
      * The file is not stored by Filament; AddProductImage decodes it and
-     * writes the resized copies.
+     * writes the resized copies. The editor crops in the browser before the
+     * upload, to the ratios the photo standard allows (catalog.photo_max_ratio).
      */
     public function form(Schema $schema): Schema
     {
@@ -48,6 +49,10 @@ class ImagesRelationManager extends RelationManager
                     ->label('Foto')
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->maxSize(config()->integer('catalog.max_photo_kb'))
+                    ->image()
+                    ->imageEditor()
+                    ->imageEditorAspectRatioOptions(['1:1', '4:3', '3:4'])
+                    ->helperText('Foto terang, produk di tengah, sisi terpendek minimal '.config()->integer('catalog.photo_min_side').' piksel.')
                     ->storeFiles(false)
                     ->required(),
             ]);

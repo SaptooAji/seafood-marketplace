@@ -25,7 +25,7 @@ beforeEach(function () {
 
 function addPhoto(?Product $product = null, string $name = 'tuna.jpg', ?User $by = null): ProductImage
 {
-    return app(AddProductImage::class)->handle($product ?? test()->product, UploadedFile::fake()->image($name, 640, 480), $by ?? test()->uploader);
+    return app(AddProductImage::class)->handle($product ?? test()->product, UploadedFile::fake()->image($name, 800, 600), $by ?? test()->uploader);
 }
 
 /**
@@ -79,6 +79,14 @@ describe('adding', function () {
 
         expect(addPhoto()->sort_order)->toBe(1);
     });
+
+    it('writes nothing for a photo below the standard', function (Closure $file, string $message) {
+        expect(fn () => app(AddProductImage::class)->handle($this->product, $file(), $this->uploader))
+            ->toThrow(fn (InvalidProductPhoto $e) => expect($e->getMessage())->toContain($message));
+
+        expect(ProductImage::query()->count())->toBe(0)
+            ->and(Storage::disk('public')->allFiles())->toBe([]);
+    })->with('photos below the standard');
 
     it('writes nothing for a file that is not an image', function () {
         $file = UploadedFile::fake()->createWithContent('katalog.pdf', '%PDF-1.4 not an image');
@@ -137,6 +145,8 @@ describe('limits', function () {
     it('shares 200 photos a day between the members of a store', function () {
         $owner = $this->uploader;
         $staff = User::factory()->create();
+        // Tiny photos keep 200 uploads fast; the standard is not what this test is about.
+        config(['catalog.photo_min_side' => 8]);
 
         foreach (range(1, 200) as $i) {
             app(AddProductImage::class)->handle($this->product, UploadedFile::fake()->image('kecil.jpg', 8, 8), $i % 2 === 0 ? $owner : $staff);
@@ -184,6 +194,18 @@ describe('limits', function () {
                 }
             },
             InvalidProductData::class,
+        ],
+        'below the shortest side' => [
+            fn () => app(AddProductImage::class)->handle(test()->product, UploadedFile::fake()->image('kecil.jpg', 300, 300), test()->uploader),
+            InvalidProductPhoto::class,
+        ],
+        'wider than 4:3' => [
+            fn () => app(AddProductImage::class)->handle(test()->product, UploadedFile::fake()->image('lebar.jpg', 1600, 900), test()->uploader),
+            InvalidProductPhoto::class,
+        ],
+        'over the pixel limit' => [
+            fn () => app(AddProductImage::class)->handle(test()->product, blankPng(8000, 6000), test()->uploader),
+            InvalidProductPhoto::class,
         ],
     ]);
 });

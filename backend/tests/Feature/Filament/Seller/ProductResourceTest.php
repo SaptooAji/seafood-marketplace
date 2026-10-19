@@ -25,9 +25,11 @@ use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Schemas\Components\Text;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -457,6 +459,29 @@ describe('photos', function () {
         'text named as a JPG' => [fn () => UploadedFile::fake()->createWithContent('tuna.jpg', 'not an image')],
     ]);
 
+    it('refuses a photo below the standard on the photo field and stores nothing', function (Closure $file) {
+        Livewire::test(ImagesRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
+            ->callAction(TestAction::make('create')->table(), data: ['photo' => $file()])
+            // The wording is checked on the Action and the API; here, that it lands on the field.
+            ->assertHasActionErrors(['photo']);
+
+        expect($this->product->images()->count())->toBe(0)
+            ->and(Storage::disk('public')->allFiles('products'))->toBe([]);
+    })->with('photos below the standard');
+
+    it('offers square and 4:3 crops in the photo editor and says what a good photo is', function () {
+        Livewire::test(ImagesRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
+            ->mountAction(TestAction::make('create')->table())
+            ->assertFormFieldExists('photo', function (FileUpload $field): bool {
+                $helper = $field->getChildSchema($field::BELOW_CONTENT_SCHEMA_KEY)?->getComponents()[0] ?? null;
+
+                return $field->hasImageEditor()
+                    && array_keys($field->getImageEditorAspectRatioOptionsForJs()) === ['1:1', '4:3', '3:4']
+                    && $helper instanceof Text
+                    && $helper->getContent() === 'Foto terang, produk di tengah, sisi terpendek minimal 600 piksel.';
+            });
+    });
+
     it('rejects a ninth photo', function () {
         foreach (range(1, 8) as $sortOrder) {
             panelStoredPhoto($this->product, $sortOrder);
@@ -464,7 +489,7 @@ describe('photos', function () {
 
         Livewire::test(ImagesRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
             ->callAction(TestAction::make('create')->table(), data: [
-                'photo' => UploadedFile::fake()->image('tuna.jpg', 640, 480),
+                'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
             ])
             ->assertHasActionErrors(['photo']);
 
@@ -474,12 +499,12 @@ describe('photos', function () {
     it('shows the upload limit on the photo field and stores nothing', function () {
         config(['catalog.max_photos' => 100]);
         foreach (range(1, 10) as $_) {
-            app(AddProductImage::class)->handle($this->product, UploadedFile::fake()->image('tuna.jpg', 64, 48), $this->user);
+            app(AddProductImage::class)->handle($this->product, UploadedFile::fake()->image('tuna.jpg', 800, 600), $this->user);
         }
 
         Livewire::test(ImagesRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
             ->callAction(TestAction::make('create')->table(), data: [
-                'photo' => UploadedFile::fake()->image('tuna.jpg', 64, 48),
+                'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
             ])
             ->assertHasActionErrors(['photo']);
 
