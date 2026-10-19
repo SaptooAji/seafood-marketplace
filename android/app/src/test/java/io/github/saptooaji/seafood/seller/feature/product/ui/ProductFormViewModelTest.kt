@@ -136,7 +136,13 @@ class ProductFormViewModelTest {
             vm.onEvent(ProductFormEvent.Save)
             advanceUntilIdle()
 
-            assertEquals("12.5", products.createCalls.single().first.dailyQuota!!.toPlainString())
+            assertEquals(
+                "12.5",
+                products.createCalls
+                    .single()
+                    .first.dailyQuota!!
+                    .toPlainString(),
+            )
         }
 
     @Test
@@ -150,7 +156,12 @@ class ProductFormViewModelTest {
             vm.onEvent(ProductFormEvent.Save)
             advanceUntilIdle()
 
-            assertEquals("<script>alert(1)</script> Segar", products.createCalls.single().first.description)
+            assertEquals(
+                "<script>alert(1)</script> Segar",
+                products.createCalls
+                    .single()
+                    .first.description,
+            )
         }
 
     @Test
@@ -223,7 +234,11 @@ class ProductFormViewModelTest {
 
             assertEquals(3L, vm.uiState.value.categoryId)
             assertEquals(mapOf(10L to "350"), vm.uiState.value.attributeValues)
-            assertEquals(listOf(10L), vm.uiState.value.attributes.map { it.id })
+            assertEquals(
+                listOf(10L),
+                vm.uiState.value.attributes
+                    .map { it.id },
+            )
         }
 
     @Test
@@ -240,7 +255,8 @@ class ProductFormViewModelTest {
     @Test
     fun `a product blocked by the admin shows the reason and can still be edited`() =
         runTest(main.dispatcher) {
-            products.getResult = ApiResult.Success(FakeProductRepository.DETAIL.copy(isBlocked = true, blockReason = "Foto tidak sesuai produk."))
+            products.getResult =
+                ApiResult.Success(FakeProductRepository.DETAIL.copy(isBlocked = true, blockReason = "Foto tidak sesuai produk."))
             val vm = edit()
             advanceUntilIdle()
 
@@ -387,7 +403,8 @@ class ProductFormViewModelTest {
     @Test
     fun `a refused first variant price shows in the variant row`() =
         runTest(main.dispatcher) {
-            products.createResult = ApiResult.Invalid(mapOf("variants.0.price" to listOf("The variants.0.price field must be at least 1.")), null)
+            products.createResult =
+                ApiResult.Invalid(mapOf("variants.0.price" to listOf("The variants.0.price field must be at least 1.")), null)
             val vm = create()
             advanceUntilIdle()
             vm.fill()
@@ -562,7 +579,11 @@ class ProductFormViewModelTest {
                 refused("empty name", FormField.Text(ProductTextField.Name), R.string.product_form_error_name_required) {
                     it.set(ProductTextField.Name, " ")
                 },
-                refused("empty description", FormField.Text(ProductTextField.Description), R.string.product_form_error_description_required) {
+                refused(
+                    "empty description",
+                    FormField.Text(ProductTextField.Description),
+                    R.string.product_form_error_description_required,
+                ) {
                     it.set(ProductTextField.Description, "")
                 },
                 refused("required attribute empty", FormField.Attribute(10), R.string.product_form_error_attribute_required) {
@@ -571,7 +592,11 @@ class ProductFormViewModelTest {
                 refused("number attribute not a number", FormField.Attribute(10), R.string.product_form_error_attribute_number) {
                     it.onEvent(ProductFormEvent.AttributeChanged(10, "tiga ratus"))
                 },
-                refused("pre order without quota", FormField.Text(ProductTextField.DailyQuota), R.string.product_form_error_quota_required) {
+                refused(
+                    "pre order without quota",
+                    FormField.Text(ProductTextField.DailyQuota),
+                    R.string.product_form_error_quota_required,
+                ) {
                     preOrder(it)
                 },
                 refused("cutoff 25:00", FormField.Text(ProductTextField.CutoffTime), R.string.product_form_error_cutoff) {

@@ -27,7 +27,13 @@ class CategoryRepositoryTest {
         server = MockWebServer()
         server.start()
         val baseUrl = server.url("/api/v1/")
-        val client = HttpClients.okHttpClient(baseUrl, FakeTokenStore().apply { state.value = "sfm_abc" }, SessionEvents(), debugLogger = null)
+        val client =
+            HttpClients.okHttpClient(
+                baseUrl,
+                FakeTokenStore().apply { state.value = "sfm_abc" },
+                SessionEvents(),
+                debugLogger = null,
+            )
         repository = CategoryRepositoryImpl(HttpClients.retrofit(baseUrl, client).create(CategoryApi::class.java), HttpClients.json)
     }
 

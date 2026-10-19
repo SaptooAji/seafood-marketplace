@@ -115,7 +115,13 @@ class ProductFormRepositoryTest {
     @Test
     fun `a pre-order product sends its quota, lead time, and cutoff`() {
         server.enqueue(json(201, """{"data":$PRODUCT_JSON}"""))
-        val preOrder = readyStock.copy(salesMode = SalesMode.PreOrder, dailyQuota = BigDecimal("25"), leadTimeDays = 1, cutoffTime = "15:00")
+        val preOrder =
+            readyStock.copy(
+                salesMode = SalesMode.PreOrder,
+                dailyQuota = BigDecimal("25"),
+                leadTimeDays = 1,
+                cutoffTime = "15:00",
+            )
 
         io { repository().create(preOrder, variant) }
 
@@ -185,7 +191,15 @@ class ProductFormRepositoryTest {
 
     @Test
     fun `refused fields come back keyed as the server sends them`() {
-        server.enqueue(json(422, """{"message":"Pilih subkategori yang paling spesifik.","errors":{"category_id":["Pilih subkategori yang paling spesifik."]}}"""))
+        server.enqueue(
+            json(
+                422,
+                """
+                {"message":"Pilih subkategori yang paling spesifik.",
+                 "errors":{"category_id":["Pilih subkategori yang paling spesifik."]}}
+                """.trimIndent(),
+            ),
+        )
 
         val result = io { repository().create(readyStock, variant) }
 

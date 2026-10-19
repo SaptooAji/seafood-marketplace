@@ -18,7 +18,8 @@ class FakeCategoryRepository : CategoryRepository {
 
     companion object {
         val WEIGHT = CategoryAttribute(10, "Berat per ekor", AttributeType.Number, emptyList(), unit = "g", isRequired = true)
-        val GRADE = CategoryAttribute(11, "Grade", AttributeType.Select, listOf("Super", "Jantan", "Betina"), unit = null, isRequired = false)
+        val GRADE =
+            CategoryAttribute(11, "Grade", AttributeType.Select, listOf("Super", "Jantan", "Betina"), unit = null, isRequired = false)
         val SIZE = CategoryAttribute(12, "Ukuran", AttributeType.Text, emptyList(), unit = null, isRequired = true)
         val HARVESTED = CategoryAttribute(13, "Tanggal panen", AttributeType.Date, emptyList(), unit = null, isRequired = false)
 
