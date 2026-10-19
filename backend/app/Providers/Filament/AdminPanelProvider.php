@@ -55,6 +55,8 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            // The bell for StoreAwaitingReview; polled, so no broadcasting is needed.
+            ->databaseNotifications()
             ->plugins([
                 FilamentShieldPlugin::make(),
             ])

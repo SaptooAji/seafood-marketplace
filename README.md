@@ -76,6 +76,8 @@ php artisan storage:link    # foto produk disajikan dari storage/app/public
 composer run dev
 ```
 
+Notifikasi (misalnya ke admin saat ada toko baru menunggu review) dikirim lewat queue (`QUEUE_CONNECTION=database`). `composer run dev` sudah menjalankan worker (`queue:listen`). Bila situs dibuka lewat Herd tanpa `composer run dev`, jalankan `php artisan queue:work` di terminal lain. Di lokal, email tidak benar-benar dikirim (`MAIL_MAILER=log`); isinya ditulis ke `storage/logs/laravel.log`.
+
 ### Saran deskripsi AI (opsional)
 
 Penjual bisa meminta saran deskripsi produk dan ringkasan SEO dari Google Gemini. Tanpa kunci, fitur ini menjawab "tidak tersedia" dan aplikasi lain tetap berjalan normal.
