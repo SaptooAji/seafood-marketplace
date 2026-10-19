@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Centres the store map on the seller once, asked for when "Lokasi saya" is
+         pressed; never in the background. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <!-- Security settings (docs/security-standards.md §11): cleartext only in debug
          builds (MOB-3), the token store left out of backups (MOB-7), and only the

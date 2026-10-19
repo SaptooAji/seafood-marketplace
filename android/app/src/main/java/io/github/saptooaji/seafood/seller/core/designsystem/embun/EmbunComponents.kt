@@ -2,6 +2,7 @@ package io.github.saptooaji.seafood.seller.core.designsystem.embun
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -22,14 +23,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -99,6 +103,7 @@ fun GlassTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     singleLine: Boolean = true,
+    minLines: Int = 1,
 ) {
     val edge = if (error != null) EmbunColors.DangerContent else EmbunColors.FieldEdge
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -119,6 +124,7 @@ fun GlassTextField(
             keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
             singleLine = singleLine,
+            minLines = minLines,
             decorationBox = { inner ->
                 Row(
                     modifier =
@@ -126,8 +132,9 @@ fun GlassTextField(
                             .heightIn(min = 52.dp)
                             .background(EmbunColors.Field, OptionShape)
                             .border(1.5.dp, edge, OptionShape)
-                            .padding(horizontal = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                            // Several lines start at the top, with room above and below.
+                            .padding(horizontal = 18.dp, vertical = if (singleLine) 0.dp else 14.dp),
+                    verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Box(Modifier.weight(1f)) { inner() }
@@ -199,28 +206,51 @@ fun GlassChip(
 
 enum class BannerTone { Warn, Danger }
 
-/** A message inside a panel that the screen reader announces when it appears. */
+/**
+ * A message inside a panel that the screen reader announces when it appears,
+ * with an optional bold link after it, such as "Lihat status toko".
+ */
 @Composable
 fun GlassBanner(
     text: String,
     tone: BannerTone,
     modifier: Modifier = Modifier,
+    action: BannerAction? = null,
 ) {
     val (background, content) =
         when (tone) {
             BannerTone.Warn -> EmbunColors.WarnBackground to EmbunColors.WarnContent
             BannerTone.Danger -> EmbunColors.DangerBackground to EmbunColors.DangerContent
         }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = content,
+    Column(
         modifier =
             modifier
                 .fillMaxWidth()
-                .semantics { liveRegion = LiveRegionMode.Polite }
+                .semantics(mergeDescendants = action == null) { liveRegion = LiveRegionMode.Polite }
                 .background(background, OptionShape)
                 .border(1.dp, EmbunColors.GlassEdge, OptionShape)
                 .padding(horizontal = 14.dp, vertical = 12.dp),
-    )
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(text = text, style = MaterialTheme.typography.bodyMedium, color = content)
+        if (action != null) {
+            Text(
+                text = action.label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
+                color = content,
+                modifier =
+                    action.modifier
+                        .clip(OptionShape)
+                        .clickable(role = Role.Button, onClick = action.onClick)
+                        .padding(vertical = 4.dp),
+            )
+        }
+    }
 }
+
+/** The link at the end of a [GlassBanner]; [modifier] goes on the link, such as a test tag. */
+class BannerAction(
+    val label: String,
+    val onClick: () -> Unit,
+    val modifier: Modifier = Modifier,
+)

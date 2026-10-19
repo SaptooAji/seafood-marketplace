@@ -58,4 +58,47 @@
     <string name="register_error_phone_invalid">Nomor HP diawali 08 atau +628, lalu 8–13 angka.</string>
     <string name="register_error_password_too_short">Password minimal 8 karakter.</string>
     <string name="register_error_password_mismatch">Password tidak sama.</string>
+
+    <!-- Opening a store (VD-Buka-Toko); the form is shared with editing the store -->
+    <string name="open_store_title">Data toko</string>
+    <string name="open_store_subtitle">Langkah 2 dari 2. Nama dan lokasi tampil ke pembeli.</string>
+    <string name="open_store_submit">Kirim untuk diperiksa</string>
+    <string name="open_store_submitting">Mengirim…</string>
+    <string name="open_store_review_time">Biasanya selesai dalam 1 hari kerja</string>
+    <string name="open_store_already_has_store">Anda sudah punya toko.</string>
+    <string name="open_store_view_status">Lihat status toko</string>
+    <string name="store_section_profile">Profil toko</string>
+    <string name="store_section_location">Lokasi lapak</string>
+    <string name="store_section_bank">Rekening</string>
+    <string name="store_name_label">Nama toko</string>
+    <string name="store_description_label">Cerita singkat (opsional)</string>
+    <string name="store_phone_label">Nomor HP toko</string>
+    <string name="store_address_label">Alamat</string>
+    <string name="store_city_label">Kota</string>
+    <string name="store_location_help">Geser peta sampai pin tepat di lapak. Pembeli memakai titik ini untuk menghitung jarak.</string>
+    <string name="store_map_description">Peta lokasi lapak dengan pin di tengah</string>
+    <string name="store_map_attribution">© OpenStreetMap</string>
+    <string name="store_my_location">Lokasi saya</string>
+    <string name="store_pin_coordinates">Titik: %1$s, %2$s</string>
+    <string name="store_pin_unset">Titik: belum dipasang</string>
+    <string name="store_location_denied">Izin lokasi tidak diberikan. Geser peta sampai pin tepat di lapak.</string>
+    <string name="store_location_unavailable">Lokasi perangkat belum ditemukan. Geser peta sampai pin tepat di lapak.</string>
+    <string name="store_bank_help">Hanya terlihat oleh Anda dan admin.</string>
+    <string name="store_bank_name_label">Nama bank</string>
+    <string name="store_bank_account_no_label">Nomor rekening</string>
+    <string name="store_bank_account_no_help">5 sampai 20 angka</string>
+    <string name="store_bank_account_name_label">Nama pemilik rekening</string>
+    <string name="store_error_name_required">Nama toko wajib diisi.</string>
+    <string name="store_error_name_too_long">Nama toko maksimal 100 karakter.</string>
+    <string name="store_error_description_too_long">Cerita singkat maksimal 2000 karakter.</string>
+    <string name="store_error_address_required">Alamat wajib diisi.</string>
+    <string name="store_error_address_too_long">Alamat maksimal 500 karakter.</string>
+    <string name="store_error_city_required">Kota wajib diisi.</string>
+    <string name="store_error_city_too_long">Kota maksimal 100 karakter.</string>
+    <string name="store_error_pin_required">Geser peta untuk memasang pin di lapak Anda.</string>
+    <string name="store_error_bank_name_required">Nama bank wajib diisi.</string>
+    <string name="store_error_bank_name_too_long">Nama bank maksimal 100 karakter.</string>
+    <string name="store_error_bank_account_no_invalid">Nomor rekening berisi 5 sampai 20 angka, tanpa huruf atau spasi.</string>
+    <string name="store_error_bank_account_name_required">Nama pemilik rekening wajib diisi.</string>
+    <string name="store_error_bank_account_name_too_long">Nama pemilik rekening maksimal 255 karakter.</string>
 </resources>

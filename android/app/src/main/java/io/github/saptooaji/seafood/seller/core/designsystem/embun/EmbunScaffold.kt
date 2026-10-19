@@ -35,12 +35,13 @@ import io.github.saptooaji.seafood.seller.core.designsystem.theme.PillShape
 
 /**
  * The top of a form screen: a round glass back button, then a large title
- * with an optional line under it.
+ * with an optional line under it. Without [onBack] there is no button, for a
+ * screen with nothing to go back to.
  */
 @Composable
 fun EmbunTopBar(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     backLabel: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
@@ -54,18 +55,24 @@ fun EmbunTopBar(
                 .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 6.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Surface(
-            onClick = onBack,
-            shape = CircleShape,
-            color = EmbunColors.GlassStrong,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            modifier =
-                backModifier
-                    .size(44.dp)
-                    .border(1.dp, EmbunColors.GlassEdge, CircleShape),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(painter = painterResource(R.drawable.ic_arrow_back), contentDescription = backLabel, modifier = Modifier.size(22.dp))
+        if (onBack != null) {
+            Surface(
+                onClick = onBack,
+                shape = CircleShape,
+                color = EmbunColors.GlassStrong,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                modifier =
+                    backModifier
+                        .size(44.dp)
+                        .border(1.dp, EmbunColors.GlassEdge, CircleShape),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_back),
+                        contentDescription = backLabel,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
         Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

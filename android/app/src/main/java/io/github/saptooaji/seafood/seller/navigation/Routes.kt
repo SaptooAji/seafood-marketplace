@@ -19,6 +19,10 @@ data class LoginRoute(
 @Serializable
 data object RegisterRoute
 
+/** Opening a store: right after registration, or for a seller without one. */
+@Serializable
+data object OpenStoreRoute
+
 /** Where a signed-in seller lands, until the store status route in #235. */
 @Serializable
 data object WelcomeRoute

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The store pin of the web map (#214): a green pin holding the marketplace
+     logo. Its tip is at (24, 58) of the 48 x 60 viewport. Never tinted. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="60dp"
+    android:viewportWidth="48"
+    android:viewportHeight="60">
+    <path
+        android:fillColor="#FF2F5D46"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M24,58s-20,-17.5 -20,-34a20,20 0,0 1,40 0c0,16.5 -20,34 -20,34z" />
+    <group
+        android:scaleX="0.47"
+        android:scaleY="0.47"
+        android:translateX="9"
+        android:translateY="9">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:strokeColor="#FF1B2E25"
+            android:strokeWidth="3"
+            android:pathData="M22,4H42A18,18 0,0 1,60 22V42A18,18 0,0 1,42 60H22A18,18 0,0 1,4 42V22A18,18 0,0 1,22 4Z" />
+        <path
+            android:strokeColor="#FF1B2E25"
+            android:strokeWidth="3"
+            android:strokeLineJoin="round"
+            android:pathData="M14,33C19,26 26,24 34,26L41,21V45L34,40C26,42 19,40 14,33Z" />
+        <path
+            android:fillColor="#FFD9733C"
+            android:pathData="M42,15a6,6 0,1 0,12 0a6,6 0,1 0,-12 0" />
+    </group>
+</vector>

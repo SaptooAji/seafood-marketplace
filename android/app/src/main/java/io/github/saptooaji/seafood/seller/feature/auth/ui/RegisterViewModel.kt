@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
+import io.github.saptooaji.seafood.seller.core.util.PhoneNumber
 import io.github.saptooaji.seafood.seller.core.util.UiText
 import io.github.saptooaji.seafood.seller.core.util.launchCountdown
 import io.github.saptooaji.seafood.seller.feature.auth.domain.AuthRepository
@@ -195,15 +196,3 @@ class RegisterViewModel
             const val MIN_PASSWORD_LENGTH = 8
         }
     }
-
-/** An Indonesian mobile number, the same rule as `IndonesianPhone` on the server. */
-object PhoneNumber {
-    private val PATTERN = Regex("^(?:08|\\+628)\\d{8,13}$")
-    private val SEPARATORS = Regex("[\\s-]")
-
-    /** "0812 3456 7890" becomes "081234567890". */
-    fun normalize(phone: String): String = phone.replace(SEPARATORS, "")
-
-    /** @param phone already normalised */
-    fun isValid(phone: String): Boolean = PATTERN.matches(phone)
-}
