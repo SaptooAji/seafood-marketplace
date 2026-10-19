@@ -12,6 +12,7 @@ import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginScreen
 import io.github.saptooaji.seafood.seller.feature.auth.ui.RegisterScreen
 import io.github.saptooaji.seafood.seller.feature.main.ui.MainShell
+import io.github.saptooaji.seafood.seller.feature.product.ui.ProductListScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartDestination
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
 import io.github.saptooaji.seafood.seller.feature.store.ui.OpenStoreScreen
@@ -90,6 +91,10 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
             MainShell(
                 storePending = entry.toRoute<MainRoute>().storePending,
                 onStoreStatus = { navController.startOver(StoreStatusRoute()) },
+                productsTab = { banner ->
+                    // The product form (#238) opens from here once it exists.
+                    ProductListScreen(onAddProduct = {}, onOpenProduct = {}, banner = banner)
+                },
             )
         }
     }

@@ -140,4 +140,39 @@
     <string name="main_tab_coming">%1$s menyusul di versi berikutnya.</string>
     <string name="main_pending_banner">Toko menunggu verifikasi. Produk tampil ke pembeli setelah toko disetujui.</string>
     <string name="main_pending_status">Lihat status</string>
+
+    <!-- Product list (VD-Produk-Daftar) -->
+    <string name="product_list_title">Produk</string>
+    <string name="product_search_open">Cari produk</string>
+    <string name="product_search_label">Cari produk</string>
+    <string name="product_search_clear">Hapus pencarian</string>
+    <string name="product_add">Tambah produk</string>
+    <string name="product_filter_all">Semua</string>
+    <string name="product_status_active">Aktif</string>
+    <string name="product_status_inactive">Nonaktif</string>
+    <string name="product_status_blocked">Diblokir</string>
+    <string name="product_stock_stale">Stok belum dikonfirmasi</string>
+    <string name="product_hidden">Tidak tampil ke pembeli</string>
+    <string name="product_blocked_reason">Diblokir: %1$s</string>
+    <string name="product_no_active_variant">Tidak ada varian aktif</string>
+    <string name="product_price_from">Mulai %1$s /%2$s</string>
+    <string name="product_price">%1$s /%2$s</string>
+    <plurals name="product_variant_count">
+        <item quantity="one">%d varian</item>
+        <item quantity="other">%d varian</item>
+    </plurals>
+    <plurals name="product_list_all_shown">
+        <item quantity="one">Semua %d produk sudah tampil</item>
+        <item quantity="other">Semua %d produk sudah tampil</item>
+    </plurals>
+    <string name="product_list_empty_title">Belum ada produk</string>
+    <string name="product_list_empty_body">Tambahkan produk pertama: foto, ukuran, dan harga per kilo. Sekitar 3 menit.</string>
+    <string name="product_list_add_first">Tambah produk pertama</string>
+    <string name="product_list_no_results">Tidak ada produk untuk “%1$s”</string>
+    <string name="product_list_no_results_filter">Tidak ada produk dengan status ini</string>
+    <string name="product_list_no_results_body">Coba kata lain, atau pilih saringan Semua.</string>
+    <string name="product_list_loading">Memuat produk</string>
+    <string name="product_list_loading_more">Memuat produk berikutnya…</string>
+    <string name="product_list_more_failed">Gagal memuat produk berikutnya. Periksa internet.</string>
+    <string name="product_list_retry">Coba lagi</string>
 </resources>

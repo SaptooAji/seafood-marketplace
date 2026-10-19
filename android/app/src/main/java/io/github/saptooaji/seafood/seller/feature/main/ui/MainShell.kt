@@ -74,19 +74,29 @@ object MainTags {
 
 /**
  * The main screens of an active store, or of a pending one that already adds
- * products. The chosen tab survives a rotation. Each tab is a placeholder
- * until its feature arrives (#237, #243, #245).
+ * products. The chosen tab survives a rotation. Stok and Pengaturan are
+ * placeholders until their features arrive (#243, #245).
  *
  * @param storePending shows the "menunggu verifikasi" banner with a link to the status
+ * @param productsTab the Produk tab, given the banner to show under its header;
+ *   null shows the placeholder, as in tests of the shell alone
  */
 @Composable
 fun MainShell(
     storePending: Boolean,
     onStoreStatus: () -> Unit,
     modifier: Modifier = Modifier,
+    productsTab: (@Composable (banner: @Composable () -> Unit) -> Unit)? = null,
 ) {
     var tab by rememberSaveable { mutableStateOf(MainTab.Products) }
-    MainShell(tab = tab, onTab = { tab = it }, storePending = storePending, onStoreStatus = onStoreStatus, modifier = modifier)
+    MainShell(
+        tab = tab,
+        onTab = { tab = it },
+        storePending = storePending,
+        onStoreStatus = onStoreStatus,
+        modifier = modifier,
+        productsTab = productsTab,
+    )
 }
 
 @Composable
@@ -96,37 +106,28 @@ fun MainShell(
     storePending: Boolean,
     onStoreStatus: () -> Unit,
     modifier: Modifier = Modifier,
+    productsTab: (@Composable (banner: @Composable () -> Unit) -> Unit)? = null,
 ) {
+    val banner: @Composable () -> Unit = {
+        if (storePending) {
+            GlassBanner(
+                text = stringResource(R.string.main_pending_banner),
+                tone = BannerTone.Warn,
+                action =
+                    BannerAction(
+                        label = stringResource(R.string.main_pending_status),
+                        onClick = onStoreStatus,
+                        modifier = Modifier.testTag(MainTags.STORE_STATUS),
+                    ),
+            )
+        }
+    }
+
     EmbunBackground(modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .statusBarsPadding()
-                // Room for the capsule floating over the bottom of the content.
-                .padding(start = 16.dp, end = 16.dp, top = 26.dp, bottom = 110.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // Each tab brings its own header with its feature, as VD-Produk-Daftar does.
-            if (storePending) {
-                GlassBanner(
-                    text = stringResource(R.string.main_pending_banner),
-                    tone = BannerTone.Warn,
-                    action =
-                        BannerAction(
-                            label = stringResource(R.string.main_pending_status),
-                            onClick = onStoreStatus,
-                            modifier = Modifier.testTag(MainTags.STORE_STATUS),
-                        ),
-                )
-            }
-            GlassCard(Modifier.fillMaxWidth()) {
-                Text(
-                    text = stringResource(R.string.main_tab_coming, stringResource(tab.label)),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = EmbunColors.Muted,
-                )
-            }
+        if (tab == MainTab.Products && productsTab != null) {
+            productsTab(banner)
+        } else {
+            Placeholder(tab, banner)
         }
 
         TabCapsule(
@@ -138,6 +139,32 @@ fun MainShell(
                     .navigationBarsPadding()
                     .padding(start = 28.dp, end = 28.dp, bottom = 16.dp),
         )
+    }
+}
+
+/** A tab whose feature has not arrived yet. */
+@Composable
+private fun Placeholder(
+    tab: MainTab,
+    banner: @Composable () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .statusBarsPadding()
+            // Room for the capsule floating over the bottom of the content.
+            .padding(start = 16.dp, end = 16.dp, top = 26.dp, bottom = 110.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        banner()
+        GlassCard(Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(R.string.main_tab_coming, stringResource(tab.label)),
+                style = MaterialTheme.typography.bodyLarge,
+                color = EmbunColors.Muted,
+            )
+        }
     }
 }
 
