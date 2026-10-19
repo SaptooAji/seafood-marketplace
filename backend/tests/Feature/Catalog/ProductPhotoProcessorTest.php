@@ -170,10 +170,10 @@ describe('config', function () {
     });
 
     it('reads the widest ratio and the pixel limit from the catalog config', function () {
-        config(['catalog.photo_max_ratio' => 2.0, 'catalog.photo_max_pixels' => 600_000]);
+        config(['catalog.photo_max_ratio' => 2.0, 'catalog.photo_max_pixels' => 800_000]);
 
-        // 1000 x 500 is 2:1 and 0.5 MP; 800 x 800 is square but 0.64 MP.
-        expect(imageInfo(processPhoto(UploadedFile::fake()->image('lebar.jpg', 1000, 500))->photo))->toBe([1000, 500, 'image/webp'])
-            ->and(fn () => processPhoto(UploadedFile::fake()->image('tuna.jpg', 800, 800)))->toThrow(InvalidProductPhoto::class);
+        // 1200 x 600 is 2:1 and 0.72 MP; 1000 x 1000 is square but 1 MP.
+        expect(imageInfo(processPhoto(UploadedFile::fake()->image('lebar.jpg', 1200, 600))->photo))->toBe([1200, 600, 'image/webp'])
+            ->and(fn () => processPhoto(UploadedFile::fake()->image('tuna.jpg', 1000, 1000)))->toThrow(InvalidProductPhoto::class);
     });
 });

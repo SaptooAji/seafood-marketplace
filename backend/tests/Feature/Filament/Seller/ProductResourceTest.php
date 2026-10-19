@@ -29,6 +29,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Schemas\Components\Text;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -458,11 +459,11 @@ describe('photos', function () {
         'text named as a JPG' => [fn () => UploadedFile::fake()->createWithContent('tuna.jpg', 'not an image')],
     ]);
 
-    it('refuses a photo below the standard on the photo field and stores nothing', function (Closure $file, string $message) {
+    it('refuses a photo below the standard on the photo field and stores nothing', function (Closure $file) {
         Livewire::test(ImagesRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
             ->callAction(TestAction::make('create')->table(), data: ['photo' => $file()])
-            ->assertHasActionErrors(['photo'])
-            ->assertSee($message);
+            // The wording is checked on the Action and the API; here, that it lands on the field.
+            ->assertHasActionErrors(['photo']);
 
         expect($this->product->images()->count())->toBe(0)
             ->and(Storage::disk('public')->allFiles('products'))->toBe([]);
@@ -472,10 +473,13 @@ describe('photos', function () {
         Livewire::test(ImagesRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
             ->mountAction(TestAction::make('create')->table())
             ->assertFormFieldExists('photo', function (FileUpload $field): bool {
+                $helper = $field->getChildSchema($field::BELOW_CONTENT_SCHEMA_KEY)?->getComponents()[0] ?? null;
+
                 return $field->hasImageEditor()
-                    && array_keys($field->getImageEditorAspectRatioOptionsForJs()) === ['1:1', '4:3', '3:4'];
-            })
-            ->assertSee('Foto terang, produk di tengah, sisi terpendek minimal 600 piksel.');
+                    && array_keys($field->getImageEditorAspectRatioOptionsForJs()) === ['1:1', '4:3', '3:4']
+                    && $helper instanceof Text
+                    && $helper->getContent() === 'Foto terang, produk di tengah, sisi terpendek minimal 600 piksel.';
+            });
     });
 
     it('rejects a ninth photo', function () {
