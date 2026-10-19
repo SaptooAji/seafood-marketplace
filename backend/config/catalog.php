@@ -39,4 +39,30 @@ return [
 
     'photo_quality' => 80,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Product Photo Standard
+    |--------------------------------------------------------------------------
+    |
+    | The least a product photo must be, so the buyer pages look tidy whatever
+    | is uploaded (#236):
+    |
+    | - `photo_min_side`: the shorter side in pixels. A smaller photo looks
+    |   blurry once the product page shows it large.
+    | - `photo_max_ratio`: the longer side over the shorter one. Cards and
+    |   thumbnails are square, so a very tall or wide photo would lose most of
+    |   itself there; 4:3 matches the crop choices of the Android app and the
+    |   panel editor (1:1, 4:3, 3:4).
+    | - `photo_max_pixels`: checked from the file header before decoding, so
+    |   a small file claiming huge dimensions (a decompression bomb) never
+    |   fills the memory of GD. 40 MP is above any phone camera in common use.
+    |
+    */
+
+    'photo_min_side' => 600,
+
+    'photo_max_ratio' => 4 / 3,
+
+    'photo_max_pixels' => 40_000_000,
+
 ];
