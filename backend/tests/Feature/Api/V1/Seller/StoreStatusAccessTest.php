@@ -131,7 +131,7 @@ function storeStatusRequests(): array
         'api.seller.products.update' => [fn (array $f) => ['PUT', "/api/v1/seller/products/{$f['product']->id}", $productData($f)]],
         'api.seller.products.destroy' => [fn (array $f) => ['DELETE', "/api/v1/seller/products/{$f['product']->id}", []]],
         'api.seller.products.images.store' => [fn (array $f) => ['POST', "/api/v1/seller/products/{$f['product']->id}/images", [
-            'photo' => UploadedFile::fake()->image('kakap.jpg', 640, 480),
+            'photo' => UploadedFile::fake()->image('kakap.jpg', 800, 600),
         ]]],
         'api.seller.products.images.reorder' => [fn (array $f) => ['PUT', "/api/v1/seller/products/{$f['product']->id}/images/order", [
             'image_ids' => [$f['image']->id],
