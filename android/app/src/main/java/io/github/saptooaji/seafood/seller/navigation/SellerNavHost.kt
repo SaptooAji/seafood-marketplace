@@ -7,20 +7,26 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginScreen
 import io.github.saptooaji.seafood.seller.feature.auth.ui.RegisterScreen
+import io.github.saptooaji.seafood.seller.feature.main.ui.MainShell
+import io.github.saptooaji.seafood.seller.feature.start.StartDestination
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
 import io.github.saptooaji.seafood.seller.feature.store.ui.OpenStoreScreen
-import io.github.saptooaji.seafood.seller.feature.welcome.ui.WelcomeScreen
+import io.github.saptooaji.seafood.seller.feature.store.ui.StoreStatusScreen
 import kotlinx.coroutines.flow.Flow
 
 /**
  * Every screen of the app. Routes are type-safe `@Serializable` objects or
  * classes, one per destination (Routes.kt).
  *
- * When the session ends (a 401 from the API, MOB-6), the back stack is
- * cleared and the seller is sent to sign in, with a message saying why.
+ * Moving between the big parts of the app (sign-in, opening a store, the
+ * store status, the main screens) always starts over on an empty back stack.
+ * When the session ends (a 401, MOB-6) the seller is sent to sign in with a
+ * message saying why; when any seller request finds the store suspended
+ * (AC-7), to the store status.
  */
 @Composable
 fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
@@ -30,6 +36,7 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
         sessionEvents.collect { event ->
             when (event) {
                 SessionEvent.SignedOut -> navController.startOver(LoginRoute(sessionExpired = true))
+                is SessionEvent.StoreSuspended -> navController.startOver(StoreStatusRoute(serverMessage = event.message))
             }
         }
     }
@@ -37,13 +44,21 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
     NavHost(navController = navController, startDestination = StartRoute) {
         composable<StartRoute> {
             StartScreen(
-                onSignIn = { navController.startOver(LoginRoute()) },
-                onMain = { navController.startOver(WelcomeRoute) },
+                onDestination = { destination ->
+                    when (destination) {
+                        StartDestination.Login -> navController.startOver(LoginRoute())
+                        StartDestination.OpenStore -> navController.startOver(OpenStoreRoute)
+                        StartDestination.StoreStatus -> navController.startOver(StoreStatusRoute())
+                        StartDestination.Main -> navController.startOver(MainRoute())
+                        StartDestination.Checking, StartDestination.Offline -> Unit
+                    }
+                },
             )
         }
         composable<LoginRoute> {
             LoginScreen(
-                onLoggedIn = { navController.startOver(WelcomeRoute) },
+                // The start check reads the store and opens the right screen.
+                onLoggedIn = { navController.startOver(StartRoute) },
                 onRegister = dropUnlessResumed { navController.navigate(RegisterRoute) },
             )
         }
@@ -58,13 +73,25 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
             )
         }
         composable<OpenStoreRoute> {
-            // The store status screen (#235) takes the placeholder home's place.
             OpenStoreScreen(
-                onOpened = { navController.startOver(WelcomeRoute) },
-                onStoreStatus = { navController.startOver(WelcomeRoute) },
+                onOpened = { navController.startOver(StoreStatusRoute()) },
+                onStoreStatus = { navController.startOver(StoreStatusRoute()) },
             )
         }
-        composable<WelcomeRoute> { WelcomeScreen() }
+        composable<StoreStatusRoute> {
+            StoreStatusScreen(
+                onMain = { navController.startOver(MainRoute()) },
+                onOpenStore = { navController.startOver(OpenStoreRoute) },
+                onSignedOut = { navController.startOver(LoginRoute()) },
+                onStartProducts = { navController.startOver(MainRoute(storePending = true)) },
+            )
+        }
+        composable<MainRoute> { entry ->
+            MainShell(
+                storePending = entry.toRoute<MainRoute>().storePending,
+                onStoreStatus = { navController.startOver(StoreStatusRoute()) },
+            )
+        }
     }
 }
 
@@ -73,7 +100,7 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
  * returning to a screen of the previous session. Single top, so a sign-out
  * that races the start check opens sign-in once.
  */
-private fun <T : Any> NavController.startOver(route: T) {
+internal fun <T : Any> NavController.startOver(route: T) {
     navigate(route) {
         popUpTo(graph.id) { inclusive = true }
         launchSingleTop = true

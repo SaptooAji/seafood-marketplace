@@ -3,9 +3,8 @@ package io.github.saptooaji.seafood.seller.feature.start
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.session.TokenStore
-import io.github.saptooaji.seafood.seller.feature.auth.domain.AuthRepository
+import io.github.saptooaji.seafood.seller.feature.store.domain.StoreRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,32 +12,37 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class StartDestination { Checking, SignIn, Main }
-
 /**
  * Decides where the app opens. Without a token: sign-in, with no API call.
- * With one: `GET me` checks it, and only a 401 sends the seller to sign in, so
- * a seller without a connection stays signed in.
+ * With one: `GET seller/store` both checks the token and tells the store's
+ * status ([StartDestinationResolver]). Without a connection the seller stays
+ * signed in and sees a screen to try again.
  */
 @HiltViewModel
 class StartViewModel
     @Inject
     constructor(
         private val tokenStore: TokenStore,
-        private val repository: AuthRepository,
+        private val repository: StoreRepository,
     ) : ViewModel() {
         private val _destination = MutableStateFlow(StartDestination.Checking)
         val destination: StateFlow<StartDestination> = _destination.asStateFlow()
 
         init {
+            check()
+        }
+
+        fun retry() {
+            if (_destination.value != StartDestination.Offline) return
+            _destination.value = StartDestination.Checking
+            check()
+        }
+
+        private fun check() {
             viewModelScope.launch {
-                _destination.value =
-                    when {
-                        tokenStore.token().first() == null -> StartDestination.SignIn
-                        // AuthInterceptor has already deleted the refused token.
-                        repository.me() is ApiResult.Unauthorized -> StartDestination.SignIn
-                        else -> StartDestination.Main
-                    }
+                val hasToken = tokenStore.token().first() != null
+                val store = if (hasToken) repository.current() else null
+                _destination.value = StartDestinationResolver.resolve(hasToken, store)
             }
         }
     }

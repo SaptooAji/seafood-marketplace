@@ -6,6 +6,7 @@ import io.github.saptooaji.seafood.seller.core.network.HttpClients
 import io.github.saptooaji.seafood.seller.core.session.SessionEvents
 import io.github.saptooaji.seafood.seller.feature.store.FakeStoreRepository
 import io.github.saptooaji.seafood.seller.feature.store.domain.BankAccount
+import io.github.saptooaji.seafood.seller.feature.store.domain.CurrentStore
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreDetails
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreStatus
 import kotlinx.coroutines.Dispatchers
@@ -161,6 +162,38 @@ class StoreRepositoryTest {
         val result = io { repository().open(details) }
 
         assertEquals(ApiResult.Invalid(mapOf("bank_account_no" to listOf(ACCOUNT_REFUSED)), ACCOUNT_REFUSED), result)
+    }
+
+    // --- The current store -------------------------------------------------
+
+    @Test
+    fun `the current store is read from GET seller store`() {
+        server.enqueue(json(200, """{"data":$PENDING_STORE_JSON}"""))
+
+        val result = io { repository().current() }
+
+        assertEquals(ApiResult.Success(CurrentStore.Exists(FakeStoreRepository.PENDING_STORE)), result)
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/seller/store", request.url.encodedPath)
+    }
+
+    @Test
+    fun `a seller without a store gets no store, not an error`() {
+        server.enqueue(json(404, """{"message":"Not Found."}"""))
+
+        val result = io { repository().current() }
+
+        assertEquals(ApiResult.Success(CurrentStore.NoStore), result)
+    }
+
+    @Test
+    fun `other failures of the current store pass through`() {
+        server.enqueue(json(500, """{"message":"Server Error"}"""))
+
+        val result = io { repository().current() }
+
+        assertEquals(ApiResult.ServerError, result)
     }
 
     // --- Security ---------------------------------------------------------
