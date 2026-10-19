@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Role;
 
 /*
  * Admins learn that a new store waits for review (#264): a bell notification
@@ -29,7 +30,7 @@ beforeEach(function () {
     $this->seed(RoleSeeder::class);
 });
 
-function platformUser(PlatformRole $role): User
+function adminWithRole(PlatformRole $role): User
 {
     $user = User::factory()->create();
     $user->assignRole($role);
@@ -65,8 +66,8 @@ function viewStoreUrl(Store $store): string
 describe('who is told', function () {
     it('tells every admin and super admin when a store is opened', function () {
         Notification::fake();
-        $admin = platformUser(PlatformRole::Admin);
-        $superAdmin = platformUser(PlatformRole::SuperAdmin);
+        $admin = adminWithRole(PlatformRole::Admin);
+        $superAdmin = adminWithRole(PlatformRole::SuperAdmin);
 
         openStoreThroughApi(User::factory()->create());
 
@@ -84,9 +85,9 @@ describe('who is told', function () {
     it('tells each admin once, however many there are', function () {
         Notification::fake();
         $admins = collect([
-            platformUser(PlatformRole::Admin),
-            platformUser(PlatformRole::Admin),
-            platformUser(PlatformRole::SuperAdmin),
+            adminWithRole(PlatformRole::Admin),
+            adminWithRole(PlatformRole::Admin),
+            adminWithRole(PlatformRole::SuperAdmin),
         ]);
 
         openStoreThroughApi(User::factory()->create());
@@ -97,7 +98,7 @@ describe('who is told', function () {
 
     it('does not tell the seller, staff of other stores, or buyers', function () {
         Notification::fake();
-        platformUser(PlatformRole::Admin);
+        adminWithRole(PlatformRole::Admin);
         $seller = User::factory()->create();
         $staff = User::factory()->create();
         Store::factory()->active()->create()->users()->attach($staff, ['role' => StoreRole::Staff->value]);
@@ -116,12 +117,22 @@ describe('who is told', function () {
         expect(Store::query()->count())->toBe(1);
         Notification::assertNothingSent();
     });
+
+    it('opens the store when the platform roles are not seeded', function () {
+        Notification::fake();
+        Role::query()->delete();
+
+        openStoreThroughApi(User::factory()->create());
+
+        test()->assertDatabaseCount('stores', 1);
+        Notification::assertNothingSent();
+    });
 });
 
 describe('when nobody is told', function () {
     it('sends nothing when the store is refused', function () {
         Notification::fake();
-        platformUser(PlatformRole::Admin);
+        adminWithRole(PlatformRole::Admin);
 
         openStoreThroughApi(User::factory()->create(), ['bank_account_no' => '12ab']);
 
@@ -130,7 +141,7 @@ describe('when nobody is told', function () {
 
     it('sends nothing when the seller already owns a store', function () {
         Notification::fake();
-        platformUser(PlatformRole::Admin);
+        adminWithRole(PlatformRole::Admin);
         $seller = User::factory()->create();
         Store::factory()->create()->users()->attach($seller, ['role' => StoreRole::Owner->value]);
 
@@ -141,7 +152,7 @@ describe('when nobody is told', function () {
 
     it('sends nothing when the store is rolled back', function () {
         Notification::fake();
-        platformUser(PlatformRole::Admin);
+        adminWithRole(PlatformRole::Admin);
 
         try {
             DB::transaction(function () {
@@ -176,7 +187,7 @@ describe('what it says', function () {
             'address' => 'Jl. Pelabuhan No. 5, Muara Angke',
             'bank_account_no' => '1234567890',
         ]);
-        $this->admin = platformUser(PlatformRole::Admin);
+        $this->admin = adminWithRole(PlatformRole::Admin);
     });
 
     it('is queued, so opening a store never waits for mail', function () {
@@ -228,8 +239,8 @@ describe('the admin bell', function () {
     });
 
     it('keeps each admin\'s notifications separate', function () {
-        $first = platformUser(PlatformRole::Admin);
-        $second = platformUser(PlatformRole::SuperAdmin);
+        $first = adminWithRole(PlatformRole::Admin);
+        $second = adminWithRole(PlatformRole::SuperAdmin);
 
         openStoreThroughApi(User::factory()->create());
         $first->unreadNotifications()->sole()->markAsRead();
