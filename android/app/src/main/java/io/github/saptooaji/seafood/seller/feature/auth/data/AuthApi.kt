@@ -22,6 +22,9 @@ interface AuthApi {
         @Body request: RegisterRequest,
     ): Response<TokenResponse>
 
+    @POST("auth/logout")
+    suspend fun logout(): Response<Unit>
+
     @GET("me")
     suspend fun me(): Response<DataEnvelope<UserDto>>
 }

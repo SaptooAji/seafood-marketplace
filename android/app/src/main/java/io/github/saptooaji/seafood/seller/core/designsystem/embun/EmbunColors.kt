@@ -52,4 +52,21 @@ object EmbunColors {
     val WarnContent = Accent700
     val DangerBackground = Color(0xFFFCE9E6).copy(alpha = 0.9f)
     val DangerContent = Danger700
+
+    /** Halos around the sign of a status screen. */
+    val HaloCalm = Color(0xFFCFE3D7)
+    val HaloDanger = Color(0xFFFCE9E6)
+    val HaloNeutral = Color(0xFFECE6DA)
+}
+
+/** The mood of a status: calm green while waiting, red when refused, sand when offline. */
+enum class StatusTone(
+    internal val halo: Color,
+    internal val icon: Color,
+    internal val chip: Color,
+    internal val chipText: Color,
+) {
+    Calm(EmbunColors.HaloCalm, Primary700, EmbunColors.WarnBackground, EmbunColors.WarnContent),
+    Danger(EmbunColors.HaloDanger, EmbunColors.DangerContent, EmbunColors.DangerBackground, EmbunColors.DangerContent),
+    Neutral(EmbunColors.HaloNeutral, EmbunColors.Muted, EmbunColors.GlassStrong, EmbunColors.Muted),
 }

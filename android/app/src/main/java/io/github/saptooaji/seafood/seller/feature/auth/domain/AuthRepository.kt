@@ -19,6 +19,12 @@ interface AuthRepository {
     /** Creates an account and signs it in; on success the token is stored (MOB-1). */
     suspend fun register(registration: Registration): ApiResult<User>
 
+    /**
+     * Signs out: revokes the token on the server (`POST auth/logout`) and
+     * deletes it from the device even when that request fails (MOB-6).
+     */
+    suspend fun logout()
+
     /** The account the stored token belongs to (`GET me`). */
     suspend fun me(): ApiResult<User>
 }

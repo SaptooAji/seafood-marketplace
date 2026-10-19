@@ -49,6 +49,7 @@ object HttpClients {
                         .build(),
                 )
             }.addInterceptor(AuthInterceptor(baseUrl, tokenStore, sessionEvents))
+            .addInterceptor(StoreSuspendedInterceptor(baseUrl, sessionEvents, json))
             .apply {
                 if (debugLogger != null) {
                     addInterceptor(

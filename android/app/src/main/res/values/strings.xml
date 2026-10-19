@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Seafood Marketplace</string>
-    <string name="welcome_tagline">Aplikasi penjual</string>
 
     <string name="action_back">Kembali</string>
 
@@ -101,4 +100,44 @@
     <string name="store_error_bank_account_no_invalid">Nomor rekening berisi 5 sampai 20 angka, tanpa huruf atau spasi.</string>
     <string name="store_error_bank_account_name_required">Nama pemilik rekening wajib diisi.</string>
     <string name="store_error_bank_account_name_too_long">Nama pemilik rekening maksimal 255 karakter.</string>
+
+    <!-- No connection, on any full screen (VD-Status-Toko) -->
+    <string name="offline_title">Tidak ada koneksi</string>
+    <string name="offline_body">Periksa internet lalu coba lagi. Anda tetap masuk.</string>
+    <string name="offline_retry">Coba lagi</string>
+
+    <!-- Store status (VD-Status-Toko) -->
+    <string name="store_status_pending_badge">Diperiksa admin</string>
+    <string name="store_status_pending_title">Toko Anda sedang diperiksa</string>
+    <string name="store_status_pending_body">Isi produk dulu sambil menunggu. Semuanya tampil begitu toko disetujui.</string>
+    <string name="store_status_step_account">Akun dibuat</string>
+    <string name="store_status_step_store">Data toko dikirim</string>
+    <string name="store_status_step_review">Diperiksa admin</string>
+    <string name="store_status_step_review_time">Biasanya 1 hari kerja</string>
+    <string name="store_status_step_live">Tampil ke pembeli</string>
+    <string name="store_status_step_live_detail">Produk muncul di katalog</string>
+    <string name="store_status_step_done">Selesai</string>
+    <string name="store_status_rejected_badge">Belum disetujui</string>
+    <string name="store_status_rejected_title">Toko belum disetujui</string>
+    <string name="store_status_rejected_body">Baca catatan admin di bawah.</string>
+    <string name="store_status_rejected_note">Catatan admin</string>
+    <string name="store_status_suspended_badge">Ditangguhkan</string>
+    <string name="store_status_suspended_title">Toko sedang ditangguhkan</string>
+    <string name="store_status_suspended_body">Produk tidak tampil ke pembeli, dan stok serta produk tidak bisa diubah sampai admin mengaktifkannya kembali.</string>
+    <string name="store_status_suspended_contact">Hubungi admin untuk mengaktifkannya kembali, dan sebutkan nama toko Anda: %1$s.</string>
+    <string name="store_status_other_title">Status toko: %1$s</string>
+    <string name="store_status_start_products">Mulai isi produk</string>
+    <string name="store_status_check_again">Periksa lagi</string>
+    <string name="store_status_checking">Memeriksa…</string>
+    <string name="sign_out">Keluar</string>
+    <string name="signing_out">Keluar…</string>
+
+    <!-- Main screens (VD-Produk-Daftar) -->
+    <string name="main_navigation">Utama</string>
+    <string name="main_tab_products">Produk</string>
+    <string name="main_tab_stock">Stok</string>
+    <string name="main_tab_settings">Pengaturan</string>
+    <string name="main_tab_coming">%1$s menyusul di versi berikutnya.</string>
+    <string name="main_pending_banner">Toko menunggu verifikasi. Produk tampil ke pembeli setelah toko disetujui.</string>
+    <string name="main_pending_status">Lihat status</string>
 </resources>

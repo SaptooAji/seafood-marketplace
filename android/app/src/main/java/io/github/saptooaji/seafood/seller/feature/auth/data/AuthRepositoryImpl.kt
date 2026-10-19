@@ -40,6 +40,14 @@ class AuthRepositoryImpl(
         return signIn(apiCall(json) { api.register(request) })
     }
 
+    override suspend fun logout() {
+        try {
+            apiCall(json) { api.logout() }
+        } finally {
+            tokenStore.clear()
+        }
+    }
+
     override suspend fun me(): ApiResult<User> = apiCall(json) { api.me() }.map { it.data.toDomain() }
 
     /** Keeps the API token of a successful sign-in or registration. */
