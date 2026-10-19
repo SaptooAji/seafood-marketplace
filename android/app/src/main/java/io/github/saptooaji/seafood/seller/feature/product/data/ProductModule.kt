@@ -1,0 +1,25 @@
+package io.github.saptooaji.seafood.seller.feature.product.data
+
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
+import kotlinx.serialization.json.Json
+import retrofit2.Retrofit
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object ProductModule {
+    @Provides
+    @Singleton
+    fun productApi(retrofit: Retrofit): ProductApi = retrofit.create(ProductApi::class.java)
+
+    @Provides
+    @Singleton
+    fun productRepository(
+        api: ProductApi,
+        json: Json,
+    ): ProductRepository = ProductRepositoryImpl(api, json)
+}

@@ -50,6 +50,10 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 
 Client Android hanya mendaftarkan aplikasi; ID token tetap ditujukan ke client web. Kunci rilis (Tahap 7) punya SHA-1 lain yang perlu didaftarkan juga.
 
+### Foto produk
+
+Foto dimuat dengan Coil. Server membuat URL foto dari `APP_URL` (`http://localhost:8000/storage/...`), yang tidak bisa dibuka dari emulator. Di build debug, `DebugImageHost` (source set `debug`) mengganti skema, host, dan port URL foto dengan milik `seafood.apiBaseUrl`, jadi foto ikut jalur yang sama dengan API (`10.0.2.2:8000` di emulator, `localhost:8000` lewat `adb reverse`). Build rilis memakai URL apa adanya; test `ImageHostRewriteTest` memastikan kelas itu tidak ada di rilis.
+
 ### Peta toko
 
 Peta di layar data toko memakai MapLibre (varian OpenGL, karena varian bawaan mewajibkan Vulkan) dengan tile OpenStreetMap, tanpa kunci API. Sesuai [kebijakan tile OSM](https://operations.osmfoundation.org/policies/tiles/), setiap request tile membawa `User-Agent` `SeafoodMarketplaceSeller/<versionName> (+https://github.com/SaptooAji/seafood-marketplace)` dan memakai cache tile MapLibre; tidak ada pra-unduh. Alamat tile ada di satu tempat, `feature/store/map/MapTiles.kt`.
