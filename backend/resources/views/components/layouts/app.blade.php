@@ -65,13 +65,34 @@
                 <a href="{{ route('pre-orders') }}" class="hover:text-primary-700">Pre order</a>
                 <a href="{{ route('recipes.index') }}" class="hover:text-primary-700">Resep</a>
                 {{-- The bare layout skips the auth check: a signed-in session would query the users table. --}}
-                @if (! $bare && auth()->guest())
-                    <a href="{{ route('login') }}" class="flex h-11 items-center rounded-full border-[1.5px] border-ink px-4 hover:bg-surface">Masuk</a>
-                @endif
+                @unless ($bare)
+                    @guest
+                        <a href="{{ route('login') }}" class="flex h-11 items-center rounded-full border-[1.5px] border-ink px-4 hover:bg-surface">Masuk</a>
+                    @else
+                        <span class="hidden text-muted sm:inline">{{ str(auth()->user()->name)->before(' ') }}</span>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="flex h-11 items-center rounded-full border-[1.5px] border-ink px-4 hover:bg-surface">Keluar</button>
+                        </form>
+                    @endguest
+                @endunless
             </nav>
         </div>
 
     </header>
+
+    @unless ($bare)
+        @if (session('status') || session('error'))
+            <div class="mx-auto w-full max-w-6xl px-4 pt-4" role="status">
+                @session('status')
+                    <p class="rounded-2xl border border-line bg-white px-4 py-3 text-sm font-semibold">{{ $value }}</p>
+                @endsession
+                @session('error')
+                    <p class="rounded-2xl border border-danger-700 bg-white px-4 py-3 text-sm font-semibold text-danger-700">{{ $value }}</p>
+                @endsession
+            </div>
+        @endif
+    @endunless
 
     <main id="konten" @class(['w-full flex-1', 'mx-auto max-w-6xl px-4 py-6' => ! $fullWidth])>
         {{ $slot }}

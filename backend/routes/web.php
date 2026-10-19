@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Auth\GoogleLoginController;
+use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\PhotoCreditController;
 use App\Http\Controllers\Web\RecipeController;
@@ -27,3 +28,5 @@ Route::get('/robots.txt', RobotsController::class)->name('robots');
 
 Route::get('/masuk', [GoogleLoginController::class, 'redirectToGoogle'])->name('login');
 Route::get('/auth/google/callback', [GoogleLoginController::class, 'handleGoogleCallback'])->name('auth.google.callback');
+// POST only, with CSRF: a link or an image on another site cannot sign anyone out.
+Route::post('/keluar', LogoutController::class)->name('logout');
