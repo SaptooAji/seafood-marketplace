@@ -64,6 +64,7 @@ class FakeProductRepository : ProductRepository {
             isActive = isActive,
         )
 
+        @Suppress("LongParameterList") // Every field a test may want to vary.
         fun product(
             id: Long = 1,
             name: String = "Kepiting Bakau $id",
@@ -72,7 +73,8 @@ class FakeProductRepository : ProductRepository {
             isBlocked: Boolean = false,
             blockReason: String? = null,
             variants: List<ProductVariant> = listOf(variant()),
-            images: List<ProductImage> = listOf(ProductImage(1, "http://localhost:8000/storage/p/$id.webp", "http://localhost:8000/storage/p/${id}_thumb.webp")),
+            images: List<ProductImage> =
+                listOf(ProductImage(1, "http://localhost:8000/storage/p/$id.webp", "http://localhost:8000/storage/p/${id}_thumb.webp")),
         ) = Product(
             id = id,
             name = name,

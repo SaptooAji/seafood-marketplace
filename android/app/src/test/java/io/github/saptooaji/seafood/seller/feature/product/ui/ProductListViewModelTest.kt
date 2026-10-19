@@ -62,7 +62,16 @@ class ProductListViewModelTest {
             advanceUntilIdle()
 
             assertEquals(40, vm.uiState.value.products.size)
-            assertEquals(listOf(1L, 21L), listOf(vm.uiState.value.products.first().id, vm.uiState.value.products[20].id))
+            assertEquals(
+                listOf(1L, 21L),
+                listOf(
+                    vm.uiState.value.products
+                        .first()
+                        .id,
+                    vm.uiState.value.products[20]
+                        .id,
+                ),
+            )
             assertTrue(vm.uiState.value.endReached)
 
             vm.onEvent(ProductListEvent.LoadMore)
@@ -162,7 +171,11 @@ class ProductListViewModelTest {
             products.gates[2]!!.complete(Unit)
             advanceUntilIdle()
 
-            assertEquals(listOf(900L), vm.uiState.value.products.map { it.id })
+            assertEquals(
+                listOf(900L),
+                vm.uiState.value.products
+                    .map { it.id },
+            )
             assertFalse(vm.uiState.value.isLoadingMore)
             assertTrue(vm.uiState.value.endReached)
         }

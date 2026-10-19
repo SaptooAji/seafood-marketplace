@@ -1,14 +1,16 @@
 package io.github.saptooaji.seafood.seller.feature.product.ui
 
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import io.github.saptooaji.seafood.seller.R
@@ -72,7 +74,8 @@ class ProductListScreenTest {
         compose.onNodeWithText("Kepiting Bakau Super").assertIsDisplayed()
         compose.onNodeWithText("Kepiting Bakau").assertIsDisplayed()
         compose.onNodeWithText("Mulai Rp185.000 /kg").assertIsDisplayed()
-        compose.onNodeWithText(context.getString(R.string.product_status_active)).assertIsDisplayed()
+        // "Aktif" is also a filter chip, so the status is looked for in the row.
+        compose.onNodeWithTag(ProductListTags.row(1)).assert(hasText(context.getString(R.string.product_status_active)))
     }
 
     @Test
@@ -90,9 +93,9 @@ class ProductListScreenTest {
         compose.onNodeWithText(context.getString(R.string.product_stock_stale)).assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.product_hidden)).assertIsDisplayed()
         // Written by an admin: shown as typed, with no markup turned on.
-        compose
-            .onNodeWithText(context.getString(R.string.product_blocked_reason, "<b>tebal</b> foto tidak sesuai"))
-            .assertIsDisplayed()
+        val reason = context.getString(R.string.product_blocked_reason, "<b>tebal</b> foto tidak sesuai")
+        compose.onNodeWithTag(ProductListTags.LIST).performScrollToNode(hasText(reason))
+        compose.onNodeWithText(reason).assertIsDisplayed()
     }
 
     @Test
@@ -100,7 +103,8 @@ class ProductListScreenTest {
         show(loaded(listOf(product(id = 5, variants = listOf(variant(isActive = false)), images = emptyList()))))
 
         compose.onNodeWithText(context.getString(R.string.product_no_active_variant)).assertIsDisplayed()
-        compose.onNodeWithTag(ProductListTags.noPhoto(5)).assertIsDisplayed()
+        // The placeholder sits inside the row, whose semantics are merged for the click.
+        compose.onNodeWithTag(ProductListTags.noPhoto(5), useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
@@ -172,7 +176,8 @@ class ProductListScreenTest {
         show(ProductListUiState(isLoading = false, error = UiText.Resource(R.string.error_network)))
 
         compose.onNodeWithText(context.getString(R.string.offline_body)).assertIsDisplayed()
-        compose.onNodeWithTag(ProductListTags.RETRY).performClick()
+        // Robolectric's screen is small: the button is below the fold.
+        compose.onNodeWithTag(ProductListTags.RETRY).performScrollTo().performClick()
 
         assertEquals(ProductListEvent.Retry, events.last())
     }

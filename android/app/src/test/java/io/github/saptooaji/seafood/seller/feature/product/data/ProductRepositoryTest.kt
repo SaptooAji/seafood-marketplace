@@ -102,7 +102,9 @@ class ProductRepositoryTest {
             product.variants,
         )
         assertEquals(
-            listOf(ProductImage(3, "http://localhost:8000/storage/products/7/a.webp", "http://localhost:8000/storage/products/7/a_thumb.webp")),
+            listOf(
+                ProductImage(3, "http://localhost:8000/storage/products/7/a.webp", "http://localhost:8000/storage/products/7/a_thumb.webp"),
+            ),
             product.images,
         )
     }
@@ -118,7 +120,8 @@ class ProductRepositoryTest {
         /** `ProductResource::collection` paginated: `data`, `links`, and `meta`. */
         const val PAGE_JSON =
             """{"data":[{"id":7,"name":"Kepiting Bakau Super","slug":"kepiting-bakau-super","description":"Segar.",""" +
-                """"seo_description":null,"condition":{"value":"live","label":"Hidup"},"sales_mode":{"value":"ready_stock","label":"Ready stok"},""" +
+                """"seo_description":null,"condition":{"value":"live","label":"Hidup"},""" +
+                """"sales_mode":{"value":"ready_stock","label":"Ready stok"},""" +
                 """"daily_quota":null,"lead_time_days":null,"cutoff_time":null,"shelf_life_days":2,"storage_instructions":null,""" +
                 """"is_active":true,"blocked":true,"block_reason":"<b>tebal</b> foto tidak sesuai",""" +
                 """"category":{"id":4,"name":"Kepiting Bakau"},""" +
@@ -129,8 +132,10 @@ class ProductRepositoryTest {
                 """"images":[{"id":3,"url":"http://localhost:8000/storage/products/7/a.webp",""" +
                 """"thumbnail_url":"http://localhost:8000/storage/products/7/a_thumb.webp","sort_order":1}],""" +
                 """"created_at":"2026-10-19T08:00:00+07:00","updated_at":"2026-10-19T08:00:00+07:00"}],""" +
-                """"links":{"first":"http://localhost:8000/api/v1/seller/products?page=1","last":"http://localhost:8000/api/v1/seller/products?page=2",""" +
+                """"links":{"first":"http://localhost:8000/api/v1/seller/products?page=1",""" +
+                """"last":"http://localhost:8000/api/v1/seller/products?page=2",""" +
                 """"prev":null,"next":"http://localhost:8000/api/v1/seller/products?page=2"},""" +
-                """"meta":{"current_page":1,"from":1,"last_page":2,"path":"http://localhost:8000/api/v1/seller/products","per_page":20,"to":1,"total":21}}"""
+                """"meta":{"current_page":1,"from":1,"last_page":2,""" +
+                """"path":"http://localhost:8000/api/v1/seller/products","per_page":20,"to":1,"total":21}}"""
     }
 }
