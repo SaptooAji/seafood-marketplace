@@ -50,6 +50,12 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 
 Client Android hanya mendaftarkan aplikasi; ID token tetap ditujukan ke client web. Kunci rilis (Tahap 7) punya SHA-1 lain yang perlu didaftarkan juga.
 
+### Peta toko
+
+Peta di layar data toko memakai MapLibre (varian OpenGL, karena varian bawaan mewajibkan Vulkan) dengan tile OpenStreetMap, tanpa kunci API. Sesuai [kebijakan tile OSM](https://operations.osmfoundation.org/policies/tiles/), setiap request tile membawa `User-Agent` `SeafoodMarketplaceSeller/<versionName> (+https://github.com/SaptooAji/seafood-marketplace)` dan memakai cache tile MapLibre; tidak ada pra-unduh. Alamat tile ada di satu tempat, `feature/store/map/MapTiles.kt`.
+
+Di emulator, lokasi perangkat diatur lewat **Extended controls → Location**. Tanpa lokasi, peta mulai di pusat Jakarta Utara dan pin dipasang dengan menggeser peta.
+
 ## Pemeriksaan
 
 Jalankan dari folder `android/`:

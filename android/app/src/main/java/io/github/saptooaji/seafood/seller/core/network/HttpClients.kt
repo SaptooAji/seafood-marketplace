@@ -75,7 +75,8 @@ object HttpClients {
 /**
  * Masks secret JSON fields in logged request and response bodies (MOB-4): the
  * password, the Google ID token, the API token in a sign-in response, and the
- * bank account number. Headers are masked by `redactHeader`.
+ * bank account number, sent as `bank_account_no` and read back as
+ * `bank.account_no`. Headers are masked by `redactHeader`.
  */
 class RedactingLogger(
     private val delegate: HttpLoggingInterceptor.Logger,
@@ -88,7 +89,7 @@ class RedactingLogger(
         const val MASK = "██"
         val SECRET_FIELD =
             Regex(
-                "\"(password|password_confirmation|id_token|token|bank_account_no)\"\\s*:\\s*\"(?:[^\"\\\\]|\\\\.)*\"",
+                "\"(password|password_confirmation|id_token|token|bank_account_no|account_no)\"\\s*:\\s*\"(?:[^\"\\\\]|\\\\.)*\"",
             )
     }
 }

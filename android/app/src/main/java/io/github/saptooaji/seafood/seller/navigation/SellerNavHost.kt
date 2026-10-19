@@ -11,6 +11,7 @@ import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginScreen
 import io.github.saptooaji.seafood.seller.feature.auth.ui.RegisterScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
+import io.github.saptooaji.seafood.seller.feature.store.ui.OpenStoreScreen
 import io.github.saptooaji.seafood.seller.feature.welcome.ui.WelcomeScreen
 import kotlinx.coroutines.flow.Flow
 
@@ -50,10 +51,17 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
             // Drops a second tap while the pop animates, so it never pops sign-in too.
             val backToLogin = dropUnlessResumed { navController.popBackStack() }
             RegisterScreen(
-                // Opening a store (#234) comes next; until then the placeholder home.
-                onRegistered = { navController.startOver(WelcomeRoute) },
+                // The account exists now, so Back must not return to registration.
+                onRegistered = { navController.startOver(OpenStoreRoute) },
                 onBack = backToLogin,
                 onLogin = backToLogin,
+            )
+        }
+        composable<OpenStoreRoute> {
+            // The store status screen (#235) takes the placeholder home's place.
+            OpenStoreScreen(
+                onOpened = { navController.startOver(WelcomeRoute) },
+                onStoreStatus = { navController.startOver(WelcomeRoute) },
             )
         }
         composable<WelcomeRoute> { WelcomeScreen() }

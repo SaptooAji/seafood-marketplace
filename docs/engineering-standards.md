@@ -126,7 +126,7 @@ Dependency yang disetujui pemilik repo (Tahap 4). Menambah dependency di luar da
 | Gambar dan foto | Coil, cropper foto (uCrop atau cropper Compose, dipilih di issue foto) |
 | Penyimpanan token | DataStore, Tink |
 | Login Google | Credential Manager, `googleid` |
-| Peta | MapLibre Android |
+| Peta | MapLibre Android (varian OpenGL `android-sdk-opengl`; varian bawaan mewajibkan Vulkan) |
 | Test | JUnit5, MockK, Turbine, Compose UI test, Robolectric |
 | Lint | ktlint (plugin Gradle), detekt |
 

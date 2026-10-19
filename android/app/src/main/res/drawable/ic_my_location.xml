@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A crosshair, for "Lokasi saya" on the store map. Tinted by Icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M9,12a3,3 0,1 0,6 0a3,3 0,1 0,-6 0M5,12a7,7 0,1 0,14 0a7,7 0,1 0,-14 0M12,2v3M12,19v3M2,12h3M19,12h3" />
+</vector>
