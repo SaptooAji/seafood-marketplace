@@ -56,7 +56,11 @@ class StoreStatusViewModelTest {
             val vm = viewModel()
             advanceUntilIdle()
 
-            assertEquals("Foto KTP buram.", vm.uiState.value.store!!.rejectionReason)
+            assertEquals(
+                "Foto KTP buram.",
+                vm.uiState.value.store!!
+                    .rejectionReason,
+            )
         }
 
     @Test
@@ -67,7 +71,11 @@ class StoreStatusViewModelTest {
             val vm = viewModel(serverMessage = "Toko sedang ditangguhkan. Hubungi admin untuk mengaktifkannya kembali.")
             advanceUntilIdle()
 
-            assertEquals(StoreStatus.Suspended, vm.uiState.value.store!!.status)
+            assertEquals(
+                StoreStatus.Suspended,
+                vm.uiState.value.store!!
+                    .status,
+            )
             assertEquals("Toko sedang ditangguhkan. Hubungi admin untuk mengaktifkannya kembali.", vm.uiState.value.serverMessage)
         }
 
@@ -97,8 +105,15 @@ class StoreStatusViewModelTest {
             vm.onEvent(StoreStatusEvent.CheckAgain)
             advanceUntilIdle()
 
-            assertEquals(StoreStatus.Pending, vm.uiState.value.store!!.status)
-            assertNull(vm.uiState.value.store!!.rejectionReason)
+            assertEquals(
+                StoreStatus.Pending,
+                vm.uiState.value.store!!
+                    .status,
+            )
+            assertNull(
+                vm.uiState.value.store!!
+                    .rejectionReason,
+            )
             assertNull(vm.uiState.value.destination)
         }
 
@@ -147,7 +162,11 @@ class StoreStatusViewModelTest {
             advanceUntilIdle()
 
             assertFalse(vm.uiState.value.offline)
-            assertEquals(StoreStatus.Pending, vm.uiState.value.store!!.status)
+            assertEquals(
+                StoreStatus.Pending,
+                vm.uiState.value.store!!
+                    .status,
+            )
         }
 
     @Test
@@ -160,7 +179,11 @@ class StoreStatusViewModelTest {
             vm.onEvent(StoreStatusEvent.CheckAgain)
             advanceUntilIdle()
 
-            assertEquals("UD Kepiting Pak Budi", vm.uiState.value.store!!.name)
+            assertEquals(
+                "UD Kepiting Pak Budi",
+                vm.uiState.value.store!!
+                    .name,
+            )
             assertTrue(vm.uiState.value.offline)
         }
 
@@ -205,7 +228,15 @@ class StoreStatusViewModelTest {
             val vm = viewModel()
             advanceUntilIdle()
 
-            assertFalse(vm.uiState.value.toString().contains("7700112233"))
-            assertFalse(vm.uiState.value.toString().contains("BCA"))
+            assertFalse(
+                vm.uiState.value
+                    .toString()
+                    .contains("7700112233"),
+            )
+            assertFalse(
+                vm.uiState.value
+                    .toString()
+                    .contains("BCA"),
+            )
         }
 }

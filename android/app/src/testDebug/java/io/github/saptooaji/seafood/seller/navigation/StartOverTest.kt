@@ -25,13 +25,13 @@ class StartOverTest {
     val compose = createComposeRule()
 
     @Serializable
-    private data object First
+    data object First
 
     @Serializable
-    private data object Second
+    data object Second
 
     @Serializable
-    private data object SignIn
+    data object SignIn
 
     @Test
     fun startingOverLeavesOnlyTheNewScreen() {

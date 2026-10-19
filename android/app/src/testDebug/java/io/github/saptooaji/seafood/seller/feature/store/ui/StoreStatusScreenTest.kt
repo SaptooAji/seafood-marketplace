@@ -50,7 +50,8 @@ class StoreStatusScreenTest {
 
         compose.onNodeWithText(context.getString(R.string.store_status_pending_title)).assertIsDisplayed()
         compose.onNodeWithText("Menunggu Persetujuan").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText(context.getString(R.string.store_status_step_review)).performScrollTo().assertIsDisplayed()
+        // "Diperiksa admin" is both the sign and the current step; the step says how long it takes.
+        compose.onNodeWithText(context.getString(R.string.store_status_step_review_time)).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(StoreStatusTags.START_PRODUCTS).performScrollTo().performClick()
         compose.onNodeWithTag(StoreStatusTags.CHECK_AGAIN).performScrollTo().performClick()
         compose.onNodeWithTag(StoreStatusTags.SIGN_OUT).performScrollTo().performClick()

@@ -41,7 +41,7 @@ class MainShellTest {
         restoration.setContent { SeafoodTheme { MainShell(storePending = false, onStoreStatus = {}) } }
 
         compose.onNodeWithTag(MainTags.TAB_SETTINGS).performClick()
-        restoration.emulateSaveAndRestore()
+        restoration.emulateSavedInstanceStateRestore()
 
         compose.onNodeWithTag(MainTags.TAB_SETTINGS).assertIsSelected()
     }
