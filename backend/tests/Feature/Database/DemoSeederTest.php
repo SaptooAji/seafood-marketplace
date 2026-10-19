@@ -426,6 +426,21 @@ describe('demo:remove', function () {
     });
 });
 
+describe('seeder photos', function () {
+    it('meets the product photo standard, so the seeder never uploads a photo the app refuses', function (string $file) {
+        [$width, $height] = getimagesize(database_path('seeders/images/'.$file));
+        $short = min($width, $height);
+
+        expect($short)->toBeGreaterThanOrEqual(config()->integer('catalog.photo_min_side'))
+            ->and(max($width, $height) / $short)->toBeLessThanOrEqual(config()->float('catalog.photo_max_ratio'))
+            ->and($width * $height)->toBeLessThanOrEqual(config()->integer('catalog.photo_max_pixels'));
+    })->with(fn (): array => array_map(
+        // Datasets are built before the app boots, so the path is found without database_path().
+        fn (string $path): string => substr(str_replace('\\', '/', $path), strlen(str_replace('\\', '/', dirname(__DIR__, 3)).'/database/seeders/images/')),
+        glob(dirname(__DIR__, 3).'/database/seeders/images/*/*.jpg') ?: [],
+    ));
+});
+
 describe('photo credits', function () {
     it('credits every seeder photo and lists no photo that is missing', function () {
         $credited = collect(config('photo-credits'))

@@ -71,7 +71,7 @@ describe('POST /seller/products/{id}/images', function () {
 
     it('accepts PNG and WebP', function (string $name) {
         $this->post(productImagesUrl($this->product), [
-            'photo' => UploadedFile::fake()->image($name, 640, 480),
+            'photo' => UploadedFile::fake()->image($name, 800, 600),
         ], ['Accept' => 'application/json'])->assertCreated();
     })->with(['udang.png', 'cumi.webp']);
 
@@ -80,7 +80,7 @@ describe('POST /seller/products/{id}/images', function () {
         storedPhoto($this->product, 2);
 
         $this->post(productImagesUrl($this->product), [
-            'photo' => UploadedFile::fake()->image('tuna.jpg', 640, 480),
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
         ], ['Accept' => 'application/json'])
             ->assertCreated()
             ->assertJsonPath('data.sort_order', 3);
@@ -92,7 +92,7 @@ describe('POST /seller/products/{id}/images', function () {
         Sanctum::actingAs($staff);
 
         $this->post(productImagesUrl($this->product), [
-            'photo' => UploadedFile::fake()->image('tuna.jpg', 640, 480),
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
         ], ['Accept' => 'application/json'])->assertCreated();
     });
 
@@ -110,13 +110,23 @@ describe('POST /seller/products/{id}/images', function () {
         'text named as a JPG' => [fn () => UploadedFile::fake()->createWithContent('tuna.jpg', 'not an image')],
     ]);
 
+    it('refuses a photo below the standard with 422 on the photo field and stores nothing', function (Closure $file, string $message) {
+        $response = $this->post(productImagesUrl($this->product), ['photo' => $file()], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('photo');
+
+        expect($response->json('errors.photo.0'))->toContain($message)
+            ->and(ProductImage::query()->count())->toBe(0)
+            ->and(Storage::disk('public')->allFiles())->toBe([]);
+    })->with('photos below the standard');
+
     it('rejects a ninth photo', function () {
         foreach (range(1, 8) as $sortOrder) {
             storedPhoto($this->product, $sortOrder);
         }
 
         $this->post(productImagesUrl($this->product), [
-            'photo' => UploadedFile::fake()->image('tuna.jpg', 640, 480),
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
         ], ['Accept' => 'application/json'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('photo');
@@ -130,12 +140,12 @@ describe('POST /seller/products/{id}/images', function () {
 
         foreach (range(1, 10) as $_) {
             $this->post(productImagesUrl($this->product), [
-                'photo' => UploadedFile::fake()->image('tuna.jpg', 64, 48),
+                'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
             ], ['Accept' => 'application/json'])->assertCreated();
         }
 
         $this->post(productImagesUrl($this->product), [
-            'photo' => UploadedFile::fake()->image('tuna.jpg', 64, 48),
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
         ], ['Accept' => 'application/json'])
             ->assertTooManyRequests()
             ->assertHeader('Retry-After')
@@ -149,7 +159,7 @@ describe('POST /seller/products/{id}/images', function () {
         $other = Product::factory()->create();
 
         $this->post(productImagesUrl($other), [
-            'photo' => UploadedFile::fake()->image('tuna.jpg', 640, 480),
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
         ], ['Accept' => 'application/json'])->assertNotFound();
 
         expect(ProductImage::query()->count())->toBe(0);
@@ -159,7 +169,7 @@ describe('POST /seller/products/{id}/images', function () {
         $this->product->delete();
 
         $this->post(productImagesUrl($this->product), [
-            'photo' => UploadedFile::fake()->image('tuna.jpg', 640, 480),
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
         ], ['Accept' => 'application/json'])->assertNotFound();
     });
 
@@ -167,7 +177,7 @@ describe('POST /seller/products/{id}/images', function () {
         Sanctum::actingAs(User::factory()->create());
 
         $this->post(productImagesUrl($this->product), [
-            'photo' => UploadedFile::fake()->image('tuna.jpg', 640, 480),
+            'photo' => UploadedFile::fake()->image('tuna.jpg', 800, 600),
         ], ['Accept' => 'application/json'])->assertNotFound();
     });
 });
