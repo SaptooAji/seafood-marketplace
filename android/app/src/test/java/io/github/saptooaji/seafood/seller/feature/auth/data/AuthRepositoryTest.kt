@@ -193,6 +193,56 @@ class AuthRepositoryTest {
         assertFalse(log.contains("sfm_google"))
     }
 
+    // --- Signing out (MOB-6) ----------------------------------------------
+
+    @Test
+    fun `signing out revokes the token on the server and deletes it`() {
+        tokenStore.state.value = "sfm_abc"
+        server.enqueue(json(204, ""))
+
+        io { repository.logout() }
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/v1/auth/logout", request.url.encodedPath)
+        assertEquals("Bearer sfm_abc", request.headers["Authorization"])
+        assertNull(io { tokenStore.token().first() })
+    }
+
+    @Test
+    fun `signing out without a connection still deletes the token`() {
+        tokenStore.state.value = "sfm_abc"
+        server.close()
+
+        io { repository.logout() }
+
+        assertNull(io { tokenStore.token().first() })
+    }
+
+    @Test
+    fun `signing out when the server fails still deletes the token`() {
+        tokenStore.state.value = "sfm_abc"
+        server.enqueue(json(500, """{"message":"Server Error"}"""))
+
+        io { repository.logout() }
+
+        assertNull(io { tokenStore.token().first() })
+    }
+
+    @Test
+    fun `signing out with an expired token is not reported as an ended session`() =
+        runBlocking {
+            tokenStore.state.value = "sfm_expired"
+            server.enqueue(json(401, """{"message":"Unauthenticated."}"""))
+
+            sessionEvents.events.test {
+                io { repository.logout() }
+
+                expectNoEvents()
+            }
+            assertNull(tokenStore.token().first())
+        }
+
     @Test
     fun `me reads the user from the data wrapper`() {
         tokenStore.state.value = "sfm_abc"

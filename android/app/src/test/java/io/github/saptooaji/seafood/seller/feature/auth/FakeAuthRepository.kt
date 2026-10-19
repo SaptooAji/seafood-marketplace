@@ -46,6 +46,16 @@ class FakeAuthRepository : AuthRepository {
         return googleResult
     }
 
+    var logoutCalls = 0
+
+    /** Whether the stored token was cleared, as the real logout always does. */
+    var tokenCleared = false
+
+    override suspend fun logout() {
+        logoutCalls++
+        tokenCleared = true
+    }
+
     override suspend fun me(): ApiResult<User> {
         meCalls++
         return meResult
