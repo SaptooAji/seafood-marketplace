@@ -88,6 +88,7 @@ fun GlassCard(
  * that takes text.
  *
  * @param contentType what autofill may fill in, such as [ContentType.EmailAddress]
+ * @param leading and [trailing] sit in the field beside the text, such as `Rp` or `kg`
  */
 @Composable
 fun GlassTextField(
@@ -98,6 +99,7 @@ fun GlassTextField(
     error: String? = null,
     helpText: String? = null,
     contentType: ContentType? = null,
+    leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -137,6 +139,7 @@ fun GlassTextField(
                     verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
+                    leading?.invoke()
                     Box(Modifier.weight(1f)) { inner() }
                     trailing?.invoke()
                 }

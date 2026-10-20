@@ -14,4 +14,22 @@ interface ProductRepository {
         search: String?,
         page: Int,
     ): ApiResult<ProductPage>
+
+    /** One product with its attribute values, for the edit form. Another store's product is [ApiResult.NotFound]. */
+    suspend fun get(id: Long): ApiResult<ProductDetail>
+
+    /** Creates a product with its first variant (`POST seller/products`). */
+    suspend fun create(
+        draft: ProductDraft,
+        variant: NewVariant,
+    ): ApiResult<ProductDetail>
+
+    /** Saves the product's own fields (`PUT seller/products/{id}`); variants are left alone. */
+    suspend fun update(
+        id: Long,
+        draft: ProductDraft,
+    ): ApiResult<ProductDetail>
+
+    /** Soft deletes the product; its stock and order history stay. */
+    suspend fun delete(id: Long): ApiResult<Unit>
 }

@@ -3,6 +3,9 @@ package io.github.saptooaji.seafood.seller.feature.product.data
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.network.apiCall
 import io.github.saptooaji.seafood.seller.core.network.map
+import io.github.saptooaji.seafood.seller.feature.product.domain.NewVariant
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDetail
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDraft
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductPage
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductStatusFilter
@@ -17,4 +20,18 @@ class ProductRepositoryImpl(
         search: String?,
         page: Int,
     ): ApiResult<ProductPage> = apiCall(json) { api.list(status.query, search, page) }.map { it.toDomain() }
+
+    override suspend fun get(id: Long): ApiResult<ProductDetail> = apiCall(json) { api.get(id) }.map { it.data.toDomain() }
+
+    override suspend fun create(
+        draft: ProductDraft,
+        variant: NewVariant,
+    ): ApiResult<ProductDetail> = apiCall(json) { api.create(ProductRequest.from(draft, variant)) }.map { it.data.toDomain() }
+
+    override suspend fun update(
+        id: Long,
+        draft: ProductDraft,
+    ): ApiResult<ProductDetail> = apiCall(json) { api.update(id, ProductRequest.from(draft, variant = null)) }.map { it.data.toDomain() }
+
+    override suspend fun delete(id: Long): ApiResult<Unit> = apiCall(json) { api.delete(id) }
 }

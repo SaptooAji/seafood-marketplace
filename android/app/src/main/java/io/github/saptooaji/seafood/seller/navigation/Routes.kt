@@ -39,3 +39,13 @@ data class StoreStatusRoute(
 data class MainRoute(
     val storePending: Boolean = false,
 )
+
+/** Adding a product, opened from the products tab. */
+@Serializable
+data object ProductAddRoute
+
+/** Editing the product with [productId]; the form reads it from its SavedStateHandle. */
+@Serializable
+data class ProductEditRoute(
+    val productId: Long,
+)

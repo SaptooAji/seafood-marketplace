@@ -4,6 +4,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import io.github.saptooaji.seafood.seller.feature.product.domain.CategoryRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
 import kotlinx.serialization.json.Json
 import retrofit2.Retrofit
@@ -22,4 +23,16 @@ object ProductModule {
         api: ProductApi,
         json: Json,
     ): ProductRepository = ProductRepositoryImpl(api, json)
+
+    @Provides
+    @Singleton
+    fun categoryApi(retrofit: Retrofit): CategoryApi = retrofit.create(CategoryApi::class.java)
+
+    /** A singleton, so the tree is fetched once a session. */
+    @Provides
+    @Singleton
+    fun categoryRepository(
+        api: CategoryApi,
+        json: Json,
+    ): CategoryRepository = CategoryRepositoryImpl(api, json)
 }
