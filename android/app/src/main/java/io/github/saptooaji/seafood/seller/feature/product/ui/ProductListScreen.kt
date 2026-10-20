@@ -69,9 +69,14 @@ fun ProductListScreen(
     onAddProduct: () -> Unit,
     onOpenProduct: (Long) -> Unit,
     banner: @Composable () -> Unit = {},
+    changes: Int = 0,
     viewModel: ProductListViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // A product was saved or deleted in the form: the list refreshes in place.
+    LaunchedEffect(changes) {
+        if (changes > 0) viewModel.onEvent(ProductListEvent.Refresh)
+    }
     ProductListScreen(uiState, viewModel::onEvent, onAddProduct, onOpenProduct, banner = banner)
 }
 

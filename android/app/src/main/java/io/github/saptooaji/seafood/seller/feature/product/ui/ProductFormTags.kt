@@ -1,0 +1,48 @@
+package io.github.saptooaji.seafood.seller.feature.product.ui
+
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductCondition
+import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantUnit
+
+/** Test tags of the product form and its sheets. */
+object ProductFormTags {
+    const val BACK = "product_form_back"
+    const val CATEGORY = "product_form_category"
+    const val NAME = "product_form_name"
+    const val DESCRIPTION = "product_form_description"
+    const val SEO = "product_form_seo"
+    const val QUOTA = "product_form_quota"
+    const val LEAD_TIME = "product_form_lead_time"
+    const val CUTOFF = "product_form_cutoff"
+    const val SHELF_LIFE = "product_form_shelf_life"
+    const val STORAGE = "product_form_storage"
+    const val VARIANT_NAME = "product_form_variant_name"
+    const val VARIANT_PRICE = "product_form_variant_price"
+    const val VARIANT_MIN_QTY = "product_form_variant_min_qty"
+    const val VARIANT_STOCK = "product_form_variant_stock"
+    const val ACTIVE = "product_form_active"
+    const val DELETE = "product_form_delete"
+    const val SAVE = "product_form_save"
+    const val RETRY = "product_form_retry"
+    const val CONFIRM_DELETE = "product_form_confirm_delete"
+    const val CANCEL_DELETE = "product_form_cancel_delete"
+    const val CONFIRM_DISCARD = "product_form_confirm_discard"
+    const val KEEP_EDITING = "product_form_keep_editing"
+    const val BACK_TO_LIST = "product_form_back_to_list"
+    const val CATEGORY_CLOSE = "product_category_close"
+
+    fun attribute(id: Long) = "product_form_attribute_$id"
+
+    fun attributeOption(
+        id: Long,
+        option: String,
+    ) = "product_form_attribute_${id}_$option"
+
+    fun categoryRow(id: Long) = "product_category_$id"
+
+    fun condition(condition: ProductCondition) = "product_form_condition_${condition.value}"
+
+    fun salesMode(mode: SalesMode) = "product_form_sales_mode_${mode.value}"
+
+    fun unit(unit: VariantUnit) = "product_form_unit_${unit.value}"
+}

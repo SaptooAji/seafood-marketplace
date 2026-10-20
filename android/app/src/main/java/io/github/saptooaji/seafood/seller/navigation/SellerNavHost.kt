@@ -2,7 +2,11 @@ package io.github.saptooaji.seafood.seller.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -12,6 +16,8 @@ import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginScreen
 import io.github.saptooaji.seafood.seller.feature.auth.ui.RegisterScreen
 import io.github.saptooaji.seafood.seller.feature.main.ui.MainShell
+import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormResult
+import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductListScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartDestination
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
@@ -88,17 +94,47 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
             )
         }
         composable<MainRoute> { entry ->
+            val productChanges by entry.savedStateHandle.getStateFlow(KEY_PRODUCT_CHANGES, 0).collectAsStateWithLifecycle()
             MainShell(
                 storePending = entry.toRoute<MainRoute>().storePending,
                 onStoreStatus = { navController.startOver(StoreStatusRoute()) },
                 productsTab = { banner ->
-                    // The product form (#238) opens from here once it exists.
-                    ProductListScreen(onAddProduct = {}, onOpenProduct = {}, banner = banner)
+                    ProductListScreen(
+                        onAddProduct = dropUnlessResumed { navController.navigate(ProductAddRoute) },
+                        onOpenProduct = { id -> if (entry.isResumed()) navController.navigate(ProductEditRoute(id)) },
+                        banner = banner,
+                        changes = productChanges,
+                    )
                 },
             )
         }
+        composable<ProductAddRoute> { ProductFormDestination(navController) }
+        composable<ProductEditRoute> { ProductFormDestination(navController) }
     }
 }
+
+/**
+ * The product form over the main screens. Once it is saved or the product
+ * deleted, the list below is told to refresh before the form closes.
+ */
+@Composable
+private fun ProductFormDestination(navController: NavController) {
+    ProductFormScreen(
+        onDone = { result ->
+            if (result != ProductFormResult.Left) {
+                navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                    handle[KEY_PRODUCT_CHANGES] = (handle.get<Int>(KEY_PRODUCT_CHANGES) ?: 0) + 1
+                }
+            }
+            navController.popBackStack()
+        },
+    )
+}
+
+/** Counts the products saved or deleted, in the main screens' SavedStateHandle. */
+private const val KEY_PRODUCT_CHANGES = "product_changes"
+
+private fun NavBackStackEntry.isResumed() = lifecycle.currentState == Lifecycle.State.RESUMED
 
 /**
  * Opens [route] on an empty back stack, so Back leaves the app instead of
