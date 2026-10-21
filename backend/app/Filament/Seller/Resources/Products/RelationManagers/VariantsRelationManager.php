@@ -20,6 +20,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -113,7 +114,14 @@ class VariantsRelationManager extends RelationManager
                 EditAction::make()
                     ->using(fn (ProductVariant $record, array $data, EditAction $action): ProductVariant => $this->save($action, $data, $record)),
                 DeleteAction::make()
-                    ->using(fn (ProductVariant $record) => app(DeleteVariant::class)->handle($record)),
+                    ->using(function (ProductVariant $record, DeleteAction $action): void {
+                        try {
+                            app(DeleteVariant::class)->handle($record);
+                        } catch (InvalidProductData $e) {
+                            Notification::make()->danger()->title($e->getMessage())->send();
+                            $action->cancel();
+                        }
+                    }),
             ]);
     }
 

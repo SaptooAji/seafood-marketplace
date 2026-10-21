@@ -233,21 +233,44 @@ describe('PUT /seller/variants/{id}', function () {
 
 describe('DELETE /seller/variants/{id}', function () {
     it('soft deletes the variant and keeps its stock book', function () {
+        ProductVariant::factory()->for($this->product)->create(['name' => 'Size 70']);
         $movement = StockMovement::factory()->for($this->variant, 'variant')->create();
 
         $this->deleteJson(SELLER_VARIANTS_URL.'/'.$this->variant->id)->assertNoContent();
 
         $this->assertSoftDeleted($this->variant);
         $this->assertModelExists($movement);
+        expect($this->product->variants()->count())->toBe(1);
     });
 
-    it('returns 404 for a variant of another store', function () {
-        $other = ProductVariant::factory()->create();
+    it('refuses to delete the last variant of the product', function (Closure $setUp) {
+        $setUp($this->product);
 
-        $this->deleteJson(SELLER_VARIANTS_URL.'/'.$other->id)->assertNotFound();
+        $this->deleteJson(SELLER_VARIANTS_URL.'/'.$this->variant->id)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['variant' => 'Produk perlu minimal satu varian. Nonaktifkan produk kalau sedang tidak dijual.']);
+
+        $this->assertNotSoftDeleted($this->variant);
+    })->with([
+        'only variant' => [fn (Product $product) => null],
+        'other variant already deleted' => [fn (Product $product) => ProductVariant::factory()->for($product)->create(['name' => 'Size 70'])->delete()],
+    ]);
+
+    it('returns 404 for a variant of another store', function (int $variants) {
+        $other = ProductVariant::factory()->create();
+        ProductVariant::factory()->count($variants - 1)->for($other->product)->sequence(fn ($sequence) => ['name' => 'Lain '.$sequence->index])->create();
+
+        // The same 404 whether or not it is the last variant, so the count of
+        // another store's variants does not leak.
+        $this->deleteJson(SELLER_VARIANTS_URL.'/'.$other->id)
+            ->assertNotFound()
+            ->assertJsonMissingPath('errors');
 
         $this->assertNotSoftDeleted($other);
-    });
+    })->with([
+        'its last variant' => [1],
+        'one of two variants' => [2],
+    ]);
 
     it('returns 404 for a variant already deleted', function () {
         $this->variant->delete();
