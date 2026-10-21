@@ -422,12 +422,27 @@ describe('variants', function () {
             ->assertFormFieldDoesNotExist('initial_stock');
     });
 
-    it('soft deletes a variant', function () {
+    it('soft deletes one of two variants', function () {
+        ProductVariant::factory()->for($this->product)->create(['name' => 'Betina 300-400 g']);
+
         Livewire::test(VariantsRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
             ->callAction(TestAction::make('delete')->table($this->variant));
 
         $this->assertSoftDeleted($this->variant);
     });
+
+    it('refuses to delete the last variant with an error notification', function (Closure $setUp) {
+        $setUp($this->product);
+
+        Livewire::test(VariantsRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
+            ->callAction(TestAction::make('delete')->table($this->variant))
+            ->assertNotified('Produk perlu minimal satu varian. Nonaktifkan produk kalau sedang tidak dijual.');
+
+        $this->assertNotSoftDeleted($this->variant);
+    })->with([
+        'only variant' => [fn (Product $product) => null],
+        'other variant already deleted' => [fn (Product $product) => ProductVariant::factory()->for($product)->create(['name' => 'Betina 300-400 g'])->delete()],
+    ]);
 });
 
 describe('photos', function () {

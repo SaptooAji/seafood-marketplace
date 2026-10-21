@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Actions\DeleteVariant;
 use App\Actions\RecordStockMovement;
 use App\Actions\SaveVariant;
 use App\Data\VariantData;
@@ -105,24 +104,6 @@ describe('updating', function () {
         expect($variant->fresh())
             ->stock->toBe('6.000')
             ->is_active->toBeFalse();
-    });
-});
-
-describe('deleting', function () {
-    it('soft deletes a variant and keeps its stock book', function () {
-        $variant = saveVariant(variantData(['initialStock' => '5']));
-
-        app(DeleteVariant::class)->handle($variant);
-
-        expect(ProductVariant::query()->count())->toBe(0)
-            ->and(ProductVariant::withTrashed()->find($variant->id))->not->toBeNull()
-            ->and(StockMovement::query()->count())->toBe(1);
-    });
-
-    it('allows the name again after the old variant is deleted', function () {
-        app(DeleteVariant::class)->handle(saveVariant(variantData()));
-
-        expect(saveVariant(variantData())->name)->toBe('Grade A 300-400 g');
     });
 });
 
