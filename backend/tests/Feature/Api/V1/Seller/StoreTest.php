@@ -53,7 +53,8 @@ describe('POST /seller/store', function () {
             ->assertJsonPath('data.slug', 'kepiting-pak-budi')
             ->assertJsonPath('data.status.value', 'pending')
             ->assertJsonPath('data.status.label', StoreStatus::Pending->label())
-            ->assertJsonPath('data.bank.account_no', '1234567890');
+            ->assertJsonPath('data.bank.account_no', '1234567890')
+            ->assertJsonPath('data.role', ['value' => 'owner', 'label' => StoreRole::Owner->label()]);
 
         expect($user->roleIn(Store::query()->sole()))->toBe(StoreRole::Owner);
     });
@@ -152,20 +153,39 @@ describe('GET /seller/store', function () {
             ->assertExactJsonStructure(['data' => [
                 'id', 'name', 'slug', 'description', 'phone', 'address', 'city', 'lat', 'lng',
                 'status' => ['value', 'label'], 'verified_at', 'rejection_reason', 'stock_reminder_time',
+                'role' => ['value', 'label'],
                 'bank' => ['name', 'account_no', 'account_name'],
             ]])
             ->assertJsonPath('data.id', $store->id)
+            ->assertJsonPath('data.role', ['value' => 'owner', 'label' => 'Pemilik'])
             ->assertJsonPath('data.bank.account_no', $store->bank_account_no);
     });
 
-    it('hides the bank account from staff', function () {
+    it('shows staff their role and hides the bank account', function () {
         $user = User::factory()->create();
         storeWithMember($user, StoreRole::Staff);
         Sanctum::actingAs($user);
 
         $this->getJson(SELLER_STORE_URL)
             ->assertOk()
+            ->assertJsonPath('data.role', ['value' => 'staff', 'label' => StoreRole::Staff->label()])
             ->assertJsonMissingPath('data.bank');
+    });
+
+    it('shows only the role of the user asking, not the other members', function () {
+        $owner = User::factory()->create();
+        $store = storeWithMember($owner, StoreRole::Owner);
+        $staff = User::factory()->create();
+        $store->users()->attach($staff, ['role' => StoreRole::Staff->value]);
+        Sanctum::actingAs($staff);
+
+        $response = $this->getJson(SELLER_STORE_URL)
+            ->assertOk()
+            ->assertJsonPath('data.role.value', 'staff');
+
+        expect($response->getContent())
+            ->not->toContain((string) $owner->email)
+            ->not->toContain('"owner"');
     });
 
     it('shows the rejection reason only for a rejected store', function (string $state, bool $hasReason) {
@@ -215,7 +235,8 @@ describe('PUT /seller/store', function () {
         ]))
             ->assertOk()
             ->assertJsonPath('data.name', 'Kepiting & Rajungan Pak Budi')
-            ->assertJsonPath('data.slug', 'kepiting-pak-budi');
+            ->assertJsonPath('data.slug', 'kepiting-pak-budi')
+            ->assertJsonPath('data.role.value', 'owner');
 
         expect($store->fresh())
             ->name->toBe('Kepiting & Rajungan Pak Budi')

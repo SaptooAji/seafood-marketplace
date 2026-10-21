@@ -27,6 +27,7 @@ Route::post('auth/google', [AuthController::class, 'google'])->middleware('throt
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
     Route::get('me', [AuthController::class, 'me'])->name('api.me');
+    Route::put('me', [AuthController::class, 'updateMe'])->name('api.me.update');
 
     Route::get('categories', CategoryController::class)->name('api.categories.index');
 

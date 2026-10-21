@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A store as its members see it. The bank account is shown to the owner only.
+ * A store as its members see it, with the asking user's own role in it. The
+ * bank account is shown to the owner only.
  *
  * @mixin Store
  */
@@ -24,6 +25,8 @@ class StoreResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $role = $request->user()?->roleIn($this->resource);
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -43,7 +46,9 @@ class StoreResource extends JsonResource
             'rejection_reason' => $this->status === StoreStatus::Rejected ? $this->rejection_reason : null,
             // The database returns `06:00:00`; send it back in the `H:i` form it was entered in.
             'stock_reminder_time' => $this->stock_reminder_time !== null ? substr($this->stock_reminder_time, 0, 5) : null,
-            'bank' => $this->when($request->user()?->roleIn($this->resource) === StoreRole::Owner, fn () => [
+            // Only the role of the user asking, never the other members.
+            'role' => $role !== null ? ['value' => $role->value, 'label' => $role->label()] : null,
+            'bank' => $this->when($role === StoreRole::Owner, fn () => [
                 'name' => $this->bank_name,
                 'account_no' => $this->bank_account_no,
                 'account_name' => $this->bank_account_name,

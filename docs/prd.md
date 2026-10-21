@@ -145,7 +145,7 @@ Penjual login dengan email + password atau akun Google. Kolom `users.password` n
 | POST | /auth/login | Login dengan email + password, mengembalikan token |
 | POST | /auth/google | Login dengan Google ID token dari Android, mengembalikan token |
 | POST | /auth/logout | Cabut token aktif |
-| GET | /me | Profil pengguna |
+| GET, PUT | /me | Lihat profil pengguna; ubah nama dan nomor HP sendiri |
 | POST | /device-tokens | Simpan token FCM perangkat |
 | POST | /seller/store | Buat toko setelah akun terdaftar; status pending sampai diverifikasi admin |
 | GET, PUT | /seller/store | Lihat dan ubah profil toko, lokasi (lat/lng), serta rekening; alasan penolakan bila ditolak |
