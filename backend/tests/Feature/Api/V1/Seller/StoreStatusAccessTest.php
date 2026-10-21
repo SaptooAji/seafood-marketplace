@@ -57,8 +57,8 @@ beforeEach(function () {
 });
 
 /**
- * Sign in the owner of a store in the given state, with one product (a
- * variant and a photo) and one shipping method.
+ * Sign in the owner of a store in the given state, with one product (two
+ * variants and a photo) and one shipping method.
  *
  * @return array{store: Store, category: Category, product: Product, variant: ProductVariant, image: ProductImage, method: StoreShippingMethod}
  */
@@ -72,6 +72,8 @@ function storeStatusSeller(StoreStatus $status): array
     $category = Category::factory()->create();
     $product = Product::factory()->for($store)->for($category)->create();
     $variant = ProductVariant::factory()->for($product)->create();
+    // A second variant, so deleting the first is allowed.
+    ProductVariant::factory()->for($product)->create(['name' => $variant->name.' (2)']);
     $image = ProductImage::factory()->for($product)->create(['path' => 'products/'.$product->id.'/ikan.webp']);
     Storage::disk('public')->put($image->path, 'photo');
     Storage::disk('public')->put($image->thumbnailPath(), 'thumbnail');
