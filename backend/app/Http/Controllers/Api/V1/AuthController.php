@@ -7,11 +7,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\AuthenticateWithPassword;
 use App\Actions\LoginWithGoogle;
 use App\Actions\RegisterUser;
+use App\Actions\UpdateProfile;
 use App\Actions\VerifyGoogleIdToken;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\GoogleLoginRequest;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Requests\Api\V1\RegisterRequest;
+use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -80,6 +82,17 @@ class AuthController extends Controller
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    /**
+     * Update the signed-in user's own name and phone.
+     */
+    public function updateMe(UpdateProfileRequest $request, UpdateProfile $updateProfile): UserResource
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        return new UserResource($updateProfile->handle($user, $request->string('name')->value(), $request->string('phone')->value()));
     }
 
     /**
