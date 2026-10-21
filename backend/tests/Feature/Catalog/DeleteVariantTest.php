@@ -11,7 +11,7 @@ use App\Models\StockMovement;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 
-const LAST_VARIANT_MESSAGE = 'Produk perlu minimal satu varian. Nonaktifkan produk kalau sedang tidak dijual.';
+const LAST_VARIANT_MESSAGE = 'Produk perlu minimal satu ukuran. Matikan produk kalau sedang tidak dijual.';
 
 beforeEach(function () {
     $this->product = Product::factory()->create();

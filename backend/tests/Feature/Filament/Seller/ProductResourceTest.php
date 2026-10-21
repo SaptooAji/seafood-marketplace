@@ -436,7 +436,7 @@ describe('variants', function () {
 
         Livewire::test(VariantsRelationManager::class, ['ownerRecord' => $this->product, 'pageClass' => EditProduct::class])
             ->callAction(TestAction::make('delete')->table($this->variant))
-            ->assertNotified('Produk perlu minimal satu varian. Nonaktifkan produk kalau sedang tidak dijual.');
+            ->assertNotified('Produk perlu minimal satu ukuran. Matikan produk kalau sedang tidak dijual.');
 
         $this->assertNotSoftDeleted($this->variant);
     })->with([
