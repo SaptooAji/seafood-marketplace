@@ -21,7 +21,7 @@ tink = "1.24.0"
 credentials = "1.6.0"
 googleid = "1.2.1"
 # The OpenGL build: the default build needs Vulkan and would leave out phones without it.
-maplibre = "13.6.1"
+maplibre = "13.7.1"
 coil = "3.6.3"
 mockk = "1.14.11"
 turbine = "1.2.1"
