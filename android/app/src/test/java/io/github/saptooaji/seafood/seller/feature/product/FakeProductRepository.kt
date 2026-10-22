@@ -12,6 +12,8 @@ import io.github.saptooaji.seafood.seller.feature.product.domain.ProductReposito
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductStatusFilter
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantChanges
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantUnit
 import kotlinx.coroutines.CompletableDeferred
 import java.math.BigDecimal
 
@@ -84,6 +86,61 @@ class FakeProductRepository : ProductRepository {
         return deleteResult
     }
 
+    val addVariantCalls = mutableListOf<Pair<Long, NewVariant>>()
+
+    /** Null answers with the variant as sent, under a new id. */
+    var addVariantResult: ApiResult<ProductVariant>? = null
+
+    val updateVariantCalls = mutableListOf<Pair<Long, VariantChanges>>()
+
+    /** Null answers with the variant as sent. */
+    var updateVariantResult: ApiResult<ProductVariant>? = null
+
+    val deleteVariantCalls = mutableListOf<Long>()
+    var deleteVariantResult: ApiResult<Unit> = ApiResult.Success(Unit)
+
+    /** By variant id, or [NEW_VARIANT] for adding: the call waits until the gate completes. */
+    val variantGates = mutableMapOf<Long, CompletableDeferred<Unit>>()
+
+    override suspend fun addVariant(
+        productId: Long,
+        variant: NewVariant,
+    ): ApiResult<ProductVariant> {
+        addVariantCalls += productId to variant
+        variantGates[NEW_VARIANT]?.await()
+        return addVariantResult ?: ApiResult.Success(
+            ProductVariant(
+                id = 100L + addVariantCalls.size,
+                name = variant.name,
+                unitLabel = variant.unit.value,
+                price = variant.price,
+                stock = variant.initialStock ?: BigDecimal.ZERO,
+                isStockStale = false,
+                isActive = true,
+                unit = variant.unit,
+                minQty = variant.minQty,
+            ),
+        )
+    }
+
+    override suspend fun updateVariant(
+        id: Long,
+        changes: VariantChanges,
+    ): ApiResult<ProductVariant> {
+        updateVariantCalls += id to changes
+        variantGates[id]?.await()
+        return updateVariantResult ?: ApiResult.Success(
+            variant(id = id, price = changes.price, isActive = changes.isActive, name = changes.name, unit = changes.unit)
+                .copy(minQty = changes.minQty),
+        )
+    }
+
+    override suspend fun deleteVariant(id: Long): ApiResult<Unit> {
+        deleteVariantCalls += id
+        variantGates[id]?.await()
+        return deleteVariantResult
+    }
+
     /** Answers pages 1..[lastPage] with 20 products each, numbered across pages. */
     fun answerPages(
         lastPage: Int,
@@ -96,6 +153,9 @@ class FakeProductRepository : ProductRepository {
     }
 
     companion object {
+        /** The key of [variantGates] for adding a variant. */
+        const val NEW_VARIANT = -1L
+
         /** Kepiting Bakau Super as the edit form loads it: pre order, two attributes, two variants. */
         val DETAIL =
             ProductDetail(
@@ -121,20 +181,25 @@ class FakeProductRepository : ProductRepository {
                 variants = listOf(variant(id = 1, price = 185_000), variant(id = 2, price = 215_000)),
             )
 
+        @Suppress("LongParameterList") // Every field a test may want to vary.
         fun variant(
             id: Long = 1,
             price: Long = 185_000,
             isActive: Boolean = true,
             isStockStale: Boolean = false,
             unitLabel: String = "Kg",
+            name: String = "Ukuran $id",
+            unit: VariantUnit = VariantUnit.Kg,
         ) = ProductVariant(
             id = id,
-            name = "Ukuran $id",
+            name = name,
             unitLabel = unitLabel,
             price = price,
             stock = BigDecimal("18.500"),
             isStockStale = isStockStale,
             isActive = isActive,
+            unit = unit,
+            minQty = BigDecimal("1.000"),
         )
 
         @Suppress("LongParameterList") // Every field a test may want to vary.

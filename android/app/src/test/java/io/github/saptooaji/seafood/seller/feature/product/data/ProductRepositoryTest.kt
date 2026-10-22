@@ -7,6 +7,7 @@ import io.github.saptooaji.seafood.seller.core.session.SessionEvents
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductImage
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductStatusFilter
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductVariant
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -96,8 +97,28 @@ class ProductRepositoryTest {
         assertEquals("<b>tebal</b> foto tidak sesuai", product.blockReason)
         assertEquals(
             listOf(
-                ProductVariant(11, "Super 500 g", "Kg", 185_000, BigDecimal("18.500"), isStockStale = true, isActive = true),
-                ProductVariant(12, "Jumbo", "Kg", 240_000, BigDecimal("0.000"), isStockStale = false, isActive = false),
+                ProductVariant(
+                    11,
+                    "Super 500 g",
+                    "Kg",
+                    185_000,
+                    BigDecimal("18.500"),
+                    isStockStale = true,
+                    isActive = true,
+                    unit = VariantUnit.Kg,
+                    minQty = BigDecimal("1.000"),
+                ),
+                ProductVariant(
+                    12,
+                    "Jumbo",
+                    "Kg",
+                    240_000,
+                    BigDecimal("0.000"),
+                    isStockStale = false,
+                    isActive = false,
+                    unit = VariantUnit.Kg,
+                    minQty = BigDecimal("1.000"),
+                ),
             ),
             product.variants,
         )
