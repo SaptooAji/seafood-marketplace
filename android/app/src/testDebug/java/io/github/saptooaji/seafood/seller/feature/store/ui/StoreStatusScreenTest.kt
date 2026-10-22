@@ -9,8 +9,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import io.github.saptooaji.seafood.seller.R
-import io.github.saptooaji.seafood.seller.core.network.ConnectionTrouble
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.SeafoodTheme
+import io.github.saptooaji.seafood.seller.core.network.ConnectionTrouble
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreStatus
 import org.junit.Assert.assertEquals
 import org.junit.Rule
