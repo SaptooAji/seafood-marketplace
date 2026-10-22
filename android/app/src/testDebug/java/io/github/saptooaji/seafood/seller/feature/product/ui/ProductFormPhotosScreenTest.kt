@@ -274,7 +274,11 @@ class ProductFormPhotosScreenTest {
     fun aSavedProductWithAFailedPhotoSaysItIsSaved() {
         show(
             editing.copy(
-                photos = listOf(saved(101), PendingPhoto("pending-2", "/cache/photos/2.jpg", PendingStatus.Failed(UiText.Raw("Foto terlalu memanjang.")))),
+                photos =
+                    listOf(
+                        saved(101),
+                        PendingPhoto("pending-2", "/cache/photos/2.jpg", PendingStatus.Failed(UiText.Raw("Foto terlalu memanjang."))),
+                    ),
                 photoNotice = UiText.Raw("Produk tersimpan. 1 foto belum terunggah."),
             ),
         )
