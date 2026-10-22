@@ -387,6 +387,8 @@ class ProductFormSuggestionTest {
         }
 
     companion object {
+        private const val PLATFORM_LIMIT = "Saran deskripsi sudah mencapai batas hari ini. Coba lagi besok atau tulis deskripsi sendiri."
+
         private const val UNAVAILABLE = "Saran deskripsi sedang tidak tersedia. Silakan coba lagi nanti atau tulis deskripsi sendiri."
 
         @JvmStatic
@@ -414,8 +416,22 @@ class ProductFormSuggestionTest {
                     UiText.Resource(R.string.product_suggestion_too_often, listOf(2L)),
                     false,
                 ),
+                // The general API limit answers in English, so a short wait is told in the app's words.
                 arguments(
-                    "429 for an hour is the daily quota",
+                    "429 for a minute from the general limit",
+                    ApiResult.TooManyRequests(60, "Too Many Attempts."),
+                    UiText.Resource(R.string.product_suggestion_too_often, listOf(1L)),
+                    false,
+                ),
+                // A day-long wait is the store's quota or the platform's limit; only the server knows which.
+                arguments(
+                    "429 until tomorrow shows the server's message",
+                    ApiResult.TooManyRequests(36_000, PLATFORM_LIMIT),
+                    UiText.Raw(PLATFORM_LIMIT),
+                    false,
+                ),
+                arguments(
+                    "429 for an hour without a message is the daily quota",
                     ApiResult.TooManyRequests(3600),
                     UiText.Resource(R.string.product_suggestion_quota_used),
                     false,

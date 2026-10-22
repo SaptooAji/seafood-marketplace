@@ -176,7 +176,10 @@ class DescriptionSuggestionRepositoryTest {
                 .build(),
         )
 
-        assertEquals(ApiResult.TooManyRequests(60), io { repository().suggestDescription(draft) })
+        assertEquals(
+            ApiResult.TooManyRequests(60, "Terlalu sering meminta saran deskripsi. Tunggu sebentar lalu coba lagi."),
+            io { repository().suggestDescription(draft) },
+        )
     }
 
     @Test

@@ -288,7 +288,7 @@ class ApiClientTest {
                         .addHeader("Retry-After", "30")
                         .body("""{"message":"Too Many Attempts."}""")
                         .build(),
-                    ApiResult.TooManyRequests(30),
+                    ApiResult.TooManyRequests(30, "Too Many Attempts."),
                 ),
                 arguments("500", json(500, """{"message":"Server Error"}"""), ApiResult.ServerError),
                 arguments(
