@@ -11,8 +11,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.long
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.jupiter.api.AfterEach
@@ -54,7 +54,7 @@ class ProductPhotoRepositoryTest {
                     readTimeouts += chain.request().url.encodedPath to chain.readTimeoutMillis()
                     chain.proceed(chain.request())
                 }.build()
-        return ProductPhotoRepositoryImpl(HttpClients.retrofit(baseUrl, client).create(ProductApi::class.java), HttpClients.json)
+        return ProductPhotoRepositoryImpl(HttpClients.retrofit(baseUrl, client).create(ProductPhotoApi::class.java), HttpClients.json)
     }
 
     private fun json(
@@ -112,7 +112,12 @@ class ProductPhotoRepositoryTest {
 
     @Test
     fun `a refused photo keeps the server's message`() {
-        server.enqueue(json(422, """{"message":"Produk paling banyak memiliki 8 foto.","errors":{"photo":["Produk paling banyak memiliki 8 foto."]}}"""))
+        server.enqueue(
+            json(
+                422,
+                """{"message":"Produk paling banyak memiliki 8 foto.","errors":{"photo":["Produk paling banyak memiliki 8 foto."]}}""",
+            ),
+        )
 
         assertEquals(
             ApiResult.Invalid(mapOf("photo" to listOf("Produk paling banyak memiliki 8 foto.")), "Produk paling banyak memiliki 8 foto."),
@@ -147,7 +152,12 @@ class ProductPhotoRepositoryTest {
         val request = server.takeRequest()
         assertEquals("PUT", request.method)
         assertEquals("/api/v1/seller/products/7/images/order", request.url.encodedPath)
-        val ids = Json.parseToJsonElement(request.body!!.utf8()).jsonObject["image_ids"]!!.jsonArray.map { it.jsonPrimitive.long }
+        val ids =
+            Json
+                .parseToJsonElement(request.body!!.utf8())
+                .jsonObject["image_ids"]!!
+                .jsonArray
+                .map { it.jsonPrimitive.long }
         assertEquals(listOf(3L, 1L, 2L), ids)
         assertEquals(ApiResult.Success(listOf(productImage(3), productImage(1), productImage(2))), result)
     }

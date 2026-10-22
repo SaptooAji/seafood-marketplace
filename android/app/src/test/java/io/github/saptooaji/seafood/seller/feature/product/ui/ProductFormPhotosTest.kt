@@ -138,7 +138,10 @@ class ProductFormPhotosTest {
     fun `a refused photo is marked with the server's message, and the rest still upload`() =
         runTest(main.dispatcher) {
             photos.uploadAnswers[2] =
-                ApiResult.Invalid(mapOf("photo" to listOf("Produk paling banyak memiliki 8 foto.")), "Produk paling banyak memiliki 8 foto.")
+                ApiResult.Invalid(
+                    mapOf("photo" to listOf("Produk paling banyak memiliki 8 foto.")),
+                    "Produk paling banyak memiliki 8 foto.",
+                )
             val vm = editForm(images = emptyList())
             val first = prepared("satu")
             val second = prepared("dua")
@@ -204,7 +207,7 @@ class ProductFormPhotosTest {
             assertEquals(2, photos.uploads.size)
             assertEquals(PendingStatus.Paused, vm.pending(paths[1]).status)
             assertEquals(PendingStatus.Paused, vm.pending(paths[2]).status)
-            assertEquals(UiText.Resource(R.string.product_photo_paused, listOf(2, 1L)), vm.state.photoNotice)
+            assertEquals(UiText.Resource(R.string.product_photo_paused, listOf<Any>(2, 1L)), vm.state.photoNotice)
 
             vm.onEvent(ProductFormEvent.ResumeUploads)
             advanceUntilIdle()

@@ -11,6 +11,7 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -116,12 +117,12 @@ class PreparePhotoTest {
                     ExifInterface.TAG_GPS_LONGITUDE_REF to "E",
                     ExifInterface.TAG_MAKE to "Kamera Uji",
                 )
-            assertTrue(ExifInterface(source.path).latLong != null)
+            assertTrue(ExifInterface(source.path).getLatLong(FloatArray(2)))
 
             val result = ready(prepare.prepare(source, PixelRect(0, 0, 1200, 900), quarterTurns = 0))
 
             val exif = ExifInterface(result.file.path)
-            assertNull(exif.latLong)
+            assertFalse(exif.getLatLong(FloatArray(2)))
             assertNull(exif.getAttribute(ExifInterface.TAG_GPS_LATITUDE))
             assertNull(exif.getAttribute(ExifInterface.TAG_MAKE))
         }
@@ -129,12 +130,22 @@ class PreparePhotoTest {
     @Test
     fun aCropUnder600PixelsIsRefusedWithoutAFile() =
         runBlocking {
-            val before = prepare.photoDir.listFiles().orEmpty().size
+            val before =
+                prepare.photoDir
+                    .listFiles()
+                    .orEmpty()
+                    .size
 
             val result = prepare.prepare(jpeg(2000, 2000), PixelRect(0, 0, 500, 500), quarterTurns = 0)
 
             assertEquals(PreparedPhoto.TooSmall(600), result)
-            assertEquals(before, prepare.photoDir.listFiles().orEmpty().size)
+            assertEquals(
+                before,
+                prepare.photoDir
+                    .listFiles()
+                    .orEmpty()
+                    .size,
+            )
         }
 
     @Test

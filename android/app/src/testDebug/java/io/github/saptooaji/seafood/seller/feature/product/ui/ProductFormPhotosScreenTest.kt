@@ -51,7 +51,10 @@ class ProductFormPhotosScreenTest {
 
         compose.onNodeWithTag(ProductFormTags.photo("saved-1")).performScrollTo()
         compose.onAllNodesWithText("Utama").assertCountEquals(1)
-        compose.onNodeWithText("3 dari 8 foto, langsung tersimpan. Foto pertama tampil di katalog; tahan lalu geser untuk mengurutkan.").assertExists()
+        compose
+            .onNodeWithText(
+                "3 dari 8 foto, langsung tersimpan. Foto pertama tampil di katalog; tahan lalu geser untuk mengurutkan.",
+            ).assertExists()
     }
 
     @Test
@@ -80,7 +83,11 @@ class ProductFormPhotosScreenTest {
     fun eightPhotosTurnAddingOffAndSayWhy() {
         show(editing.copy(photos = (1L..8L).map { saved(it) }))
 
-        compose.onNodeWithTag(ProductFormTags.ADD_PHOTO).performScrollTo().assertIsNotEnabled().performClick()
+        compose
+            .onNodeWithTag(ProductFormTags.ADD_PHOTO)
+            .performScrollTo()
+            .assertIsNotEnabled()
+            .performClick()
         compose.onNodeWithText("8 dari 8 foto. Hapus satu untuk menambah yang baru.").assertExists()
         assertTrue(sources.isEmpty())
         compose.onNodeWithText("Ambil dari kamera").assertDoesNotExist()
@@ -108,13 +115,21 @@ class ProductFormPhotosScreenTest {
     fun aRefusedPhotoSaysWhyAndCanBeTriedAgainOrTakenOff() {
         show(
             editing.copy(
-                photos = listOf(saved(1), PendingPhoto("pending-1", "/cache/photos/a.jpg", PendingStatus.Failed(UiText.Raw("Produk paling banyak memiliki 8 foto.")))),
+                photos =
+                    listOf(
+                        saved(1),
+                        PendingPhoto(
+                            "pending-1",
+                            "/cache/photos/a.jpg",
+                            PendingStatus.Failed(UiText.Raw("Produk paling banyak memiliki 8 foto.")),
+                        ),
+                    ),
             ),
         )
 
         compose.onNodeWithText("Foto ke-2 gagal diunggah: Produk paling banyak memiliki 8 foto.").performScrollTo()
-        compose.onNodeWithTag(ProductFormTags.photoRetry("pending-1")).performClick()
-        compose.onNodeWithTag(ProductFormTags.photoRemove("pending-1")).performClick()
+        compose.onNodeWithTag(ProductFormTags.photoRetry("pending-1")).performScrollTo().performClick()
+        compose.onNodeWithTag(ProductFormTags.photoRemove("pending-1")).performScrollTo().performClick()
 
         assertEquals(listOf(ProductFormEvent.RetryPhoto("pending-1"), ProductFormEvent.RemovePendingPhoto("pending-1")), events)
     }
@@ -136,7 +151,7 @@ class ProductFormPhotosScreenTest {
 
         compose.onNodeWithText(notice).performScrollTo()
         compose.onAllNodesWithText("Tertunda").assertCountEquals(2)
-        compose.onNodeWithTag(ProductFormTags.PHOTO_RESUME).performClick()
+        compose.onNodeWithTag(ProductFormTags.PHOTO_RESUME).performScrollTo().performClick()
 
         assertEquals(ProductFormEvent.ResumeUploads, events.last())
     }

@@ -65,7 +65,10 @@ class PhotoCropScreenTest {
     fun aCropThatIsTooSmallSaysSoAndCannotBeUsed() {
         show(ready.copy(crop = CropState.of(800, 500)))
 
-        compose.onNodeWithText("Foto terlalu kecil: sisi terpendek minimal 600 piksel. Pilih foto lain atau ambil ulang dari dekat.").assertExists()
+        compose
+            .onNodeWithText(
+                "Foto terlalu kecil: sisi terpendek minimal 600 piksel. Pilih foto lain atau ambil ulang dari dekat.",
+            ).assertExists()
         compose.onNodeWithTag(PhotoCropTags.USE).assertIsNotEnabled().performClick()
 
         assertTrue(events.none { it == PhotoCropEvent.Use })

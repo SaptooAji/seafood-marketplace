@@ -72,6 +72,7 @@ class FakeProductPhotoRepository : ProductPhotoRepository {
         /** What a gated upload reports while it waits. */
         const val PROGRESS = 0.4f
 
-        fun image(id: Long) = ProductImage(id, "http://localhost:8000/storage/p/$id.webp", "http://localhost:8000/storage/p/${id}_thumb.webp")
+        fun image(id: Long) =
+            ProductImage(id, "http://localhost:8000/storage/p/$id.webp", "http://localhost:8000/storage/p/${id}_thumb.webp")
     }
 }

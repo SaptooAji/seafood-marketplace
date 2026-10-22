@@ -53,7 +53,12 @@ class CropStateTest {
 
     @Test
     fun `turning swaps the sides, keeps the aspect, and starts the crop over`() {
-        val turned = CropState.of(4000, 3000).withAspect(CropAspect.Wide).zoomedBy(2f).rotated()
+        val turned =
+            CropState
+                .of(4000, 3000)
+                .withAspect(CropAspect.Wide)
+                .zoomedBy(2f)
+                .rotated()
 
         assertEquals(1, turned.quarterTurns)
         assertEquals(3000, turned.turnedWidth)
@@ -67,12 +72,24 @@ class CropStateTest {
     fun `four turns come back to the start`() {
         val state = CropState.of(4000, 3000)
 
-        assertEquals(state, state.rotated().rotated().rotated().rotated())
+        assertEquals(
+            state,
+            state
+                .rotated()
+                .rotated()
+                .rotated()
+                .rotated(),
+        )
     }
 
     @Test
     fun `changing the aspect starts the crop over`() {
-        val state = CropState.of(4000, 3000).zoomedBy(3f).pannedBy(500f, 0f).withAspect(CropAspect.Wide)
+        val state =
+            CropState
+                .of(4000, 3000)
+                .zoomedBy(3f)
+                .pannedBy(500f, 0f)
+                .withAspect(CropAspect.Wide)
 
         assertEquals(1f, state.zoom)
         assertEquals(PixelRect(0, 0, 4000, 3000), state.rect())
