@@ -1,6 +1,7 @@
 package io.github.saptooaji.seafood.seller.feature.product
 
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
+import io.github.saptooaji.seafood.seller.feature.product.domain.DescriptionSuggestion
 import io.github.saptooaji.seafood.seller.feature.product.domain.NewVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.Product
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductCondition
@@ -141,6 +142,18 @@ class FakeProductRepository : ProductRepository {
         return deleteVariantResult
     }
 
+    val suggestCalls = mutableListOf<ProductDraft>()
+    var suggestResult: ApiResult<DescriptionSuggestion> = ApiResult.Success(SUGGESTION)
+
+    /** When set, asking for a suggestion waits for it, so a test can look at the loading sheet. */
+    var suggestGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun suggestDescription(draft: ProductDraft): ApiResult<DescriptionSuggestion> {
+        suggestCalls += draft
+        suggestGate?.await()
+        return suggestResult
+    }
+
     /** Answers pages 1..[lastPage] with 20 products each, numbered across pages. */
     fun answerPages(
         lastPage: Int,
@@ -155,6 +168,13 @@ class FakeProductRepository : ProductRepository {
     companion object {
         /** The key of [variantGates] for adding a variant. */
         const val NEW_VARIANT = -1L
+
+        /** What the AI suggests in the tests (#240). */
+        val SUGGESTION =
+            DescriptionSuggestion(
+                description = "Kepiting bakau jantan grade super dari tambak Muara Angke, 300 sampai 400 g per ekor.",
+                seoDescription = "Kepiting bakau jantan grade super 300–400 g, hidup dari Muara Angke.",
+            )
 
         /** Kepiting Bakau Super as the edit form loads it: pre order, two attributes, two variants. */
         val DETAIL =
