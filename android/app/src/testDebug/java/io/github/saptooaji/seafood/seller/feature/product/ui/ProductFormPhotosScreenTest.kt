@@ -1,6 +1,7 @@
 package io.github.saptooaji.seafood.seller.feature.product.ui
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -204,11 +205,81 @@ class ProductFormPhotosScreenTest {
         assertEquals(listOf(ProductFormEvent.DismissDeletePhoto, ProductFormEvent.ConfirmDeletePhoto), events)
     }
 
-    @Test
-    fun aNewProductAddsPhotosAfterSaving() {
-        show(ProductFormUiState(isLoading = false, categories = FakeCategoryRepository.TREE))
+    // --- A new product (#282) ---------------------------------------------
 
-        compose.onNodeWithText("Foto bisa ditambah setelah produk disimpan.").performScrollTo()
-        compose.onNodeWithTag(ProductFormTags.ADD_PHOTO).assertDoesNotExist()
+    private val adding = ProductFormUiState(isLoading = false, categories = FakeCategoryRepository.TREE)
+
+    private fun waiting(n: Int) = PendingPhoto("pending-$n", "/cache/photos/$n.jpg", PendingStatus.AwaitingSave)
+
+    @Test
+    fun aNewProductTakesPhotosThatWaitForTheSave() {
+        show(adding.copy(photos = listOf(waiting(1), waiting(2))))
+
+        compose.onNodeWithTag(ProductFormTags.photo("pending-1")).performScrollTo()
+        compose.onAllNodesWithText("Utama").assertCountEquals(1)
+        compose.onNodeWithText("2 dari 8 foto. Diunggah setelah produk disimpan; tahan lalu geser untuk mengurutkan.").assertExists()
+        compose.onNodeWithText("Menunggu").assertDoesNotExist()
+        compose.onNodeWithTag(ProductFormTags.ADD_PHOTO).performScrollTo().performClick()
+        compose.onNodeWithTag(ProductFormTags.PHOTO_FROM_GALLERY).performClick()
+
+        assertEquals(listOf(PhotoSource.Gallery), sources)
+    }
+
+    @Test
+    fun aWaitingPhotoOpensItsActions() {
+        show(adding.copy(photos = listOf(waiting(1), waiting(2))))
+
+        compose.onNodeWithTag(ProductFormTags.photo("pending-2")).performScrollTo().performClick()
+
+        assertEquals(ProductFormEvent.OpenPhotoActions("pending-2"), events.last())
+    }
+
+    @Test
+    fun aWaitingPhotoCanBecomeTheMainOne() {
+        show(adding.copy(photos = listOf(waiting(1), waiting(2)), photoActions = "pending-2"))
+
+        compose.onNodeWithText("Foto 2 dari 2").assertExists()
+        compose.onNodeWithTag(ProductFormTags.PHOTO_MAKE_MAIN).performClick()
+
+        assertEquals(ProductFormEvent.MakeMainPhoto("pending-2"), events.last())
+    }
+
+    @Test
+    fun aNewProductWithoutPhotosSaysOneIsSuggested() {
+        show(adding)
+
+        compose.onNodeWithText("Belum ada foto. Minimal satu foto disarankan.").performScrollTo()
+        compose.onNodeWithTag(ProductFormTags.ADD_PHOTO).assertIsEnabled()
+    }
+
+    @Test
+    fun theSaveButtonCountsThePhotosWhileTheyUpload() {
+        show(
+            adding.copy(
+                isSaving = true,
+                afterSaveTotal = 2,
+                photos =
+                    listOf(
+                        PendingPhoto("pending-1", "/cache/photos/1.jpg", PendingStatus.Uploading(0.5f)),
+                        PendingPhoto("pending-2", "/cache/photos/2.jpg", PendingStatus.Queued),
+                    ),
+            ),
+        )
+
+        compose.onNodeWithTag(ProductFormTags.SAVE).assertIsNotEnabled()
+        compose.onNodeWithText("Mengunggah foto 1 dari 2").assertExists()
+    }
+
+    @Test
+    fun aSavedProductWithAFailedPhotoSaysItIsSaved() {
+        show(
+            editing.copy(
+                photos = listOf(saved(101), PendingPhoto("pending-2", "/cache/photos/2.jpg", PendingStatus.Failed(UiText.Raw("Foto terlalu memanjang.")))),
+                photoNotice = UiText.Raw("Produk tersimpan. 1 foto belum terunggah."),
+            ),
+        )
+
+        compose.onNodeWithText("Produk tersimpan. 1 foto belum terunggah.").performScrollTo()
+        compose.onNodeWithText("Foto ke-2 gagal diunggah: Foto terlalu memanjang.").assertExists()
     }
 }
