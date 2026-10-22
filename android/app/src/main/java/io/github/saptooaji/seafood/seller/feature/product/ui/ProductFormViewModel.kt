@@ -12,7 +12,6 @@ import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDetail
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductPhotoRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.pathTo
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +34,8 @@ class ProductFormViewModel
         photoRepository: ProductPhotoRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
-        private val productId: Long? = savedStateHandle[KEY_PRODUCT_ID]
+        /** Null while adding, until the new product is saved with photos still to upload (#282). */
+        private var productId: Long? = savedStateHandle[KEY_PRODUCT_ID]
 
         private val _uiState = MutableStateFlow(ProductFormUiState(isEdit = productId != null))
         val uiState: StateFlow<ProductFormUiState> = _uiState.asStateFlow()
@@ -43,17 +43,21 @@ class ProductFormViewModel
         /** The form as loaded, to tell whether Back throws anything away. */
         private var initial: List<Any?>? = null
 
-        /** The AI request still running, dropped when the seller closes its sheet. */
-        private var suggesting: Job? = null
-
         /** The variant rows of a saved product; adding has none to edit. */
-        private val variants: VariantEditor? = productId?.let { VariantEditor(it, products, _uiState, viewModelScope) }
+        private var variants: VariantEditor? = productId?.let { VariantEditor(it, products, _uiState, viewModelScope) }
 
-        /** The photos of a saved product; adding takes none yet (#282). */
-        private val photos = PhotoEditor(productId, photoRepository, _uiState, viewModelScope)
+        /** The photos; while adding they wait for the save. */
+        private val photos =
+            PhotoEditor(productId, photoRepository, _uiState, viewModelScope, savedStateHandle, onQueueDone = ::afterUploads)
+
+        /** The AI description (#240). */
+        private val suggester = DescriptionSuggester(products, _uiState, viewModelScope, edit = ::edit)
 
         /** The parts with their own events, asked in turn before a field change. */
-        private val parts: List<FormPart> = listOfNotNull(variants, photos)
+        private val parts: List<FormPart> get() = listOfNotNull(variants, photos, suggester)
+
+        /** The product this form created, once saved with photos to upload; leaving then refreshes the list. */
+        private var created: ProductDetail? = null
 
         init {
             load()
@@ -63,14 +67,15 @@ class ProductFormViewModel
             when (event) {
                 ProductFormEvent.Save -> save()
                 ProductFormEvent.Back -> back()
-                ProductFormEvent.ConfirmDiscard -> _uiState.update { it.copy(showDiscardDialog = false, result = ProductFormResult.Left) }
+                ProductFormEvent.ConfirmDiscard -> {
+                    photos.discard()
+                    _uiState.update { it.copy(showDiscardDialog = false, result = leaving) }
+                }
                 ProductFormEvent.DismissDiscard -> _uiState.update { it.copy(showDiscardDialog = false) }
                 ProductFormEvent.Delete -> _uiState.update { it.copy(showDeleteDialog = it.isEdit && !it.isBusy) }
                 ProductFormEvent.ConfirmDelete -> delete()
                 ProductFormEvent.DismissDelete -> _uiState.update { it.copy(showDeleteDialog = false) }
                 ProductFormEvent.Retry -> if (_uiState.value.loadError != null) load()
-                ProductFormEvent.SuggestDescription, ProductFormEvent.UseSuggestion, ProductFormEvent.DismissSuggestion ->
-                    onSuggestion(event)
                 else -> if (parts.none { it.handle(event) }) edit { it.changedBy(event) }
             }
         }
@@ -90,16 +95,17 @@ class ProductFormViewModel
                         is ApiResult.Success -> result.data
                         else -> return@launch _uiState.update { it.copy(isLoading = false, loadError = result.message()) }
                     }
-                var loaded = ProductFormUiState(isEdit = productId != null, isLoading = false, categories = tree)
-                if (productId != null) {
-                    when (val result = products.get(productId)) {
+                val id = productId
+                var loaded = ProductFormUiState(isEdit = id != null, isLoading = false, categories = tree)
+                if (id != null) {
+                    when (val result = products.get(id)) {
                         is ApiResult.Success -> loaded = loaded.filledFrom(result.data)
                         ApiResult.NotFound -> return@launch _uiState.update { it.copy(isLoading = false, notFound = true) }
                         else -> return@launch _uiState.update { it.copy(isLoading = false, loadError = result.message()) }
                     }
                 }
                 initial = loaded.values()
-                _uiState.value = savedStateHandle.restoreInto(loaded)
+                _uiState.value = savedStateHandle.restoreWaitingPhotos(savedStateHandle.restoreInto(loaded))
             }
         }
 
@@ -115,77 +121,32 @@ class ProductFormViewModel
 
             _uiState.update { it.copy(isSaving = true, errors = emptyMap(), generalError = null) }
             viewModelScope.launch {
+                val id = productId
                 val result =
-                    if (productId != null) {
-                        products.update(productId, checked.draft)
+                    if (id != null) {
+                        products.update(id, checked.draft)
                     } else {
                         products.create(checked.draft, requireNotNull(checked.variant))
                     }
-                _uiState.update { it.copy(isSaving = false) }
-                when (result) {
-                    is ApiResult.Success -> _uiState.update { it.copy(result = ProductFormResult.Saved) }
-                    is ApiResult.Invalid ->
-                        _uiState.update { current ->
-                            val serverErrors = serverErrors(result.fieldErrors)
-                            if (serverErrors.isEmpty()) {
-                                current.copy(generalError = result.message?.let(UiText::Raw) ?: UiText.Resource(R.string.error_server))
-                            } else {
-                                current.withErrors(serverErrors)
-                            }
-                        }
-                    // Deleted meanwhile, maybe from the web: the form stays so nothing typed is lost.
-                    ApiResult.NotFound -> _uiState.update { it.copy(generalError = UiText.Resource(R.string.product_form_not_found)) }
-                    else -> _uiState.update { it.copy(generalError = result.message()) }
+                if (id == null && result is ApiResult.Success && uploadsAfterSave(result.data)) return@launch
+                _uiState.update {
+                    val done = it.copy(isSaving = false)
+                    if (result is ApiResult.Success) done.copy(result = ProductFormResult.Saved) else done.refusedBy(result)
                 }
             }
         }
 
-        /** The AI description sheet (#240). */
-        private fun onSuggestion(event: ProductFormEvent) {
-            when (event) {
-                ProductFormEvent.SuggestDescription -> suggest()
-                ProductFormEvent.UseSuggestion -> useSuggestion()
-                else -> {
-                    suggesting?.cancel()
-                    _uiState.update { it.copy(suggestion = null) }
-                }
-            }
-        }
-
-        /** Asks the AI with the form as it is; nothing changes until the seller uses the answer. */
-        private fun suggest() {
-            val state = _uiState.value
-            if (!state.canSuggestDescription) return
-            _uiState.update { it.copy(suggestion = SuggestionSheet.Loading) }
-            suggesting =
-                viewModelScope.launch {
-                    val result = products.suggestDescription(state.draft())
-                    val errors = (result as? ApiResult.Invalid)?.let { serverErrors(it.fieldErrors) }.orEmpty()
-                    _uiState.update {
-                        when {
-                            result is ApiResult.Success -> it.copy(suggestion = SuggestionSheet.Ready(result.data))
-                            // Something the AI needs is refused: the sheet closes and the field says what.
-                            errors.isNotEmpty() -> it.copy(suggestion = null).withErrors(errors)
-                            else -> it.copy(suggestion = result.suggestionFailure())
-                        }
-                    }
-                }
-        }
-
-        /** Fills the description and summary; over a written description, only the second tap does. */
-        private fun useSuggestion() {
-            val state = _uiState.value
-            val sheet = state.suggestion as? SuggestionSheet.Ready ?: return
-            if (state.description.isNotBlank() && !sheet.confirmReplace) {
-                _uiState.update { it.copy(suggestion = sheet.copy(confirmReplace = true)) }
-                return
-            }
-            edit {
-                it
-                    .withText(ProductTextField.Description, sheet.suggestion.description)
-                    .withText(ProductTextField.SeoDescription, sheet.suggestion.seoDescription)
-                    .copy(suggestion = null)
-            }
+        /**
+         * A new product is saved: its waiting photos go to it now, and the
+         * form stays locked until they are done (#282). False when it has none.
+         */
+        private fun uploadsAfterSave(detail: ProductDetail): Boolean {
+            val waiting = _uiState.value.photos.count { it is PendingPhoto && it.status == PendingStatus.AwaitingSave }
+            if (waiting == 0) return false
+            created = detail
+            _uiState.update { it.copy(afterSaveTotal = waiting) }
+            photos.uploadAfterSave(detail.id)
+            return true
         }
 
         private fun delete() {
@@ -209,8 +170,56 @@ class ProductFormViewModel
             if (changed) {
                 _uiState.update { it.copy(showDiscardDialog = true) }
             } else {
-                _uiState.update { it.copy(result = ProductFormResult.Left) }
+                _uiState.update { it.copy(result = leaving) }
             }
+        }
+
+        /** A product this form created is new to the list, however the form is left. */
+        private val leaving: ProductFormResult
+            get() =
+                if (created != null ||
+                    savedStateHandle.get<Boolean>(KEY_CREATED) == true
+                ) {
+                    ProductFormResult.Saved
+                } else {
+                    ProductFormResult.Left
+                }
+
+        /**
+         * A new product's photos stopped uploading. All up: the form is done.
+         * Some not: the product is saved, so the form becomes its edit form,
+         * where those photos can be tried again or taken off (#282).
+         */
+        private fun afterUploads() {
+            val detail = created
+            if (detail == null || _uiState.value.afterSaveTotal == null) return
+            val left = _uiState.value.photos.count { it is PendingPhoto }
+            if (left == 0) {
+                _uiState.update { it.copy(isSaving = false, afterSaveTotal = null, result = ProductFormResult.Saved) }
+            } else {
+                becomeEditForm(detail, left)
+            }
+        }
+
+        /** The saved new product's edit form, with the photos [left] to try again or take off. */
+        private fun becomeEditForm(
+            detail: ProductDetail,
+            left: Int,
+        ) {
+            productId = detail.id
+            savedStateHandle[KEY_PRODUCT_ID] = detail.id
+            savedStateHandle[KEY_CREATED] = true
+            variants = VariantEditor(detail.id, products, _uiState, viewModelScope)
+            _uiState.update {
+                it.copy(
+                    isEdit = true,
+                    isSaving = false,
+                    afterSaveTotal = null,
+                    variants = detail.variants,
+                    photoNotice = it.photoNotice ?: UiText.Resource(R.string.product_photo_saved_partly, listOf(left)),
+                )
+            }
+            initial = _uiState.value.values()
         }
 
         override fun onCleared() {
@@ -220,7 +229,26 @@ class ProductFormViewModel
         companion object {
             /** The route's argument; absent when adding. */
             const val KEY_PRODUCT_ID = "productId"
+
+            /** Set once a new product is saved and the form turned into its edit form. */
+            private const val KEY_CREATED = "form_created"
         }
+    }
+
+/** A refused save on the form: field errors where the server names a field, else one message. */
+private fun ProductFormUiState.refusedBy(result: ApiResult<*>): ProductFormUiState =
+    when (result) {
+        is ApiResult.Invalid -> {
+            val errors = serverErrors(result.fieldErrors)
+            if (errors.isEmpty()) {
+                copy(generalError = result.message?.let(UiText::Raw) ?: UiText.Resource(R.string.error_server))
+            } else {
+                withErrors(errors)
+            }
+        }
+        // Deleted meanwhile, maybe from the web: the form stays so nothing typed is lost.
+        ApiResult.NotFound -> copy(generalError = UiText.Resource(R.string.product_form_not_found))
+        else -> copy(generalError = result.message())
     }
 
 /** The form after the seller typed or picked something; other events leave it as it is. */
@@ -238,7 +266,7 @@ private fun ProductFormUiState.changedBy(event: ProductFormEvent): ProductFormUi
     }
 
 /** The errors shown, with a scroll to the first of them in the form's order. */
-private fun ProductFormUiState.withErrors(errors: Map<FormField, UiText>): ProductFormUiState {
+internal fun ProductFormUiState.withErrors(errors: Map<FormField, UiText>): ProductFormUiState {
     val first = fieldOrder().firstOrNull { it in errors } ?: errors.keys.firstOrNull()
     return copy(errors = errors, scrollTarget = first, scrollRequest = scrollRequest + 1)
 }
@@ -290,7 +318,7 @@ private fun ProductFormUiState.filledFrom(detail: ProductDetail): ProductFormUiS
  * The server's 422 keyed to the form. Its own Indonesian messages are shown
  * as they come; the variant row's, written for the API, are replaced.
  */
-private fun serverErrors(fieldErrors: Map<String, List<String>>): Map<FormField, UiText> =
+internal fun serverErrors(fieldErrors: Map<String, List<String>>): Map<FormField, UiText> =
     fieldErrors
         .mapNotNull { (key, messages) ->
             val message = messages.firstOrNull() ?: return@mapNotNull null

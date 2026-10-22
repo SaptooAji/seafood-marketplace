@@ -313,7 +313,9 @@
 
     <!-- Product photos (#241, the photo boards of VD-Produk-Form and VD-Potong-Foto) -->
     <string name="product_form_section_photos">Foto</string>
-    <string name="product_photo_after_save">Foto bisa ditambah setelah produk disimpan.</string>
+    <string name="product_photo_waiting_count">%1$d dari %2$d foto. Diunggah setelah produk disimpan; tahan lalu geser untuk mengurutkan.</string>
+    <string name="product_photo_saved_partly">Produk tersimpan. %1$d foto belum terunggah.</string>
+    <string name="product_form_uploading_photos">Mengunggah foto %1$d dari %2$d</string>
     <string name="product_photo_none">Belum ada foto. Minimal satu foto disarankan.</string>
     <string name="product_photo_count">%1$d dari %2$d foto, langsung tersimpan. Foto pertama tampil di katalog; tahan lalu geser untuk mengurutkan.</string>
     <string name="product_photo_full">%1$d dari %1$d foto. Hapus satu untuk menambah yang baru.</string>

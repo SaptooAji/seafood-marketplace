@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductCondition
 import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
 import io.github.saptooaji.seafood.seller.feature.product.domain.VariantUnit
+import java.io.File
 
 // The product form in the SavedStateHandle: only what the seller typed or
 // picked, as Bundle types. Nothing here is secret; the bank account lives
@@ -51,4 +52,23 @@ internal fun SavedStateHandle.restoreInto(loaded: ProductFormUiState): ProductFo
         isActive = get<Boolean>(KEY_ACTIVE) ?: state.isActive,
         variantUnit = get<String>(KEY_UNIT)?.let { name -> VariantUnit.entries.firstOrNull { it.name == name } } ?: state.variantUnit,
     )
+}
+
+private const val KEY_WAITING_PHOTOS = "form_waiting_photos"
+
+/** The cache paths of a new product's waiting photos (#282), in their order; other photos are the server's. */
+internal fun SavedStateHandle.storeWaitingPhotos(photos: List<FormPhoto>) {
+    this[KEY_WAITING_PHOTOS] =
+        photos
+            .filterIsInstance<PendingPhoto>()
+            .filter { it.status == PendingStatus.AwaitingSave }
+            .map { it.path }
+            .toTypedArray()
+}
+
+/** [loaded] with the waiting photos kept before the form was recreated, those whose file is still there. */
+internal fun SavedStateHandle.restoreWaitingPhotos(loaded: ProductFormUiState): ProductFormUiState {
+    val paths = get<Array<String>>(KEY_WAITING_PHOTOS)?.filter { File(it).exists() }.orEmpty()
+    if (paths.isEmpty()) return loaded
+    return loaded.copy(photos = paths.map { PendingPhoto(pendingKey(it), it, PendingStatus.AwaitingSave) })
 }

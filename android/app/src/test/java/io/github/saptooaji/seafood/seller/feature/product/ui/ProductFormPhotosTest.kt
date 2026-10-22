@@ -74,19 +74,6 @@ class ProductFormPhotosTest {
             assertTrue(vm.state.canAddPhoto)
         }
 
-    @Test
-    fun `adding a product takes no photos yet`() =
-        runTest(main.dispatcher) {
-            val vm = ProductFormViewModel(products, categories, photos, SavedStateHandle())
-            advanceUntilIdle()
-
-            assertFalse(vm.state.canAddPhoto)
-            vm.add(prepared("baru"))
-            advanceUntilIdle()
-            assertTrue(vm.state.photos.isEmpty())
-            assertTrue(photos.uploads.isEmpty())
-        }
-
     // --- Uploading -------------------------------------------------------
 
     @Test

@@ -203,8 +203,14 @@ private fun FormContent(
         uiState.variantMessage?.let { VariantMessage(it, onEvent) }
         uiState.generalError?.let { GlassBanner(text = it.asString(), tone = BannerTone.Danger) }
         val save = if (uiState.isEdit) R.string.product_form_save_edit else R.string.product_form_save_add
+        val total = uiState.afterSaveTotal
         PrimaryPillButton(
-            text = stringResource(if (uiState.isSaving) R.string.product_form_saving else save),
+            text =
+                when {
+                    total != null -> stringResource(R.string.product_form_uploading_photos, uiState.afterSaveCurrent, total)
+                    uiState.isSaving -> stringResource(R.string.product_form_saving)
+                    else -> stringResource(save)
+                },
             onClick = { onEvent(ProductFormEvent.Save) },
             enabled = !uiState.isBusy,
             modifier = Modifier.testTag(ProductFormTags.SAVE),

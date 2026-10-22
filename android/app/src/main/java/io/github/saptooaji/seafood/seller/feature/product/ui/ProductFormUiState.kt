@@ -101,6 +101,8 @@ data class ProductFormUiState(
     /** The saved photo whose delete waits for the seller's confirmation. */
     val photoToDelete: String? = null,
     val isReorderingPhotos: Boolean = false,
+    /** While a new product's photos upload after its save (#282): how many there were. */
+    val afterSaveTotal: Int? = null,
     /** The AI description sheet (#240, board VD-Saran-AI); null while closed. */
     val suggestion: SuggestionSheet? = null,
     val errors: Map<FormField, UiText> = emptyMap(),
@@ -127,8 +129,16 @@ data class ProductFormUiState(
     /** The name, category, or condition is still missing; the button says so. */
     val lacksWhatTheAiNeeds: Boolean get() = name.isBlank() || categoryId == null || condition == null
 
-    /** A saved product takes up to [MAX_PHOTOS], counting those on their way; a new one gets photos in #282. */
-    val canAddPhoto: Boolean get() = isEdit && !isLoading && photos.size < MAX_PHOTOS
+    /** Up to [MAX_PHOTOS], counting those on their way or waiting for a new product's save. */
+    val canAddPhoto: Boolean get() = !isLoading && !isBusy && photos.size < MAX_PHOTOS
+
+    /** Which of the [afterSaveTotal] photos is uploading now, from 1. */
+    val afterSaveCurrent: Int
+        get() {
+            val total = afterSaveTotal ?: return 0
+            val left = photos.count { it is PendingPhoto && it.status.isWaitingToSend }
+            return (total - left + 1).coerceIn(1, total)
+        }
 
     /**
      * The order is sent whole, so it waits while an upload would add a photo
@@ -198,6 +208,8 @@ data class ProductFormUiState(
             salesMode,
             isActive,
             variantUnit,
+            // A new product's waiting photos are lost with the form; saved ones are not (#282).
+            photos.filter { it is PendingPhoto && it.status == PendingStatus.AwaitingSave }.map { it.key },
         ) + ProductTextField.entries.map { text(it) }
 }
 

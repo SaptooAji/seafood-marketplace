@@ -1,4 +1,7 @@
 name: CI
+# The run's title in the Actions tab: the PR's title, or the pushed commit's
+# message on main (#284). Display text only; never used in a shell step.
+run-name: ${{ github.event.pull_request.title || github.event.head_commit.message }}
 
 on:
   push:
