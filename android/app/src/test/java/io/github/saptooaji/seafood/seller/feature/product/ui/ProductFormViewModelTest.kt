@@ -5,6 +5,7 @@ import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.util.UiText
 import io.github.saptooaji.seafood.seller.feature.product.FakeCategoryRepository
+import io.github.saptooaji.seafood.seller.feature.product.FakeProductPhotoRepository
 import io.github.saptooaji.seafood.seller.feature.product.FakeProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductCondition
 import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
@@ -35,13 +36,14 @@ class ProductFormViewModelTest {
 
     private val products = FakeProductRepository()
     private val categories = FakeCategoryRepository()
+    private val photos = FakeProductPhotoRepository()
 
-    private fun create(handle: SavedStateHandle = SavedStateHandle()) = ProductFormViewModel(products, categories, handle)
+    private fun create(handle: SavedStateHandle = SavedStateHandle()) = ProductFormViewModel(products, categories, photos, handle)
 
     private fun edit(
         id: Long = 7,
         handle: SavedStateHandle = SavedStateHandle(mapOf("productId" to id)),
-    ) = ProductFormViewModel(products, categories, handle)
+    ) = ProductFormViewModel(products, categories, photos, handle)
 
     private fun ProductFormViewModel.type(
         field: ProductTextField,
