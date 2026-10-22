@@ -40,6 +40,9 @@ class ProductFormViewModel
         /** The form as loaded, to tell whether Back throws anything away. */
         private var initial: List<Any?>? = null
 
+        /** The variant rows of a saved product; adding has none to edit. */
+        private val variants: VariantEditor? = productId?.let { VariantEditor(it, products, _uiState, viewModelScope) }
+
         init {
             load()
         }
@@ -54,7 +57,7 @@ class ProductFormViewModel
                 ProductFormEvent.ConfirmDelete -> delete()
                 ProductFormEvent.DismissDelete -> _uiState.update { it.copy(showDeleteDialog = false) }
                 ProductFormEvent.Retry -> if (_uiState.value.loadError != null) load()
-                else -> edit { it.changedBy(event) }
+                else -> if (variants?.handle(event) != true) edit { it.changedBy(event) }
             }
         }
 
@@ -258,7 +261,8 @@ private val SERVER_FIELDS =
         "storage_instructions" to ProductTextField.StorageInstructions,
     )
 
-private fun ApiResult<*>.message(): UiText =
+/** What to tell the seller about a failed call. */
+internal fun ApiResult<*>.message(): UiText =
     when (this) {
         ApiResult.NetworkError -> UiText.Resource(R.string.error_network)
         is ApiResult.Forbidden -> message?.let(UiText::Raw) ?: UiText.Resource(R.string.error_server)

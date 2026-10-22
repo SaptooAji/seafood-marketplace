@@ -9,6 +9,8 @@ import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDraft
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductPage
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductStatusFilter
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductVariant
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantChanges
 import kotlinx.serialization.json.Json
 
 class ProductRepositoryImpl(
@@ -34,4 +36,16 @@ class ProductRepositoryImpl(
     ): ApiResult<ProductDetail> = apiCall(json) { api.update(id, ProductRequest.from(draft, variant = null)) }.map { it.data.toDomain() }
 
     override suspend fun delete(id: Long): ApiResult<Unit> = apiCall(json) { api.delete(id) }
+
+    override suspend fun addVariant(
+        productId: Long,
+        variant: NewVariant,
+    ): ApiResult<ProductVariant> = apiCall(json) { api.addVariant(productId, NewVariantRequest.from(variant)) }.map { it.data.toDomain() }
+
+    override suspend fun updateVariant(
+        id: Long,
+        changes: VariantChanges,
+    ): ApiResult<ProductVariant> = apiCall(json) { api.updateVariant(id, VariantChangesRequest.from(changes)) }.map { it.data.toDomain() }
+
+    override suspend fun deleteVariant(id: Long): ApiResult<Unit> = apiCall(json) { api.deleteVariant(id) }
 }

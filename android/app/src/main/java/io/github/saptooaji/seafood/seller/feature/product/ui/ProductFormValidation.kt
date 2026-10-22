@@ -103,21 +103,47 @@ private fun ProductFormUiState.sellingErrors(): Map<FormField, UiText> =
         }
     }
 
+/** The first variant of a new product, with the same rules as the variant sheet. */
 private fun ProductFormUiState.variantErrors(): Map<FormField, UiText> =
+    variantErrors(variantName, variantPrice, variantMinQty, variantStock)
+        .mapKeys { (field, _) ->
+            FormField.Text(
+                when (field) {
+                    VariantField.Name -> ProductTextField.VariantName
+                    VariantField.Price -> ProductTextField.VariantPrice
+                    VariantField.MinQty -> ProductTextField.VariantMinQty
+                    VariantField.InitialStock -> ProductTextField.VariantStock
+                },
+            )
+        }
+
+/** The errors of the variant sheet; a saved variant has no opening stock to check. */
+fun VariantSheet.errors(): Map<VariantField, UiText> = variantErrors(name, price, minQty, if (isAdding) initialStock else "")
+
+/**
+ * The server's ProductVariantRequest limits, plus the catalog's own: a
+ * minimum above zero, and an opening stock that is not negative.
+ */
+private fun variantErrors(
+    name: String,
+    price: String,
+    minQty: String,
+    stock: String,
+): Map<VariantField, UiText> =
     buildMap {
         when {
-            variantName.isBlank() -> refuse(ProductTextField.VariantName, R.string.product_form_error_variant_name)
-            variantName.trim().length > VARIANT_NAME_MAX ->
-                refuse(ProductTextField.VariantName, R.string.product_form_error_too_long, VARIANT_NAME_MAX)
+            name.isBlank() -> put(VariantField.Name, UiText.Resource(R.string.product_form_error_variant_name))
+            name.trim().length > VARIANT_NAME_MAX ->
+                put(VariantField.Name, UiText.Resource(R.string.product_form_error_too_long, listOf(VARIANT_NAME_MAX)))
         }
-        val price = variantPrice.digitsOnly().toLongOrNull()
-        if (price == null || price < 1 || price > PRICE_MAX) refuse(ProductTextField.VariantPrice, R.string.product_form_error_price)
-        val minQty = variantMinQty.trim()
-        if (!minQty.matches(DECIMAL) || minQty.toDecimal().signum() == 0) {
-            refuse(ProductTextField.VariantMinQty, R.string.product_form_error_decimal)
+        val rupiah = price.digitsOnly().toLongOrNull()
+        if (rupiah == null || rupiah < 1 || rupiah > PRICE_MAX) put(VariantField.Price, UiText.Resource(R.string.product_form_error_price))
+        val min = minQty.trim()
+        if (!min.matches(DECIMAL) || min.toDecimal().signum() == 0) {
+            put(VariantField.MinQty, UiText.Resource(R.string.product_form_error_decimal))
         }
-        if (variantStock.isNotBlank() && !variantStock.trim().matches(DECIMAL)) {
-            refuse(ProductTextField.VariantStock, R.string.product_form_error_decimal)
+        if (stock.isNotBlank() && !stock.trim().matches(DECIMAL)) {
+            put(VariantField.InitialStock, UiText.Resource(R.string.product_form_error_decimal))
         }
     }
 

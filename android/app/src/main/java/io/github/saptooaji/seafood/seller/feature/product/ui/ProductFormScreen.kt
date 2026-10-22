@@ -106,6 +106,8 @@ fun ProductFormScreen(
                 onDismiss = { pickingCategory = false },
             )
         }
+        uiState.variantSheet?.let { VariantEditSheet(uiState, it, onEvent) }
+        uiState.variantToDelete?.let { DeleteVariantSheet(it, onEvent) }
         if (uiState.showDeleteDialog) DeleteSheet(uiState.name, onEvent)
         if (uiState.showDiscardDialog) DiscardSheet(onEvent)
     }
@@ -165,6 +167,7 @@ private fun FormContent(
         }
     }
     GlassBottomBar {
+        uiState.variantMessage?.let { VariantMessage(it, onEvent) }
         uiState.generalError?.let { GlassBanner(text = it.asString(), tone = BannerTone.Danger) }
         val save = if (uiState.isEdit) R.string.product_form_save_edit else R.string.product_form_save_add
         PrimaryPillButton(

@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -36,9 +35,7 @@ import io.github.saptooaji.seafood.seller.core.designsystem.embun.EmbunColors
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.GlassCard
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.GlassSectionHeader
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.OptionShape
-import io.github.saptooaji.seafood.seller.core.util.IndonesianNumbers
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductCondition
-import io.github.saptooaji.seafood.seller.feature.product.domain.ProductVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
 import io.github.saptooaji.seafood.seller.feature.product.domain.VariantUnit
 
@@ -267,14 +264,12 @@ fun VariantSection(
     positions: FieldPositions,
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
-        GlassSectionHeader(number = 4, title = stringResource(R.string.product_form_section_variants))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            GlassSectionHeader(number = 4, title = stringResource(R.string.product_form_section_variants), modifier = Modifier.weight(1f))
+            if (uiState.isEdit) VariantCount(uiState)
+        }
         if (uiState.isEdit) {
-            uiState.variants.forEach { VariantRow(it) }
-            Text(
-                text = stringResource(R.string.product_form_variants_stock_help),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                color = EmbunColors.Muted,
-            )
+            VariantList(uiState, onEvent)
         } else {
             FirstVariantFields(uiState, onEvent, positions)
         }
@@ -355,38 +350,6 @@ private fun FirstVariantFields(
     }
 }
 
-/** A size of the product, read only until #239 brings its editor. */
-@Composable
-private fun VariantRow(variant: ProductVariant) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(VariantRowGlass, OptionShape)
-                .padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(text = variant.name, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp))
-            Text(
-                text =
-                    stringResource(
-                        R.string.product_form_variant_stock,
-                        IndonesianNumbers.decimal(variant.stock),
-                        variant.unitLabel.lowercase(),
-                    ),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
-                color = EmbunColors.Muted,
-            )
-        }
-        Text(
-            text = IndonesianNumbers.rupiah(variant.price),
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-        )
-    }
-}
-
 @Composable
 fun ActiveSection(
     uiState: ProductFormUiState,
@@ -402,5 +365,3 @@ fun ActiveSection(
         )
     }
 }
-
-private val VariantRowGlass = Color.White.copy(alpha = 0.6f)

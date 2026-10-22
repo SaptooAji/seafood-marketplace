@@ -22,7 +22,7 @@ data class ProductDraft(
     val attributes: Map<Long, String>,
 )
 
-/** The first variant of a new product; the full editor is #239. */
+/** A variant to add: the first one of a new product, or one more of a saved product. */
 data class NewVariant(
     val name: String,
     val unit: VariantUnit,
@@ -30,6 +30,19 @@ data class NewVariant(
     val price: Long,
     val minQty: BigDecimal,
     val initialStock: BigDecimal?,
+)
+
+/**
+ * The details of a saved variant (`PUT seller/variants/{id}`). It has no
+ * stock: stock only changes through the stock book.
+ */
+data class VariantChanges(
+    val name: String,
+    val unit: VariantUnit,
+    /** Whole rupiah. */
+    val price: Long,
+    val minQty: BigDecimal,
+    val isActive: Boolean,
 )
 
 /** A product as the edit form loads it (`GET seller/products/{id}`). */
@@ -74,4 +87,9 @@ enum class VariantUnit(
     Piece("piece"),
     Dozen("dozen"),
     Pack("pack"),
+    ;
+
+    companion object {
+        fun from(value: String): VariantUnit = entries.firstOrNull { it.value == value } ?: Kg
+    }
 }

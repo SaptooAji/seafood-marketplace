@@ -9,6 +9,8 @@ import io.github.saptooaji.seafood.seller.feature.product.domain.ProductImage
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductPage
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantChanges
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantUnit
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
@@ -67,6 +69,7 @@ data class VariantDto(
     val name: String,
     val unit: UnitDto,
     val price: Long,
+    @SerialName("min_qty") val minQty: String,
     val stock: String,
     @SerialName("is_stock_stale") val isStockStale: Boolean,
     @SerialName("is_active") val isActive: Boolean,
@@ -80,6 +83,8 @@ data class VariantDto(
             stock = BigDecimal(stock),
             isStockStale = isStockStale,
             isActive = isActive,
+            unit = VariantUnit.from(unit.value),
+            minQty = BigDecimal(minQty),
         )
 }
 
@@ -138,23 +143,13 @@ data class ProductRequest(
                 storageInstructions = storageInstructions,
                 isActive = isActive,
                 attributes = attributes.mapKeys { it.key.toString() },
-                variants =
-                    variant?.let {
-                        listOf(
-                            NewVariantRequest(
-                                it.name,
-                                it.unit.value,
-                                it.price,
-                                it.minQty.toPlainString(),
-                                it.initialStock?.toPlainString(),
-                            ),
-                        )
-                    },
+                variants = variant?.let { listOf(NewVariantRequest.from(it)) },
             )
         }
     }
 }
 
+/** A variant to add, alone or inside a new product; a null opening stock is left out. */
 @Serializable
 data class NewVariantRequest(
     val name: String,
@@ -162,7 +157,43 @@ data class NewVariantRequest(
     val price: Long,
     @SerialName("min_qty") val minQty: String,
     @SerialName("initial_stock") val initialStock: String?,
-)
+) {
+    companion object {
+        fun from(variant: NewVariant) =
+            NewVariantRequest(
+                name = variant.name,
+                unit = variant.unit.value,
+                price = variant.price,
+                minQty = variant.minQty.toPlainString(),
+                initialStock = variant.initialStock?.toPlainString(),
+            )
+    }
+}
+
+/**
+ * The body of `PUT seller/variants/{id}`. It has no stock field, so the app
+ * cannot send one. `is_active` is always sent, because the server reads a
+ * missing flag as active.
+ */
+@Serializable
+data class VariantChangesRequest(
+    val name: String,
+    val unit: String,
+    val price: Long,
+    @SerialName("min_qty") val minQty: String,
+    @SerialName("is_active") val isActive: Boolean,
+) {
+    companion object {
+        fun from(changes: VariantChanges) =
+            VariantChangesRequest(
+                name = changes.name,
+                unit = changes.unit.value,
+                price = changes.price,
+                minQty = changes.minQty.toPlainString(),
+                isActive = changes.isActive,
+            )
+    }
+}
 
 /** `ProductResource` as `GET seller/products/{id}` sends it, with the attribute values. */
 @Serializable

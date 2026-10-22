@@ -54,6 +54,9 @@ data class ProductVariant(
     val stock: BigDecimal,
     val isStockStale: Boolean,
     val isActive: Boolean,
+    val unit: VariantUnit,
+    /** The least a buyer may order, in [unit]. */
+    val minQty: BigDecimal,
 )
 
 data class ProductImage(

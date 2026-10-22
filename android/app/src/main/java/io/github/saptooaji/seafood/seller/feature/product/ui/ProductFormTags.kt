@@ -30,6 +30,20 @@ object ProductFormTags {
     const val KEEP_EDITING = "product_form_keep_editing"
     const val BACK_TO_LIST = "product_form_back_to_list"
     const val CATEGORY_CLOSE = "product_category_close"
+    const val ADD_VARIANT = "product_form_add_variant"
+    const val VARIANT_SHEET_NAME = "variant_sheet_name"
+    const val VARIANT_SHEET_PRICE = "variant_sheet_price"
+    const val VARIANT_SHEET_MIN_QTY = "variant_sheet_min_qty"
+    const val VARIANT_SHEET_STOCK = "variant_sheet_stock"
+    const val VARIANT_SHEET_ACTIVE = "variant_sheet_active"
+    const val VARIANT_SHEET_DELETE = "variant_sheet_delete"
+    const val VARIANT_SHEET_SAVE = "variant_sheet_save"
+    const val CONFIRM_DELETE_VARIANT = "variant_confirm_delete"
+    const val CANCEL_DELETE_VARIANT = "variant_cancel_delete"
+
+    fun variantRow(id: Long) = "product_form_variant_$id"
+
+    fun sheetUnit(unit: VariantUnit) = "variant_sheet_unit_${unit.value}"
 
     fun attribute(id: Long) = "product_form_attribute_$id"
 
