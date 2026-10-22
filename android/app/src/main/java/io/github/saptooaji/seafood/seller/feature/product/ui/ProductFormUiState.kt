@@ -71,14 +71,25 @@ data class ProductFormUiState(
     val shelfLifeDays: String = "",
     val storageInstructions: String = "",
     val isActive: Boolean = true,
-    // The first variant, asked when adding only; #239 brings the full editor.
+    // The first variant, asked when adding only; a saved product edits its variants in [variantSheet].
     val variantName: String = "",
     val variantUnit: VariantUnit = VariantUnit.Kg,
     val variantPrice: String = "",
     val variantMinQty: String = "1",
     val variantStock: String = "",
-    /** The product's variants, shown read-only while editing. */
+    /** The product's variants while editing, each saved to the server on its own. */
     val variants: List<ProductVariant> = emptyList(),
+    /** The open add or edit sheet of a variant (board VD-Varian). */
+    val variantSheet: VariantSheet? = null,
+    /** What each variant row is waiting for, by variant id; rows not in it are idle. */
+    val variantBusy: Map<Long, VariantBusy> = emptyMap(),
+    val isAddingVariant: Boolean = false,
+    /** The variant whose delete waits for the seller's confirmation. */
+    val variantToDelete: ProductVariant? = null,
+    /** Shown in the variant section until the next variant action: a refusal, or a list reloaded. */
+    val variantNotice: UiText? = null,
+    /** Shown briefly after a variant was saved; the screen sends [ProductFormEvent.VariantMessageShown]. */
+    val variantMessage: UiText? = null,
     val isBlocked: Boolean = false,
     val blockReason: String? = null,
     val errors: Map<FormField, UiText> = emptyMap(),
@@ -94,6 +105,15 @@ data class ProductFormUiState(
     val result: ProductFormResult? = null,
 ) {
     val isBusy: Boolean get() = isSaving || isDeleting
+
+    /** The server takes up to [MAX_VARIANTS]; one add at a time, so the count stays right. */
+    val canAddVariant: Boolean get() = isEdit && !isAddingVariant && variants.size < MAX_VARIANTS
+
+    /**
+     * The last variant stays (#250); the seller switches the product off
+     * instead. A variant already being deleted no longer counts.
+     */
+    val canDeleteVariant: Boolean get() = variants.count { variantBusy[it.id] != VariantBusy.Deleting } > 1
 
     fun text(field: ProductTextField): String =
         when (field) {
@@ -150,6 +170,56 @@ data class ProductFormUiState(
         ) + ProductTextField.entries.map { text(it) }
 }
 
+/** The most variants a product may have, as the server's SaveVariant allows. */
+const val MAX_VARIANTS = 20
+
+/** The typed fields of the variant sheet. */
+enum class VariantField { Name, Price, MinQty, InitialStock }
+
+/** What a variant row is waiting for. */
+enum class VariantBusy { Saving, Deleting }
+
+/**
+ * The variant sheet as typed. [variantId] is null when adding, and only
+ * then is [initialStock] asked; a saved variant's stock changes through the
+ * stock book.
+ */
+data class VariantSheet(
+    val variantId: Long? = null,
+    val name: String = "",
+    val unit: VariantUnit = VariantUnit.Kg,
+    val price: String = "",
+    val minQty: String = "1",
+    val initialStock: String = "",
+    val isActive: Boolean = true,
+    val errors: Map<VariantField, UiText> = emptyMap(),
+) {
+    val isAdding: Boolean get() = variantId == null
+
+    fun text(field: VariantField): String =
+        when (field) {
+            VariantField.Name -> name
+            VariantField.Price -> price
+            VariantField.MinQty -> minQty
+            VariantField.InitialStock -> initialStock
+        }
+
+    /** [value] typed into [field], whose error clears. */
+    fun withText(
+        field: VariantField,
+        value: String,
+    ): VariantSheet {
+        val changed =
+            when (field) {
+                VariantField.Name -> copy(name = value)
+                VariantField.Price -> copy(price = value)
+                VariantField.MinQty -> copy(minQty = value)
+                VariantField.InitialStock -> copy(initialStock = value)
+            }
+        return changed.copy(errors = errors - field)
+    }
+}
+
 sealed interface ProductFormEvent {
     data class TextChanged(
         val field: ProductTextField,
@@ -199,4 +269,39 @@ sealed interface ProductFormEvent {
 
     /** Load the categories or the product again after a failure. */
     data object Retry : ProductFormEvent
+
+    // The variants of a saved product (#239).
+
+    data object AddVariant : ProductFormEvent
+
+    data class EditVariant(
+        val id: Long,
+    ) : ProductFormEvent
+
+    data class VariantSheetTextChanged(
+        val field: VariantField,
+        val value: String,
+    ) : ProductFormEvent
+
+    data class VariantSheetUnitPicked(
+        val unit: VariantUnit,
+    ) : ProductFormEvent
+
+    data class VariantSheetActiveChanged(
+        val active: Boolean,
+    ) : ProductFormEvent
+
+    /** Sends the sheet's variant; the sheet closes and the row shows its progress. */
+    data object SaveVariant : ProductFormEvent
+
+    data object DismissVariantSheet : ProductFormEvent
+
+    /** Delete, from the edit sheet: asks first. */
+    data object DeleteVariant : ProductFormEvent
+
+    data object ConfirmDeleteVariant : ProductFormEvent
+
+    data object DismissDeleteVariant : ProductFormEvent
+
+    data object VariantMessageShown : ProductFormEvent
 }

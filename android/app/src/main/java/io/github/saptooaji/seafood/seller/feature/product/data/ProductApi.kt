@@ -40,4 +40,21 @@ interface ProductApi {
     suspend fun delete(
         @Path("id") id: Long,
     ): Response<Unit>
+
+    @POST("seller/products/{id}/variants")
+    suspend fun addVariant(
+        @Path("id") productId: Long,
+        @Body request: NewVariantRequest,
+    ): Response<DataEnvelope<VariantDto>>
+
+    @PUT("seller/variants/{id}")
+    suspend fun updateVariant(
+        @Path("id") id: Long,
+        @Body request: VariantChangesRequest,
+    ): Response<DataEnvelope<VariantDto>>
+
+    @DELETE("seller/variants/{id}")
+    suspend fun deleteVariant(
+        @Path("id") id: Long,
+    ): Response<Unit>
 }

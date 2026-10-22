@@ -32,4 +32,25 @@ interface ProductRepository {
 
     /** Soft deletes the product; its stock and order history stay. */
     suspend fun delete(id: Long): ApiResult<Unit>
+
+    /** Adds a variant with its opening stock (`POST seller/products/{id}/variants`). */
+    suspend fun addVariant(
+        productId: Long,
+        variant: NewVariant,
+    ): ApiResult<ProductVariant>
+
+    /**
+     * Saves a variant's details (`PUT seller/variants/{id}`); its stock stays.
+     * A variant deleted meanwhile is [ApiResult.NotFound].
+     */
+    suspend fun updateVariant(
+        id: Long,
+        changes: VariantChanges,
+    ): ApiResult<ProductVariant>
+
+    /**
+     * Soft deletes a variant; its stock history stays. The product's last
+     * variant is refused as [ApiResult.Invalid] on `variant`.
+     */
+    suspend fun deleteVariant(id: Long): ApiResult<Unit>
 }

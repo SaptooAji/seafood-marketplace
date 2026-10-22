@@ -2,7 +2,9 @@ package io.github.saptooaji.seafood.seller.feature.product.ui
 
 import io.github.saptooaji.seafood.seller.feature.product.domain.NewVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDraft
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
+import io.github.saptooaji.seafood.seller.feature.product.domain.VariantChanges
 import java.math.BigDecimal
 
 // From what was typed to what is sent, once [validated] found no errors.
@@ -43,6 +45,37 @@ internal fun ProductFormUiState.variant() =
         price = variantPrice.digitsOnly().toLong(),
         minQty = variantMinQty.trim().toDecimal(),
         initialStock = variantStock.trim().ifEmpty { null }?.toDecimal(),
+    )
+
+/** The sheet's variant to add, once [errors] found none. */
+internal fun VariantSheet.newVariant() =
+    NewVariant(
+        name = name.trim(),
+        unit = unit,
+        price = price.digitsOnly().toLong(),
+        minQty = minQty.trim().toDecimal(),
+        initialStock = initialStock.trim().ifEmpty { null }?.toDecimal(),
+    )
+
+/** The sheet's changes to a saved variant, once [errors] found none; there is no stock to send. */
+internal fun VariantSheet.changes() =
+    VariantChanges(
+        name = name.trim(),
+        unit = unit,
+        price = price.digitsOnly().toLong(),
+        minQty = minQty.trim().toDecimal(),
+        isActive = isActive,
+    )
+
+/** The edit sheet of [variant], with its numbers as the seller would type them. */
+internal fun ProductVariant.toSheet() =
+    VariantSheet(
+        variantId = id,
+        name = name,
+        unit = unit,
+        price = price.toString(),
+        minQty = minQty.asTyped(),
+        isActive = isActive,
     )
 
 /** `25.000` from the server as the seller would type it: `25`, `12,5`. */
