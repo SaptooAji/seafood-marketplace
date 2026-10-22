@@ -1,5 +1,6 @@
 package io.github.saptooaji.seafood.seller.feature.product.ui
 
+import androidx.lifecycle.SavedStateHandle
 import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.util.UiText
@@ -43,6 +44,9 @@ data class PendingPhoto(
 ) : FormPhoto
 
 sealed interface PendingStatus {
+    /** Picked while adding a product; uploaded once the product is saved (#282). */
+    data object AwaitingSave : PendingStatus
+
     data object Queued : PendingStatus
 
     data class Uploading(
@@ -61,30 +65,37 @@ sealed interface PendingStatus {
     val isWaitingToSend: Boolean get() = this == Queued || this is Uploading
 }
 
+/** A photo the seller can open, move, and delete: on the server, or waiting for a new product's save. */
+val FormPhoto.isActionable: Boolean get() = this is SavedPhoto || (this is PendingPhoto && status == PendingStatus.AwaitingSave)
+
 /**
- * The photos of a saved product (#241), part of [ProductFormViewModel].
- * Each upload, reorder, and delete goes to the server at once, apart from the
- * form's Save, as the variants do. Uploads go one at a time; a used-up limit
- * stops the rest without retrying on its own.
+ * The photos of the form, part of [ProductFormViewModel]. For a saved
+ * product (#241) each upload, reorder, and delete goes to the server at once,
+ * apart from the form's Save, as the variants do. While adding (#282) photos
+ * wait on the phone, kept in the [saved] handle, until [uploadAfterSave].
+ * Uploads go one at a time; a used-up limit stops the rest without retrying
+ * on its own. [onQueueDone] hears when the queue stops.
  */
+@Suppress("LongParameterList") // The form's state and the services it shares.
 internal class PhotoEditor(
-    private val productId: Long?,
+    private var productId: Long?,
     private val photos: ProductPhotoRepository,
     private val state: MutableStateFlow<ProductFormUiState>,
     private val scope: CoroutineScope,
+    private val saved: SavedStateHandle,
+    private val onQueueDone: () -> Unit,
 ) : FormPart {
     private var uploads: Job? = null
-    private var nextKey = 0
 
     /** Handles a photo event; false for the form's other events. */
     override fun handle(event: ProductFormEvent): Boolean {
         when (event) {
             is ProductFormEvent.PhotoPrepared -> add(event.path)
             is ProductFormEvent.RetryPhoto -> requeue { it.key == event.key && it.status is PendingStatus.Failed }
-            is ProductFormEvent.RemovePendingPhoto -> remove(event.key)
+            is ProductFormEvent.RemovePendingPhoto -> state.removePending(event.key, saved)
             ProductFormEvent.ResumeUploads -> requeue { it.status == PendingStatus.Paused }
             is ProductFormEvent.OpenPhotoActions ->
-                state.update { s -> s.copy(photoActions = event.key.takeIf { key -> s.photos.any { it is SavedPhoto && it.key == key } }) }
+                state.update { s -> s.copy(photoActions = event.key.takeIf { key -> s.photos.any { it.isActionable && it.key == key } }) }
             ProductFormEvent.DismissPhotoActions -> state.update { it.copy(photoActions = null) }
             is ProductFormEvent.MakeMainPhoto -> {
                 state.update { it.copy(photoActions = null) }
@@ -102,15 +113,24 @@ internal class PhotoEditor(
         state.value.photos
             .filterIsInstance<PendingPhoto>()
             .forEach { File(it.path).delete() }
+        saved.storeWaitingPhotos(emptyList())
+    }
+
+    /** The new product [id] is saved: its waiting photos upload to it, in their order. */
+    fun uploadAfterSave(id: Long) {
+        productId = id
+        saved.storeWaitingPhotos(emptyList())
+        requeue { it.status == PendingStatus.AwaitingSave }
     }
 
     private fun add(path: String) {
-        if (productId == null || !state.value.canAddPhoto) {
+        if (!state.value.canAddPhoto) {
             File(path).delete()
             return
         }
-        nextKey++
-        state.update { it.copy(photos = it.photos + PendingPhoto("pending-$nextKey", path, PendingStatus.Queued)) }
+        val status = if (productId == null) PendingStatus.AwaitingSave else PendingStatus.Queued
+        state.update { it.copy(photos = it.photos + PendingPhoto(pendingKey(path), path, status)) }
+        saved.storeWaitingPhotos(state.value.photos)
         runQueue()
     }
 
@@ -122,13 +142,6 @@ internal class PhotoEditor(
             )
         }
         runQueue()
-    }
-
-    private fun remove(key: String) {
-        val photo = state.value.photos.firstOrNull { it.key == key } as? PendingPhoto ?: return
-        if (photo.status is PendingStatus.Uploading) return
-        File(photo.path).delete()
-        state.update { s -> s.copy(photos = s.photos.filterNot { it.key == key }) }
     }
 
     private fun runQueue() {
@@ -147,6 +160,7 @@ internal class PhotoEditor(
                         }
                     next = if (settle(photo, result)) state.value.nextQueued() else null
                 }
+                onQueueDone()
             }
     }
 
@@ -194,13 +208,23 @@ internal class PhotoEditor(
         }
     }
 
-    /** Moves a saved photo and sends the whole order at once; a refusal puts it back. */
+    /**
+     * Moves a photo. A saved product's order is sent whole at once, and a
+     * refusal puts it back; a new product's waiting photos only move on the phone.
+     */
     private fun move(
         from: Int,
         to: Int,
     ) {
-        val id = productId ?: return
         val current = state.value
+        val id = productId
+        if (id == null) {
+            if (from != to && from in current.photos.indices && to in current.photos.indices) {
+                state.update { it.copy(photos = it.photos.toMutableList().apply { add(to, removeAt(from)) }) }
+                saved.storeWaitingPhotos(state.value.photos)
+            }
+            return
+        }
         val saved = current.photos.filterIsInstance<SavedPhoto>()
         val moves = from != to && from in saved.indices && to in saved.indices
         if (!current.canReorderPhotos || !moves) return
@@ -225,7 +249,7 @@ internal class PhotoEditor(
         }
     }
 
-    /** Asks, then deletes a saved photo on the server; a refusal keeps it and says so. */
+    /** Asks, then deletes a saved photo on the server, or a waiting one on the phone; a refusal keeps it and says so. */
     private fun delete(event: ProductFormEvent) {
         when (event) {
             is ProductFormEvent.DeletePhoto -> state.update { it.copy(photoActions = null, photoToDelete = event.key) }
@@ -234,6 +258,7 @@ internal class PhotoEditor(
                 val key = state.value.photoToDelete
                 val photo = state.value.photos.firstOrNull { it.key == key } as? SavedPhoto
                 state.update { it.copy(photoToDelete = null, photoNotice = null) }
+                if (photo == null && key != null) state.removePending(key, saved)
                 val id = productId
                 if (id != null && photo != null) {
                     scope.launch {
@@ -248,6 +273,21 @@ internal class PhotoEditor(
             }
         }
     }
+}
+
+/** A photo still on the phone, by its cache file, whose name is unique. */
+internal fun pendingKey(path: String) = "pending-${File(path).name}"
+
+/** Takes a pending photo that is not uploading off the row, with its cache file. */
+private fun MutableStateFlow<ProductFormUiState>.removePending(
+    key: String,
+    saved: SavedStateHandle,
+) {
+    val photo = value.photos.firstOrNull { it.key == key } as? PendingPhoto ?: return
+    if (photo.status is PendingStatus.Uploading) return
+    File(photo.path).delete()
+    update { s -> s.copy(photos = s.photos.filterNot { it.key == key }) }
+    saved.storeWaitingPhotos(value.photos)
 }
 
 private fun ProductFormUiState.nextQueued(): PendingPhoto? =

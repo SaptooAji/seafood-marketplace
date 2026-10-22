@@ -62,7 +62,7 @@ import kotlin.math.roundToInt
  * Section 1, the photos (#241, boards VD-Produk-Form--foto-*): a row of
  * thumbnails, the first marked as the main one, and a tile to add one. A
  * saved photo opens its actions on a tap and moves on a long press and drag.
- * A new product adds photos after it is saved (#282).
+ * While adding a product the photos wait on the phone until it is saved (#282).
  */
 @Composable
 fun PhotoSection(
@@ -72,10 +72,6 @@ fun PhotoSection(
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
         GlassSectionHeader(number = 1, title = stringResource(R.string.product_form_section_photos))
-        if (!uiState.isEdit) {
-            PhotoHelp(stringResource(R.string.product_photo_after_save))
-            return@GlassCard
-        }
         PhotoRow(uiState, onEvent, onAdd)
         uiState.photos.forEachIndexed { index, photo ->
             val status = (photo as? PendingPhoto)?.status
@@ -86,6 +82,7 @@ fun PhotoSection(
             when {
                 uiState.photos.isEmpty() -> stringResource(R.string.product_photo_none)
                 uiState.photos.size >= MAX_PHOTOS -> stringResource(R.string.product_photo_full, MAX_PHOTOS)
+                !uiState.isEdit -> stringResource(R.string.product_photo_waiting_count, uiState.photos.size, MAX_PHOTOS)
                 else -> stringResource(R.string.product_photo_count, uiState.photos.size, MAX_PHOTOS)
             },
         )
@@ -107,7 +104,7 @@ private fun PhotoRow(
     onAdd: () -> Unit,
 ) {
     val step = with(LocalDensity.current) { (TILE + GAP).toPx() }
-    val savedCount = uiState.photos.count { it is SavedPhoto }
+    val movable = uiState.photos.count { it.isActionable }
     val canReorder by rememberUpdatedState(uiState.canReorderPhotos)
     var dragging by remember { mutableStateOf<Int?>(null) }
     var dragX by remember { mutableFloatStateOf(0f) }
@@ -118,7 +115,7 @@ private fun PhotoRow(
         uiState.photos.forEachIndexed { index, photo ->
             val lifted = dragging == index
             val drag =
-                if (photo is SavedPhoto) {
+                if (photo.isActionable) {
                     Modifier.pointerInput(photo.key) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { if (canReorder) dragging = index },
@@ -129,7 +126,7 @@ private fun PhotoRow(
                                 }
                             },
                             onDragEnd = {
-                                val to = (index + (dragX / step).roundToInt()).coerceIn(0, savedCount - 1)
+                                val to = (index + (dragX / step).roundToInt()).coerceIn(0, movable - 1)
                                 if (dragging == index) onEvent(ProductFormEvent.MovePhoto(from = index, to = to))
                                 dragging = null
                                 dragX = 0f
@@ -146,7 +143,7 @@ private fun PhotoRow(
             PhotoTile(
                 photo = photo,
                 isMain = index == 0,
-                onClick = { if (photo is SavedPhoto) onEvent(ProductFormEvent.OpenPhotoActions(photo.key)) },
+                onClick = { if (photo.isActionable) onEvent(ProductFormEvent.OpenPhotoActions(photo.key)) },
                 modifier =
                     drag
                         .zIndex(if (lifted) 1f else 0f)
@@ -179,7 +176,7 @@ private fun PhotoTile(
             .shadow(if (failed) 0.dp else 2.dp, TileShape)
             .clip(TileShape)
             .then(if (failed) Modifier.border(3.dp, EmbunColors.DangerContent, TileShape) else Modifier)
-            .clickable(enabled = photo is SavedPhoto, role = Role.Button, onClick = onClick)
+            .clickable(enabled = photo.isActionable, role = Role.Button, onClick = onClick)
             .testTag(ProductFormTags.photo(photo.key)),
     ) {
         AsyncImage(
@@ -199,7 +196,7 @@ private fun PhotoTile(
             PendingStatus.Queued -> TileOverlay(stringResource(R.string.product_photo_waiting))
             PendingStatus.Paused -> TileOverlay(stringResource(R.string.product_photo_held))
             is PendingStatus.Failed -> FailedMark()
-            null -> Unit
+            PendingStatus.AwaitingSave, null -> Unit
         }
         if (isMain) {
             Text(

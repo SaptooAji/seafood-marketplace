@@ -39,6 +39,7 @@ import io.github.saptooaji.seafood.seller.core.designsystem.embun.EmbunColors
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.GlassPillButton
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.OptionShape
 import io.github.saptooaji.seafood.seller.core.util.UiText
+import java.io.File
 
 /** A banner with links after its text, such as "Coba lagi" and "Hapus". */
 @Composable
@@ -181,26 +182,30 @@ private fun SourceOption(
     }
 }
 
-/** A saved photo's actions (board VD-Produk-Form--aksi-foto); the main photo has no "Jadikan utama". */
+/**
+ * A photo's actions (board VD-Produk-Form--aksi-foto), for a saved photo or
+ * one waiting for a new product's save; the main photo has no "Jadikan utama".
+ */
 @Composable
 fun BoxScope.PhotoActionsSheet(
     uiState: ProductFormUiState,
     key: String,
     onEvent: (ProductFormEvent) -> Unit,
 ) {
-    val saved = uiState.photos.filterIsInstance<SavedPhoto>()
-    val index = saved.indexOfFirst { it.key == key }
+    val photos = uiState.photos.filter { it.isActionable }
+    val index = photos.indexOfFirst { it.key == key }
     if (index < 0) return
+    val photo = photos[index]
     EmbunSheet(onDismiss = { onEvent(ProductFormEvent.DismissPhotoActions) }) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
-                model = saved[index].image.thumbnailUrl,
+                model = if (photo is SavedPhoto) photo.image.thumbnailUrl else File((photo as PendingPhoto).path),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(96.dp).clip(TileShape).background(EmbunColors.GlassButton),
             )
             SheetHeading(
-                title = stringResource(R.string.product_photo_actions_title, index + 1, saved.size),
+                title = stringResource(R.string.product_photo_actions_title, index + 1, photos.size),
                 body = stringResource(R.string.product_photo_actions_body),
             )
         }
