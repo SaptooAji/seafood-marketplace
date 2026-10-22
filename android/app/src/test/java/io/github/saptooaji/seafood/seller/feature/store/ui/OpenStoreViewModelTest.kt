@@ -252,6 +252,21 @@ class OpenStoreViewModelTest {
             assertTrue(vm.uiState.value.canSubmit)
         }
 
+    @Test
+    fun `a server outage shows the server message and keeps the form`() =
+        runTest(main.dispatcher) {
+            repository.openResult = ApiResult.ServerUnreachable
+            val vm = viewModel()
+            vm.fill()
+
+            vm.onEvent(OpenStoreEvent.Submit)
+            advanceUntilIdle()
+
+            assertEquals(UiText.Resource(R.string.error_server), vm.uiState.value.generalError)
+            assertEquals("UD Kepiting Pak Budi", vm.uiState.value.form.name)
+            assertTrue(vm.uiState.value.canSubmit)
+        }
+
     // --- Location ---------------------------------------------------------
 
     @Test

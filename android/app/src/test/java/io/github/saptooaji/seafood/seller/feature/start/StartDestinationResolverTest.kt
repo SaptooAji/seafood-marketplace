@@ -43,7 +43,9 @@ class StartDestinationResolverTest {
                 arguments("active", withStatus(StoreStatus.Active), StartDestination.Main),
                 arguments("the token was refused", ApiResult.Unauthorized, StartDestination.Login),
                 arguments("no connection", ApiResult.NetworkError, StartDestination.Offline),
-                arguments("a server error", ApiResult.ServerError, StartDestination.Offline),
+                // #277: the phone is online, so the seller is not told to check the internet.
+                arguments("the server cannot be reached", ApiResult.ServerUnreachable, StartDestination.ServerDown),
+                arguments("a server error", ApiResult.ServerError, StartDestination.ServerDown),
             )
     }
 }

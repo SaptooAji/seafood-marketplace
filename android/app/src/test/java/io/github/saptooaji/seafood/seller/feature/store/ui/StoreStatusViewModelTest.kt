@@ -2,6 +2,7 @@ package io.github.saptooaji.seafood.seller.feature.store.ui
 
 import androidx.lifecycle.SavedStateHandle
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
+import io.github.saptooaji.seafood.seller.core.network.ConnectionTrouble
 import io.github.saptooaji.seafood.seller.feature.auth.FakeAuthRepository
 import io.github.saptooaji.seafood.seller.feature.store.FakeStoreRepository
 import io.github.saptooaji.seafood.seller.feature.store.FakeStoreRepository.Companion.found
@@ -18,6 +19,10 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.Arguments.arguments
+import org.junit.jupiter.params.provider.MethodSource
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StoreStatusViewModelTest {
@@ -156,12 +161,12 @@ class StoreStatusViewModelTest {
             stores.answerCurrent(ApiResult.NetworkError, found(FakeStoreRepository.PENDING_STORE))
             val vm = viewModel()
             advanceUntilIdle()
-            assertTrue(vm.uiState.value.offline)
+            assertEquals(ConnectionTrouble.NoInternet, vm.uiState.value.trouble)
 
             vm.onEvent(StoreStatusEvent.CheckAgain)
             advanceUntilIdle()
 
-            assertFalse(vm.uiState.value.offline)
+            assertNull(vm.uiState.value.trouble)
             assertEquals(
                 StoreStatus.Pending,
                 vm.uiState.value.store!!
@@ -184,7 +189,38 @@ class StoreStatusViewModelTest {
                 vm.uiState.value.store!!
                     .name,
             )
-            assertTrue(vm.uiState.value.offline)
+            assertEquals(ConnectionTrouble.NoInternet, vm.uiState.value.trouble)
+        }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("serverTroubles")
+    fun `a server outage on opening is the server's trouble, not the phone's`(
+        case: String,
+        result: ApiResult<Nothing>,
+    ) = runTest(main.dispatcher) {
+        stores.answerCurrent(result)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(ConnectionTrouble.Server, vm.uiState.value.trouble, case)
+    }
+
+    @Test
+    fun `a server outage while checking again keeps the store on screen`() =
+        runTest(main.dispatcher) {
+            stores.answerCurrent(found(FakeStoreRepository.PENDING_STORE), ApiResult.ServerUnreachable)
+            val vm = viewModel()
+            advanceUntilIdle()
+
+            vm.onEvent(StoreStatusEvent.CheckAgain)
+            advanceUntilIdle()
+
+            assertEquals(
+                "UD Kepiting Pak Budi",
+                vm.uiState.value.store!!
+                    .name,
+            )
+            assertEquals(ConnectionTrouble.Server, vm.uiState.value.trouble)
         }
 
     // --- Signing out (MOB-6) ----------------------------------------------
@@ -239,4 +275,13 @@ class StoreStatusViewModelTest {
                     .contains("BCA"),
             )
         }
+
+    companion object {
+        @JvmStatic
+        fun serverTroubles(): List<Arguments> =
+            listOf(
+                arguments("the server cannot be reached", ApiResult.ServerUnreachable),
+                arguments("a server error", ApiResult.ServerError),
+            )
+    }
 }

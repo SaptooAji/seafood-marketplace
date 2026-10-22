@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import io.github.saptooaji.seafood.seller.R
+import io.github.saptooaji.seafood.seller.core.network.ConnectionTrouble
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.SeafoodTheme
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreStatus
 import org.junit.Assert.assertEquals
@@ -97,12 +98,43 @@ class StoreStatusScreenTest {
 
     @Test
     fun noConnectionOffersToTryAgain() {
-        show(StoreStatusUiState(isLoading = false, offline = true))
+        show(StoreStatusUiState(isLoading = false, trouble = ConnectionTrouble.NoInternet))
 
         compose.onNodeWithText(context.getString(R.string.offline_body)).assertIsDisplayed()
         compose.onNodeWithTag(StoreStatusTags.RETRY).performScrollTo().performClick()
 
         assertEquals(listOf(StoreStatusEvent.CheckAgain), events)
+    }
+
+    @Test
+    fun aServerOutageSaysTheInternetWorksAndOffersToTryAgain() {
+        show(StoreStatusUiState(isLoading = false, trouble = ConnectionTrouble.Server))
+
+        compose.onNodeWithText("Server sedang bermasalah").assertIsDisplayed()
+        compose
+            .onNodeWithText("Internet Anda tersambung. Masalahnya ada di pihak kami, coba lagi sebentar lagi. Anda tetap masuk.")
+            .assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.offline_title)).assertDoesNotExist()
+        compose.onNodeWithTag(StoreStatusTags.SIGN_OUT).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(StoreStatusTags.RETRY).performScrollTo().performClick()
+
+        assertEquals(listOf(StoreStatusEvent.CheckAgain), events)
+    }
+
+    @Test
+    fun aServerOutageWhileCheckingAgainKeepsTheCardAndBlamesTheServer() {
+        show(store(StoreStatus.Pending, "Menunggu Persetujuan").copy(trouble = ConnectionTrouble.Server))
+
+        compose.onNodeWithText("UD Kepiting Pak Budi").assertIsDisplayed()
+        compose.onNodeWithText("Server sedang bermasalah. Coba lagi sebentar lagi.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.offline_body)).assertDoesNotExist()
+    }
+
+    @Test
+    fun noConnectionWhileCheckingAgainKeepsTheCardAndAsksToCheckTheInternet() {
+        show(store(StoreStatus.Pending, "Menunggu Persetujuan").copy(trouble = ConnectionTrouble.NoInternet))
+
+        compose.onNodeWithText(context.getString(R.string.offline_body)).performScrollTo().assertIsDisplayed()
     }
 
     @Test
