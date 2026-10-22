@@ -9,6 +9,7 @@ import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.util.UiText
 import io.github.saptooaji.seafood.seller.feature.product.domain.CategoryRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDetail
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductPhotoRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.pathTo
 import kotlinx.coroutines.Job
@@ -31,6 +32,7 @@ class ProductFormViewModel
     constructor(
         private val products: ProductRepository,
         private val categories: CategoryRepository,
+        photoRepository: ProductPhotoRepository,
         private val savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         private val productId: Long? = savedStateHandle[KEY_PRODUCT_ID]
@@ -46,6 +48,12 @@ class ProductFormViewModel
 
         /** The variant rows of a saved product; adding has none to edit. */
         private val variants: VariantEditor? = productId?.let { VariantEditor(it, products, _uiState, viewModelScope) }
+
+        /** The photos of a saved product; adding takes none yet (#282). */
+        private val photos = PhotoEditor(productId, photoRepository, _uiState, viewModelScope)
+
+        /** The parts with their own events, asked in turn before a field change. */
+        private val parts: List<FormPart> = listOfNotNull(variants, photos)
 
         init {
             load()
@@ -63,7 +71,7 @@ class ProductFormViewModel
                 ProductFormEvent.Retry -> if (_uiState.value.loadError != null) load()
                 ProductFormEvent.SuggestDescription, ProductFormEvent.UseSuggestion, ProductFormEvent.DismissSuggestion ->
                     onSuggestion(event)
-                else -> if (variants?.handle(event) != true) edit { it.changedBy(event) }
+                else -> if (parts.none { it.handle(event) }) edit { it.changedBy(event) }
             }
         }
 
@@ -205,6 +213,10 @@ class ProductFormViewModel
             }
         }
 
+        override fun onCleared() {
+            photos.discard()
+        }
+
         companion object {
             /** The route's argument; absent when adding. */
             const val KEY_PRODUCT_ID = "productId"
@@ -268,6 +280,7 @@ private fun ProductFormUiState.filledFrom(detail: ProductDetail): ProductFormUiS
         storageInstructions = draft.storageInstructions.orEmpty(),
         isActive = draft.isActive,
         variants = detail.variants,
+        photos = detail.images.map(::SavedPhoto),
         isBlocked = detail.isBlocked,
         blockReason = detail.blockReason,
     )

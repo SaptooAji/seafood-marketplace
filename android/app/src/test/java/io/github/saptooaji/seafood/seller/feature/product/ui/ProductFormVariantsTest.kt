@@ -5,6 +5,7 @@ import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.util.UiText
 import io.github.saptooaji.seafood.seller.feature.product.FakeCategoryRepository
+import io.github.saptooaji.seafood.seller.feature.product.FakeProductPhotoRepository
 import io.github.saptooaji.seafood.seller.feature.product.FakeProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.FakeProductRepository.Companion.DETAIL
 import io.github.saptooaji.seafood.seller.feature.product.FakeProductRepository.Companion.NEW_VARIANT
@@ -41,10 +42,11 @@ class ProductFormVariantsTest {
 
     private val products = FakeProductRepository()
     private val categories = FakeCategoryRepository()
+    private val photos = FakeProductPhotoRepository()
 
     /** The edit form of [DETAIL], which has variants 1 and 2, loaded. */
     private fun TestScope.editForm(): ProductFormViewModel {
-        val vm = ProductFormViewModel(products, categories, SavedStateHandle(mapOf("productId" to DETAIL.id)))
+        val vm = ProductFormViewModel(products, categories, photos, SavedStateHandle(mapOf("productId" to DETAIL.id)))
         advanceUntilIdle()
         return vm
     }

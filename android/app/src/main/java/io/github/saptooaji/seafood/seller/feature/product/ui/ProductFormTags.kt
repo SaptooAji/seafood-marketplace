@@ -5,6 +5,7 @@ import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
 import io.github.saptooaji.seafood.seller.feature.product.domain.VariantUnit
 
 /** Test tags of the product form and its sheets. */
+@Suppress("TooManyFunctions") // One tag builder per repeated element of the form.
 object ProductFormTags {
     const val BACK = "product_form_back"
     const val CATEGORY = "product_form_category"
@@ -40,6 +41,14 @@ object ProductFormTags {
     const val VARIANT_SHEET_SAVE = "variant_sheet_save"
     const val CONFIRM_DELETE_VARIANT = "variant_confirm_delete"
     const val CANCEL_DELETE_VARIANT = "variant_cancel_delete"
+    const val ADD_PHOTO = "product_form_add_photo"
+    const val PHOTO_FROM_CAMERA = "photo_source_camera"
+    const val PHOTO_FROM_GALLERY = "photo_source_gallery"
+    const val PHOTO_RESUME = "product_form_photo_resume"
+    const val PHOTO_MAKE_MAIN = "photo_make_main"
+    const val PHOTO_DELETE = "photo_delete"
+    const val CONFIRM_DELETE_PHOTO = "photo_confirm_delete"
+    const val CANCEL_DELETE_PHOTO = "photo_cancel_delete"
     const val SUGGEST = "product_form_suggest"
     const val SUGGESTION_USE = "suggestion_use"
     const val SUGGESTION_CANCEL = "suggestion_cancel"
@@ -47,6 +56,12 @@ object ProductFormTags {
     const val SUGGESTION_CLOSE = "suggestion_close"
 
     fun variantRow(id: Long) = "product_form_variant_$id"
+
+    fun photo(key: String) = "product_form_photo_$key"
+
+    fun photoRetry(key: String) = "product_form_photo_retry_$key"
+
+    fun photoRemove(key: String) = "product_form_photo_remove_$key"
 
     fun sheetUnit(unit: VariantUnit) = "variant_sheet_unit_${unit.value}"
 

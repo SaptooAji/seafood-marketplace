@@ -49,3 +49,13 @@ data object ProductAddRoute
 data class ProductEditRoute(
     val productId: Long,
 )
+
+/**
+ * Cutting a picked photo before it is uploaded (#241). [source] is its uri,
+ * from the Photo Picker or the camera; the screen reads it from its
+ * SavedStateHandle.
+ */
+@Serializable
+data class PhotoCropRoute(
+    val source: String,
+)

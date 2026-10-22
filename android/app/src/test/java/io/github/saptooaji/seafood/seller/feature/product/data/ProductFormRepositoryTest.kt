@@ -171,6 +171,19 @@ class ProductFormRepositoryTest {
     }
 
     @Test
+    fun `a product's photos are read in their order`() {
+        val images =
+            """[{"id":3,"url":"http://localhost/3.webp","thumbnail_url":"http://localhost/3_t.webp","sort_order":0},""" +
+                """{"id":1,"url":"http://localhost/1.webp","thumbnail_url":"http://localhost/1_t.webp","sort_order":1}]"""
+        server.enqueue(json(200, """{"data":${PRODUCT_JSON.replace(""""images":[]""", """"images":$images""")}}"""))
+
+        val detail = (io { repository().get(7) } as ApiResult.Success).data
+
+        assertEquals(listOf(3L, 1L), detail.images.map { it.id })
+        assertEquals("http://localhost/3_t.webp", detail.images.first().thumbnailUrl)
+    }
+
+    @Test
     fun `a product of another store is not found`() {
         server.enqueue(json(404, """{"message":"Not Found."}"""))
 

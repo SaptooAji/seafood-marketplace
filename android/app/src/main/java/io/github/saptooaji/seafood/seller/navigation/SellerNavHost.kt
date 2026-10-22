@@ -16,6 +16,8 @@ import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginScreen
 import io.github.saptooaji.seafood.seller.feature.auth.ui.RegisterScreen
 import io.github.saptooaji.seafood.seller.feature.main.ui.MainShell
+import io.github.saptooaji.seafood.seller.feature.product.photo.PhotoCropResult
+import io.github.saptooaji.seafood.seller.feature.product.photo.PhotoCropScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormResult
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductListScreen
@@ -108,8 +110,21 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
                 },
             )
         }
-        composable<ProductAddRoute> { ProductFormDestination(navController) }
-        composable<ProductEditRoute> { ProductFormDestination(navController) }
+        composable<ProductAddRoute> { entry -> ProductFormDestination(navController, entry) }
+        composable<ProductEditRoute> { entry -> ProductFormDestination(navController, entry) }
+        composable<PhotoCropRoute> {
+            PhotoCropScreen(
+                onDone = { result ->
+                    if (result is PhotoCropResult.Done) {
+                        navController.previousBackStackEntry?.savedStateHandle?.set(
+                            KEY_PREPARED_PHOTO,
+                            result.path,
+                        )
+                    }
+                    navController.popBackStack()
+                },
+            )
+        }
     }
 }
 
@@ -118,8 +133,15 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
  * deleted, the list below is told to refresh before the form closes.
  */
 @Composable
-private fun ProductFormDestination(navController: NavController) {
+private fun ProductFormDestination(
+    navController: NavController,
+    entry: NavBackStackEntry,
+) {
+    val preparedPhoto by entry.savedStateHandle.getStateFlow<String?>(KEY_PREPARED_PHOTO, null).collectAsStateWithLifecycle()
     ProductFormScreen(
+        onCropPhoto = { uri -> if (entry.isResumed()) navController.navigate(PhotoCropRoute(uri)) },
+        preparedPhoto = preparedPhoto,
+        onPreparedPhotoTaken = { entry.savedStateHandle[KEY_PREPARED_PHOTO] = null },
         onDone = { result ->
             if (result != ProductFormResult.Left) {
                 navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
@@ -133,6 +155,9 @@ private fun ProductFormDestination(navController: NavController) {
 
 /** Counts the products saved or deleted, in the main screens' SavedStateHandle. */
 private const val KEY_PRODUCT_CHANGES = "product_changes"
+
+/** The prepared photo the crop screen hands back, in the form's SavedStateHandle. */
+private const val KEY_PREPARED_PHOTO = "prepared_photo"
 
 private fun NavBackStackEntry.isResumed() = lifecycle.currentState == Lifecycle.State.RESUMED
 

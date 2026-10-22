@@ -53,7 +53,7 @@ fun CategorySection(
     positions: FieldPositions,
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
-        GlassSectionHeader(number = 1, title = stringResource(R.string.product_form_section_category))
+        GlassSectionHeader(number = 2, title = stringResource(R.string.product_form_section_category))
         CategoryField(uiState, onPickCategory, positions.of(FormField.Category))
         uiState.attributes.forEach { attribute ->
             AttributeField(
@@ -119,7 +119,7 @@ fun StorySection(
     positions: FieldPositions,
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
-        GlassSectionHeader(number = 2, title = stringResource(R.string.product_form_section_story))
+        GlassSectionHeader(number = 3, title = stringResource(R.string.product_form_section_story))
         FormTextField(
             uiState,
             ProductTextField.Name,
@@ -163,7 +163,7 @@ fun SellingSection(
     positions: FieldPositions,
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
-        GlassSectionHeader(number = 3, title = stringResource(R.string.product_form_section_selling))
+        GlassSectionHeader(number = 4, title = stringResource(R.string.product_form_section_selling))
         ConditionChoice(uiState, onEvent, positions.of(FormField.Condition))
         SegmentedChoice(
             options = SalesMode.entries,
@@ -268,7 +268,7 @@ fun VariantSection(
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            GlassSectionHeader(number = 4, title = stringResource(R.string.product_form_section_variants), modifier = Modifier.weight(1f))
+            GlassSectionHeader(number = 5, title = stringResource(R.string.product_form_section_variants), modifier = Modifier.weight(1f))
             if (uiState.isEdit) VariantCount(uiState)
         }
         if (uiState.isEdit) {

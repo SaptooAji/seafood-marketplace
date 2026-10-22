@@ -69,6 +69,7 @@ Role platform memakai spatie/laravel-permission dengan Filament Shield; role own
 - Payment gateway dengan split ke penjual
 - Fitur ekspor: minimum order, harga grosir, dokumen sertifikasi
 - Ulasan dan rating, promo dan voucher, komplain kualitas dengan foto setelah barang diterima, badge produk terverifikasi
+- Foto produk sebagai draft di aplikasi Android: foto diunggah ke penyimpanan sementara milik toko dan baru dipindahkan ke produk saat penjual menyimpan form, sehingga "Buang perubahan" juga membatalkan foto. Draft yang tidak terpakai (misalnya lebih dari 24 jam) dihapus otomatis bersama filenya. Ini juga memungkinkan foto produk baru diunggah sebelum produknya tersimpan. Sampai saat itu, foto di aplikasi langsung tersimpan per foto, seperti ukuran (#241)
 
 Prioritas pertama versi 2: chat realtime pembeli dan penjual (Laravel Reverb) di web dan Android.
 

@@ -5,6 +5,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.github.saptooaji.seafood.seller.feature.product.domain.CategoryRepository
+import io.github.saptooaji.seafood.seller.feature.product.domain.ProductPhotoRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
 import kotlinx.serialization.json.Json
 import retrofit2.Retrofit
@@ -23,6 +24,17 @@ object ProductModule {
         api: ProductApi,
         json: Json,
     ): ProductRepository = ProductRepositoryImpl(api, json)
+
+    @Provides
+    @Singleton
+    fun productPhotoApi(retrofit: Retrofit): ProductPhotoApi = retrofit.create(ProductPhotoApi::class.java)
+
+    @Provides
+    @Singleton
+    fun productPhotoRepository(
+        api: ProductPhotoApi,
+        json: Json,
+    ): ProductPhotoRepository = ProductPhotoRepositoryImpl(api, json)
 
     @Provides
     @Singleton

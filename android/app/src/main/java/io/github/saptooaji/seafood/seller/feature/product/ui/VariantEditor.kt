@@ -21,9 +21,9 @@ internal class VariantEditor(
     private val products: ProductRepository,
     private val state: MutableStateFlow<ProductFormUiState>,
     private val scope: CoroutineScope,
-) {
+) : FormPart {
     /** Handles a variant event; false for the form's other events. */
-    fun handle(event: ProductFormEvent): Boolean {
+    override fun handle(event: ProductFormEvent): Boolean {
         when (event) {
             ProductFormEvent.AddVariant -> open(id = null)
             is ProductFormEvent.EditVariant -> open(event.id)

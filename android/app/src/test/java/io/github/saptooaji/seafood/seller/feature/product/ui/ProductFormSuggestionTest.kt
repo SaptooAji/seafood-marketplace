@@ -5,6 +5,7 @@ import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.util.UiText
 import io.github.saptooaji.seafood.seller.feature.product.FakeCategoryRepository
+import io.github.saptooaji.seafood.seller.feature.product.FakeProductPhotoRepository
 import io.github.saptooaji.seafood.seller.feature.product.FakeProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.FakeProductRepository.Companion.DETAIL
 import io.github.saptooaji.seafood.seller.feature.product.FakeProductRepository.Companion.SUGGESTION
@@ -42,11 +43,12 @@ class ProductFormSuggestionTest {
 
     private val products = FakeProductRepository()
     private val categories = FakeCategoryRepository()
+    private val photos = FakeProductPhotoRepository()
 
     private val ProductFormViewModel.state get() = uiState.value
 
     private fun TestScope.addForm(handle: SavedStateHandle = SavedStateHandle()): ProductFormViewModel {
-        val vm = ProductFormViewModel(products, categories, handle)
+        val vm = ProductFormViewModel(products, categories, photos, handle)
         advanceUntilIdle()
         return vm
     }
@@ -151,7 +153,7 @@ class ProductFormSuggestionTest {
     @Test
     fun `an edit form asks with the product as loaded`() =
         runTest(main.dispatcher) {
-            val vm = ProductFormViewModel(products, categories, SavedStateHandle(mapOf("productId" to DETAIL.id)))
+            val vm = ProductFormViewModel(products, categories, photos, SavedStateHandle(mapOf("productId" to DETAIL.id)))
             advanceUntilIdle()
 
             assertTrue(vm.state.canSuggestDescription)
