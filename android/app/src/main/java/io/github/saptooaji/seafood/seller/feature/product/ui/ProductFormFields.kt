@@ -31,6 +31,7 @@ fun FormTextField(
     leading: String? = null,
     trailing: String? = null,
     helpText: String? = null,
+    helpIsWarning: Boolean = false,
     minLines: Int = 1,
 ) {
     Column(modifier.then(positions.of(FormField.Text(field)))) {
@@ -40,6 +41,7 @@ fun FormTextField(
             label = label,
             error = uiState.errors[FormField.Text(field)]?.asString(),
             helpText = helpText,
+            helpIsWarning = helpIsWarning,
             leading = leading?.let { { FieldAffix(it) } },
             trailing = trailing?.let { { FieldAffix(it) } },
             keyboardOptions = keyboardOptions,

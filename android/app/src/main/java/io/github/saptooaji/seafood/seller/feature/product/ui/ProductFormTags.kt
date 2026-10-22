@@ -40,6 +40,11 @@ object ProductFormTags {
     const val VARIANT_SHEET_SAVE = "variant_sheet_save"
     const val CONFIRM_DELETE_VARIANT = "variant_confirm_delete"
     const val CANCEL_DELETE_VARIANT = "variant_cancel_delete"
+    const val SUGGEST = "product_form_suggest"
+    const val SUGGESTION_USE = "suggestion_use"
+    const val SUGGESTION_CANCEL = "suggestion_cancel"
+    const val SUGGESTION_RETRY = "suggestion_retry"
+    const val SUGGESTION_CLOSE = "suggestion_close"
 
     fun variantRow(id: Long) = "product_form_variant_$id"
 

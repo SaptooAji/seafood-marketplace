@@ -89,6 +89,8 @@ fun GlassCard(
  *
  * @param contentType what autofill may fill in, such as [ContentType.EmailAddress]
  * @param leading and [trailing] sit in the field beside the text, such as `Rp` or `kg`
+ * @param helpIsWarning shows [helpText] in red without marking the field as
+ *   refused, such as a character count past its limit
  */
 @Composable
 fun GlassTextField(
@@ -106,6 +108,7 @@ fun GlassTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    helpIsWarning: Boolean = false,
 ) {
     val edge = if (error != null) EmbunColors.DangerContent else EmbunColors.FieldEdge
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -150,7 +153,7 @@ fun GlassTextField(
             Text(
                 text = below,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (error != null) EmbunColors.DangerContent else EmbunColors.Muted,
+                color = if (error != null || helpIsWarning) EmbunColors.DangerContent else EmbunColors.Muted,
                 modifier = Modifier.padding(start = 4.dp),
             )
         }

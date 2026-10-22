@@ -3,6 +3,7 @@ package io.github.saptooaji.seafood.seller.feature.product.data
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.core.network.apiCall
 import io.github.saptooaji.seafood.seller.core.network.map
+import io.github.saptooaji.seafood.seller.feature.product.domain.DescriptionSuggestion
 import io.github.saptooaji.seafood.seller.feature.product.domain.NewVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDetail
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDraft
@@ -34,6 +35,9 @@ class ProductRepositoryImpl(
         id: Long,
         draft: ProductDraft,
     ): ApiResult<ProductDetail> = apiCall(json) { api.update(id, ProductRequest.from(draft, variant = null)) }.map { it.data.toDomain() }
+
+    override suspend fun suggestDescription(draft: ProductDraft): ApiResult<DescriptionSuggestion> =
+        apiCall(json) { api.suggestDescription(ProductRequest.forSuggestion(draft)) }.map { it.data.toDomain() }
 
     override suspend fun delete(id: Long): ApiResult<Unit> = apiCall(json) { api.delete(id) }
 

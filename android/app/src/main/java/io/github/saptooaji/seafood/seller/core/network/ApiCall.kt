@@ -44,7 +44,8 @@ private fun <T> Response<T>.toApiResult(json: Json): ApiResult<T> {
         HttpStatus.NOT_FOUND -> ApiResult.NotFound
         HttpStatus.CONFLICT -> ApiResult.Conflict(error.message)
         HttpStatus.UNPROCESSABLE -> ApiResult.Invalid(error.fieldErrors, error.message)
-        HttpStatus.TOO_MANY_REQUESTS -> ApiResult.TooManyRequests(headers()["Retry-After"]?.toLongOrNull())
+        HttpStatus.TOO_MANY_REQUESTS -> ApiResult.TooManyRequests(headers()["Retry-After"]?.toLongOrNull(), error.message)
+        HttpStatus.SERVICE_UNAVAILABLE -> ApiResult.ServiceUnavailable(error.message)
         else -> ApiResult.ServerError
     }
 }
@@ -56,6 +57,7 @@ private object HttpStatus {
     const val CONFLICT = 409
     const val UNPROCESSABLE = 422
     const val TOO_MANY_REQUESTS = 429
+    const val SERVICE_UNAVAILABLE = 503
 }
 
 /** The parts of a Laravel error body the app uses; empty when the body is not JSON. */

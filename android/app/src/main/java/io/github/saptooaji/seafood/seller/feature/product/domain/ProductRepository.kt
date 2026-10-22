@@ -30,6 +30,14 @@ interface ProductRepository {
         draft: ProductDraft,
     ): ApiResult<ProductDetail>
 
+    /**
+     * An AI description and SEO summary for [draft], which may be half
+     * written (`POST seller/products/description-suggestion`). Nothing is
+     * saved. A used-up limit is [ApiResult.TooManyRequests], an AI that is off
+     * or failing is [ApiResult.ServiceUnavailable].
+     */
+    suspend fun suggestDescription(draft: ProductDraft): ApiResult<DescriptionSuggestion>
+
     /** Soft deletes the product; its stock and order history stay. */
     suspend fun delete(id: Long): ApiResult<Unit>
 

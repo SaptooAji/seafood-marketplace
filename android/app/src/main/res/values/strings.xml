@@ -289,4 +289,25 @@
     <string name="product_category_close">Tutup</string>
     <string name="product_category_expanded">terbuka</string>
     <string name="product_category_collapsed">tertutup</string>
+
+    <!-- AI description (#240, boards VD-Saran-AI) -->
+    <string name="product_suggest">Susun deskripsi dengan AI</string>
+    <string name="product_suggest_hint">Isi nama, kategori, dan kondisi dulu supaya AI bisa menyusun deskripsi.</string>
+    <string name="product_suggestion_title">Saran deskripsi</string>
+    <string name="product_suggestion_subtitle">Dari AI, 20 kali per hari per toko</string>
+    <string name="product_suggestion_loading">Menyusun dari nama, kategori, dan atribut produk. Bisa sampai 15 detik.</string>
+    <string name="product_suggestion_description_label">Deskripsi</string>
+    <string name="product_suggestion_seo_label">Ringkasan untuk Google</string>
+    <string name="product_suggestion_note">Disusun dari isi form Anda, tanpa harga. Periksa dulu sebelum dipakai.</string>
+    <string name="product_suggestion_replace_warning">Deskripsi yang sudah Anda tulis akan diganti. Lanjutkan?</string>
+    <string name="product_suggestion_use">Pakai saran</string>
+    <string name="product_suggestion_replace">Ganti dengan saran</string>
+    <string name="product_suggestion_cancel">Batal</string>
+    <string name="product_suggestion_close">Tutup</string>
+    <string name="product_suggestion_retry">Coba lagi</string>
+    <string name="product_suggestion_write_own">Tulis sendiri</string>
+    <string name="product_suggestion_too_often">Terlalu sering meminta saran. Coba lagi dalam %1$d menit.</string>
+    <string name="product_suggestion_wait">Terlalu sering meminta saran. Tunggu sebentar lalu coba lagi.</string>
+    <string name="product_suggestion_quota_used">Kuota saran AI hari ini sudah habis. Coba lagi besok, atau tulis deskripsi sendiri.</string>
+    <string name="product_suggestion_unavailable">Saran deskripsi sedang tidak tersedia. Coba lagi nanti, atau tulis deskripsi sendiri.</string>
 </resources>
