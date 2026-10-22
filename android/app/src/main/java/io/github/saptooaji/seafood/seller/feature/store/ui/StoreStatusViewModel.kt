@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.saptooaji.seafood.seller.core.network.ApiResult
+import io.github.saptooaji.seafood.seller.core.network.ConnectionTrouble
 import io.github.saptooaji.seafood.seller.feature.auth.domain.AuthRepository
 import io.github.saptooaji.seafood.seller.feature.store.domain.CurrentStore
 import io.github.saptooaji.seafood.seller.feature.store.domain.Store
@@ -31,8 +32,8 @@ data class StoreStatusUiState(
     val store: StoreStatusInfo? = null,
     /** Why another screen was refused, such as the suspension message of a 403. */
     val serverMessage: String? = null,
-    /** The last check had no connection (or a server error); the seller is still signed in. */
-    val offline: Boolean = false,
+    /** Why the last check failed, or null when it worked; the seller is still signed in. */
+    val trouble: ConnectionTrouble? = null,
     val isChecking: Boolean = false,
     val isSigningOut: Boolean = false,
     /** Where to go next; set once, then the screen navigates. */
@@ -42,7 +43,7 @@ data class StoreStatusUiState(
 enum class StoreStatusDestination { Main, OpenStore, Login }
 
 sealed interface StoreStatusEvent {
-    /** "Periksa lagi", or "Coba lagi" when offline. */
+    /** "Periksa lagi", or "Coba lagi" after a failed check. */
     data object CheckAgain : StoreStatusEvent
 
     data object SignOut : StoreStatusEvent
@@ -93,12 +94,12 @@ class StoreStatusViewModel
             when (result) {
                 is ApiResult.Success ->
                     when (val current = result.data) {
-                        CurrentStore.NoStore -> state.copy(offline = false, destination = StoreStatusDestination.OpenStore)
+                        CurrentStore.NoStore -> state.copy(trouble = null, destination = StoreStatusDestination.OpenStore)
                         is CurrentStore.Exists -> shown(state, current.store)
                     }
                 // AuthInterceptor has ended the session; the navigation is already on its way to sign-in.
                 ApiResult.Unauthorized -> state
-                else -> state.copy(offline = true)
+                else -> state.copy(trouble = ConnectionTrouble.of(result))
             }
 
         private fun shown(
@@ -107,9 +108,9 @@ class StoreStatusViewModel
         ): StoreStatusUiState {
             val info = StoreStatusInfo(store.name, store.status, store.statusLabel, store.rejectionReason)
             return if (store.status == StoreStatus.Active) {
-                state.copy(store = info, offline = false, destination = StoreStatusDestination.Main)
+                state.copy(store = info, trouble = null, destination = StoreStatusDestination.Main)
             } else {
-                state.copy(store = info, offline = false)
+                state.copy(store = info, trouble = null)
             }
         }
 

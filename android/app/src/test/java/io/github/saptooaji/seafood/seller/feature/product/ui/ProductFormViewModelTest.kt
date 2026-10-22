@@ -460,6 +460,23 @@ class ProductFormViewModelTest {
         }
 
     @Test
+    fun `a server outage keeps the form and says the server is the trouble`() =
+        runTest(main.dispatcher) {
+            products.createResult = ApiResult.ServerUnreachable
+            val vm = create()
+            advanceUntilIdle()
+            vm.fill()
+            val typed = vm.uiState.value.name
+
+            vm.onEvent(ProductFormEvent.Save)
+            advanceUntilIdle()
+
+            assertEquals(UiText.Resource(R.string.error_server), vm.uiState.value.generalError)
+            assertEquals(typed, vm.uiState.value.name)
+            assertFalse(vm.uiState.value.isSaving)
+        }
+
+    @Test
     fun `categories that fail to load can be loaded again`() =
         runTest(main.dispatcher) {
             categories.result = ApiResult.NetworkError

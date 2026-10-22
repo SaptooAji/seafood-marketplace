@@ -103,6 +103,24 @@ class StartViewModelTest {
         }
 
     @Test
+    fun `a server outage shows the server screen, not sign-in, and trying again moves on`() =
+        runTest(main.dispatcher) {
+            tokenStore.state.value = "sfm_abc"
+            repository.answerCurrent(ApiResult.ServerUnreachable, found(FakeStoreRepository.ACTIVE_STORE))
+
+            val vm = viewModel()
+            advanceUntilIdle()
+            assertEquals(StartDestination.ServerDown, vm.destination.value)
+            assertEquals("sfm_abc", tokenStore.state.value)
+
+            vm.retry()
+            advanceUntilIdle()
+
+            assertEquals(StartDestination.Main, vm.destination.value)
+            assertEquals(2, repository.currentCalls)
+        }
+
+    @Test
     fun `nothing is decided before the check finishes`() =
         runTest(main.dispatcher) {
             val vm = viewModel()

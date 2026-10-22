@@ -203,6 +203,20 @@ class RegisterViewModelTest {
             assertTrue(vm.uiState.value.canSubmit)
         }
 
+    @Test
+    fun `a server outage shows the server message, not the network one`() =
+        runTest(main.dispatcher) {
+            repository.registerResult = ApiResult.ServerUnreachable
+            val vm = viewModel()
+            vm.fill()
+
+            vm.onEvent(RegisterEvent.Submit)
+            advanceUntilIdle()
+
+            assertEquals(UiText.Resource(R.string.error_server), vm.uiState.value.generalError)
+            assertTrue(vm.uiState.value.canSubmit)
+        }
+
     // --- Edge cases -------------------------------------------------------
 
     @Test

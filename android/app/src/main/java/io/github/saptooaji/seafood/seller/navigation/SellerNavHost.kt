@@ -57,7 +57,7 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
                         StartDestination.OpenStore -> navController.startOver(OpenStoreRoute)
                         StartDestination.StoreStatus -> navController.startOver(StoreStatusRoute())
                         StartDestination.Main -> navController.startOver(MainRoute())
-                        StartDestination.Checking, StartDestination.Offline -> Unit
+                        StartDestination.Checking, StartDestination.Offline, StartDestination.ServerDown -> Unit
                     }
                 },
             )

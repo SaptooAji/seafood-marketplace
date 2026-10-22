@@ -42,6 +42,12 @@ sealed interface ApiResult<out T> {
     /** 5xx, or an answer the app cannot read. */
     data object ServerError : ApiResult<Nothing>
 
-    /** No connection, or the server did not answer in time. */
+    /**
+     * The server did not answer (refused, timed out, host not found) while
+     * the phone itself is online: the trouble is ours, not the seller's (#277).
+     */
+    data object ServerUnreachable : ApiResult<Nothing>
+
+    /** No answer, and the phone has no working internet connection. */
     data object NetworkError : ApiResult<Nothing>
 }

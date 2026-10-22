@@ -29,17 +29,22 @@ object HttpClients {
     /**
      * @param debugLogger where HTTP logs go in a debug build; null in a release
      *   build, where nothing is logged (MOB-4)
+     * @param deviceNetwork tells a server outage from no connection when a
+     *   request gets no answer (#277); null treats every such failure as no
+     *   connection, for tests that do not care
      */
     fun okHttpClient(
         baseUrl: HttpUrl,
         tokenStore: TokenStore,
         sessionEvents: SessionEvents,
         debugLogger: HttpLoggingInterceptor.Logger?,
+        deviceNetwork: DeviceNetwork? = null,
     ): OkHttpClient =
         OkHttpClient
             .Builder()
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .apply { if (deviceNetwork != null) addInterceptor(ReachabilityInterceptor(deviceNetwork)) }
             .addInterceptor { chain ->
                 chain.proceed(
                     chain

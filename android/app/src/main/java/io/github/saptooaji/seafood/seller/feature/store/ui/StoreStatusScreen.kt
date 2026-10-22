@@ -51,6 +51,7 @@ import io.github.saptooaji.seafood.seller.core.designsystem.embun.StatusOrb
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.StatusTone
 import io.github.saptooaji.seafood.seller.core.designsystem.embun.TextPillButton
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.SeafoodTheme
+import io.github.saptooaji.seafood.seller.core.network.ConnectionTrouble
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreStatus
 
 /** The store status destination: wires [StoreStatusViewModel] to the stateless screen. */
@@ -111,14 +112,16 @@ fun StoreStatusScreen(
             val store = uiState.store
             when {
                 store != null -> StoreStatusContent(store, uiState, onEvent, onStartProducts)
-                uiState.offline ->
-                    OfflineContent(onRetry = {
-                        onEvent(StoreStatusEvent.CheckAgain)
-                    }, retryModifier = Modifier.testTag(StoreStatusTags.RETRY))
+                uiState.trouble != null ->
+                    OfflineContent(
+                        onRetry = { onEvent(StoreStatusEvent.CheckAgain) },
+                        retryModifier = Modifier.testTag(StoreStatusTags.RETRY),
+                        trouble = uiState.trouble,
+                    )
                 // Loading: the gradient alone, as the start screen shows it.
                 else -> Unit
             }
-            if (store != null || uiState.offline) {
+            if (store != null || uiState.trouble != null) {
                 TextPillButton(
                     text = stringResource(if (uiState.isSigningOut) R.string.signing_out else R.string.sign_out),
                     onClick = { onEvent(StoreStatusEvent.SignOut) },
@@ -159,8 +162,9 @@ private fun StoreStatusContent(
         enabled = !uiState.isChecking && !uiState.isSigningOut,
         modifier = Modifier.testTag(StoreStatusTags.CHECK_AGAIN),
     )
-    if (uiState.offline) {
-        Text(text = stringResource(R.string.offline_body), style = MaterialTheme.typography.bodyMedium, color = EmbunColors.WarnContent)
+    uiState.trouble?.let { trouble ->
+        val text = if (trouble == ConnectionTrouble.Server) R.string.error_server else R.string.offline_body
+        Text(text = stringResource(text), style = MaterialTheme.typography.bodyMedium, color = EmbunColors.WarnContent)
     }
 }
 

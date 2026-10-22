@@ -208,6 +208,20 @@ class LoginViewModelTest {
         }
 
     @Test
+    fun `a server outage shows the server message, not the network one`() =
+        runTest(main.dispatcher) {
+            repository.loginResult = ApiResult.ServerUnreachable
+            val vm = viewModel()
+            vm.fill("budi@example.com", "rahasia123")
+
+            vm.onEvent(LoginEvent.Submit)
+            advanceUntilIdle()
+
+            assertEquals(UiText.Resource(R.string.error_server), vm.uiState.value.generalError)
+            assertTrue(vm.uiState.value.canSubmit)
+        }
+
+    @Test
     fun `a server error shows a general message`() =
         runTest(main.dispatcher) {
             repository.loginResult = ApiResult.ServerError

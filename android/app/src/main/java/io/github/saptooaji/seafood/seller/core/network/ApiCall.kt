@@ -22,6 +22,8 @@ suspend fun <T> apiCall(
         call().toApiResult(json)
     } catch (e: CancellationException) {
         throw e
+    } catch (_: ServerUnreachableException) {
+        ApiResult.ServerUnreachable
     } catch (_: IOException) {
         ApiResult.NetworkError
     } catch (_: SerializationException) {

@@ -206,6 +206,17 @@ class ProductListViewModelTest {
     // --- Errors ---------------------------------------------------------
 
     @Test
+    fun `a server outage on page 1 says the server is the trouble`() =
+        runTest(main.dispatcher) {
+            products.answers[1] = ApiResult.ServerUnreachable
+            val vm = viewModel()
+            advanceUntilIdle()
+
+            assertEquals(ProductListContent.Error, vm.uiState.value.content)
+            assertEquals(UiText.Resource(R.string.error_server), vm.uiState.value.error)
+        }
+
+    @Test
     fun `no connection on page 1 shows the error and trying again loads it`() =
         runTest(main.dispatcher) {
             products.answers[1] = ApiResult.NetworkError

@@ -57,9 +57,13 @@ object EmbunColors {
     val HaloCalm = Color(0xFFCFE3D7)
     val HaloDanger = Color(0xFFFCE9E6)
     val HaloNeutral = Color(0xFFECE6DA)
+    val HaloWarm = Color(0xFFF6DECB)
 }
 
-/** The mood of a status: calm green while waiting, red when refused, sand when offline. */
+/**
+ * The mood of a status: calm green while waiting, red when refused, grey sand
+ * when the phone is offline, warm sand when our server is down.
+ */
 enum class StatusTone(
     internal val halo: Color,
     internal val icon: Color,
@@ -69,4 +73,5 @@ enum class StatusTone(
     Calm(EmbunColors.HaloCalm, Primary700, EmbunColors.WarnBackground, EmbunColors.WarnContent),
     Danger(EmbunColors.HaloDanger, EmbunColors.DangerContent, EmbunColors.DangerBackground, EmbunColors.DangerContent),
     Neutral(EmbunColors.HaloNeutral, EmbunColors.Muted, EmbunColors.GlassStrong, EmbunColors.Muted),
+    Warm(EmbunColors.HaloWarm, EmbunColors.WarnContent, EmbunColors.WarnBackground, EmbunColors.WarnContent),
 }
