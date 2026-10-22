@@ -35,7 +35,7 @@ class DeleteVariant
                 ->exists();
 
             if (! $hasOthers) {
-                throw new InvalidProductData('variant', 'Produk perlu minimal satu varian. Nonaktifkan produk kalau sedang tidak dijual.');
+                throw new InvalidProductData('variant', 'Produk perlu minimal satu ukuran. Matikan produk kalau sedang tidak dijual.');
             }
 
             $variant->delete();

@@ -248,7 +248,7 @@ describe('DELETE /seller/variants/{id}', function () {
 
         $this->deleteJson(SELLER_VARIANTS_URL.'/'.$this->variant->id)
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['variant' => 'Produk perlu minimal satu varian. Nonaktifkan produk kalau sedang tidak dijual.']);
+            ->assertJsonValidationErrors(['variant' => 'Produk perlu minimal satu ukuran. Matikan produk kalau sedang tidak dijual.']);
 
         $this->assertNotSoftDeleted($this->variant);
     })->with([
