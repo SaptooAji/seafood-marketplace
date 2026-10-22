@@ -136,7 +136,11 @@ class DescriptionSuggestionRepositoryTest {
 
         val request = server.takeRequest()
         assertEquals("Bearer sfm_abc", request.headers["Authorization"])
-        val names = request.headers.names().map { it.lowercase() }.toSet()
+        val names =
+            request.headers
+                .names()
+                .map { it.lowercase() }
+                .toSet()
         assertTrue(ALLOWED_HEADERS.containsAll(names), "unexpected headers: ${names - ALLOWED_HEADERS}")
         val body = Json.parseToJsonElement(request.body!!.utf8()).jsonObject
         assertTrue(body.keys.none { "key" in it || "token" in it || "secret" in it }, "body keys: ${body.keys}")
@@ -195,7 +199,8 @@ class DescriptionSuggestionRepositoryTest {
 
     private companion object {
         const val SUGGESTION_JSON =
-            """{"data":{"description":"Kepiting bakau jantan grade super dari tambak Muara Angke.","seo_description":"Kepiting bakau jantan grade super 300–400 g."}}"""
+            """{"data":{"description":"Kepiting bakau jantan grade super dari tambak Muara Angke.",""" +
+                """"seo_description":"Kepiting bakau jantan grade super 300–400 g."}}"""
 
         /** What OkHttp and the app's own interceptors add; anything else would be a leak. */
         val ALLOWED_HEADERS =

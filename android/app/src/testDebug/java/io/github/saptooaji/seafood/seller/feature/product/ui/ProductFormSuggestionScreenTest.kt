@@ -115,7 +115,11 @@ class ProductFormSuggestionScreenTest {
 
     @Test
     fun aConnectionErrorOffersToTryAgain() {
-        show(ready.copy(suggestion = SuggestionSheet.Failed(UiText.Raw("Tidak ada koneksi. Periksa internet lalu coba lagi."), canRetry = true)))
+        show(
+            ready.copy(
+                suggestion = SuggestionSheet.Failed(UiText.Raw("Tidak ada koneksi. Periksa internet lalu coba lagi."), canRetry = true),
+            ),
+        )
 
         compose.onNodeWithText("Tidak ada koneksi. Periksa internet lalu coba lagi.").assertExists()
         compose.onNodeWithText("Tutup").assertExists()

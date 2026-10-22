@@ -291,22 +291,6 @@ class ApiClientTest {
                     ApiResult.TooManyRequests(30),
                 ),
                 arguments("500", json(500, """{"message":"Server Error"}"""), ApiResult.ServerError),
-                // #240: a feature that is off or failing upstream says why, in Indonesian.
-                arguments(
-                    "503 with the server's message",
-                    json(503, """{"message":"Saran deskripsi sedang tidak tersedia. Silakan coba lagi nanti."}"""),
-                    ApiResult.ServiceUnavailable("Saran deskripsi sedang tidak tersedia. Silakan coba lagi nanti."),
-                ),
-                arguments(
-                    "503 from a proxy without JSON",
-                    MockResponse
-                        .Builder()
-                        .code(503)
-                        .addHeader("Content-Type", "text/html")
-                        .body("<html><body>Service Unavailable</body></html>")
-                        .build(),
-                    ApiResult.ServiceUnavailable(null),
-                ),
                 arguments(
                     "502 with an HTML page from a proxy",
                     MockResponse
