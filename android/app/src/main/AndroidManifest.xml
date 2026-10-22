@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Tells a server outage from no connection when a request fails (#277);
+         a normal permission, granted without a prompt. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Centres the store map on the seller once, asked for when "Lokasi saya" is
          pressed; never in the background. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

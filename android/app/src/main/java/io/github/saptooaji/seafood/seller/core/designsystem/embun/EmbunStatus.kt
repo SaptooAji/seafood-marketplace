@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import io.github.saptooaji.seafood.seller.R
 import io.github.saptooaji.seafood.seller.core.designsystem.theme.PillShape
+import io.github.saptooaji.seafood.seller.core.network.ConnectionTrouble
 
 /**
  * The large round sign at the top of a status screen: a soft halo of [tone]
@@ -140,22 +141,32 @@ fun TextPillButton(
 }
 
 /**
- * A whole screen saying there is no connection, with a button to try again.
- * The seller stays signed in.
+ * A whole screen saying the phone has no connection, or with [trouble] Server
+ * that our server is down (#277), with a button to try again. The seller
+ * stays signed in.
  */
 @Composable
 fun OfflineContent(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     retryModifier: Modifier = Modifier,
+    trouble: ConnectionTrouble = ConnectionTrouble.NoInternet,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        StatusOrb(icon = R.drawable.ic_status_offline, label = stringResource(R.string.offline_title), tone = StatusTone.Neutral)
-        StatusHeading(title = stringResource(R.string.offline_title), body = stringResource(R.string.offline_body))
+        when (trouble) {
+            ConnectionTrouble.NoInternet -> {
+                StatusOrb(icon = R.drawable.ic_status_offline, label = stringResource(R.string.offline_title), tone = StatusTone.Neutral)
+                StatusHeading(title = stringResource(R.string.offline_title), body = stringResource(R.string.offline_body))
+            }
+            ConnectionTrouble.Server -> {
+                StatusOrb(icon = R.drawable.ic_status_server, label = stringResource(R.string.server_down_badge), tone = StatusTone.Warm)
+                StatusHeading(title = stringResource(R.string.server_down_title), body = stringResource(R.string.server_down_body))
+            }
+        }
         PrimaryPillButton(text = stringResource(R.string.offline_retry), onClick = onRetry, modifier = retryModifier)
     }
 }

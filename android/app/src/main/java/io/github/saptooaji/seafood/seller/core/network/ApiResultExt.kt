@@ -11,5 +11,6 @@ inline fun <T, R> ApiResult<T>.map(transform: (T) -> R): ApiResult<R> =
         is ApiResult.Conflict -> this
         is ApiResult.TooManyRequests -> this
         ApiResult.ServerError -> ApiResult.ServerError
+        ApiResult.ServerUnreachable -> ApiResult.ServerUnreachable
         ApiResult.NetworkError -> ApiResult.NetworkError
     }

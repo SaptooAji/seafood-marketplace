@@ -4,7 +4,8 @@ import io.github.saptooaji.seafood.seller.core.network.ApiResult
 import io.github.saptooaji.seafood.seller.feature.store.domain.CurrentStore
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreStatus
 
-enum class StartDestination { Checking, Login, OpenStore, StoreStatus, Main, Offline }
+/** [Offline]: the phone has no internet. [ServerDown]: it has, but our server failed (#277). */
+enum class StartDestination { Checking, Login, OpenStore, StoreStatus, Main, Offline, ServerDown }
 
 /**
  * Where a seller lands after the app opens or after signing in. The server
@@ -21,8 +22,9 @@ object StartDestinationResolver {
             // AuthInterceptor has already deleted a refused token.
             store is ApiResult.Unauthorized -> StartDestination.Login
             store is ApiResult.Success -> forStore(store.data)
-            // No connection or a server error: the seller stays signed in and tries again.
-            else -> StartDestination.Offline
+            // The seller stays signed in and tries again.
+            store is ApiResult.NetworkError -> StartDestination.Offline
+            else -> StartDestination.ServerDown
         }
 
     private fun forStore(store: CurrentStore): StartDestination =
@@ -32,3 +34,6 @@ object StartDestinationResolver {
                 if (store.store.status == StoreStatus.Active) StartDestination.Main else StartDestination.StoreStatus
         }
 }
+
+/** The phone is offline or our server is down: the start screen stays to try again. */
+fun StartDestination.isTrouble(): Boolean = this == StartDestination.Offline || this == StartDestination.ServerDown

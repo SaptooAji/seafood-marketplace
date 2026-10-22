@@ -106,6 +106,11 @@
     <string name="offline_body">Periksa internet lalu coba lagi. Anda tetap masuk.</string>
     <string name="offline_retry">Coba lagi</string>
 
+    <!-- The phone is online but our server is down (#277, board VD-Status-Toko, server bermasalah) -->
+    <string name="server_down_badge">Server bermasalah</string>
+    <string name="server_down_title">Server sedang bermasalah</string>
+    <string name="server_down_body">Internet Anda tersambung. Masalahnya ada di pihak kami, coba lagi sebentar lagi. Anda tetap masuk.</string>
+
     <!-- Store status (VD-Status-Toko) -->
     <string name="store_status_pending_badge">Diperiksa admin</string>
     <string name="store_status_pending_title">Toko Anda sedang diperiksa</string>

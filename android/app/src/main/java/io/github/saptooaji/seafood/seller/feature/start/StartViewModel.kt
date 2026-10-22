@@ -15,8 +15,8 @@ import javax.inject.Inject
 /**
  * Decides where the app opens. Without a token: sign-in, with no API call.
  * With one: `GET seller/store` both checks the token and tells the store's
- * status ([StartDestinationResolver]). Without a connection the seller stays
- * signed in and sees a screen to try again.
+ * status ([StartDestinationResolver]). Without a connection, or with our
+ * server down, the seller stays signed in and sees a screen to try again.
  */
 @HiltViewModel
 class StartViewModel
@@ -33,7 +33,7 @@ class StartViewModel
         }
 
         fun retry() {
-            if (_destination.value != StartDestination.Offline) return
+            if (!_destination.value.isTrouble()) return
             _destination.value = StartDestination.Checking
             check()
         }
