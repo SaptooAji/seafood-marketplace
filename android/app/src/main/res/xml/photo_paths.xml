@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the FileProvider may share (#241, MOB-8): only the cache photo folder,
+     for the camera app to write one shot into. -->
+<paths>
+    <cache-path name="photos" path="photos/" />
+</paths>

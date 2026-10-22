@@ -47,18 +47,29 @@ import io.github.saptooaji.seafood.seller.feature.product.domain.SalesMode
 
 /**
  * The product form destination: wires [ProductFormViewModel] to the
- * stateless screen and leaves once the form says how it ended.
+ * stateless screen and leaves once the form says how it ended. A picked
+ * photo goes to the crop screen ([onCropPhoto]); what comes back as
+ * [preparedPhoto] is uploaded, then [onPreparedPhotoTaken] clears it.
  */
 @Composable
 fun ProductFormScreen(
     onDone: (ProductFormResult) -> Unit,
+    onCropPhoto: (String) -> Unit,
+    preparedPhoto: String?,
+    onPreparedPhotoTaken: () -> Unit,
     viewModel: ProductFormViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(uiState.result) {
         uiState.result?.let(onDone)
     }
-    ProductFormScreen(uiState = uiState, onEvent = viewModel::onEvent)
+    LaunchedEffect(preparedPhoto) {
+        if (preparedPhoto != null) {
+            viewModel.onEvent(ProductFormEvent.PhotoPrepared(preparedPhoto))
+            onPreparedPhotoTaken()
+        }
+    }
+    ProductFormScreen(uiState = uiState, onEvent = viewModel::onEvent, onAddPhoto = rememberPhotoPicker(onCropPhoto))
 }
 
 /**
@@ -71,8 +82,10 @@ fun ProductFormScreen(
     uiState: ProductFormUiState,
     onEvent: (ProductFormEvent) -> Unit,
     modifier: Modifier = Modifier,
+    onAddPhoto: (PhotoSource) -> Unit = {},
 ) {
     var pickingCategory by rememberSaveable { mutableStateOf(false) }
+    var pickingPhotoSource by rememberSaveable { mutableStateOf(false) }
     BackHandler { onEvent(ProductFormEvent.Back) }
 
     EmbunBackground(modifier.fillMaxSize()) {
@@ -91,7 +104,15 @@ fun ProductFormScreen(
                     FormTopBar(title, onEvent)
                     LoadingContent()
                 }
-                else -> FormContent(uiState, title, onEvent, onPickCategory = { pickingCategory = true }, Modifier.weight(1f))
+                else ->
+                    FormContent(
+                        uiState,
+                        title,
+                        onEvent,
+                        onPickCategory = { pickingCategory = true },
+                        onAddPhoto = { if (uiState.canAddPhoto) pickingPhotoSource = true },
+                        modifier = Modifier.weight(1f),
+                    )
             }
         }
 
@@ -108,6 +129,15 @@ fun ProductFormScreen(
         }
         uiState.variantSheet?.let { VariantEditSheet(uiState, it, onEvent) }
         uiState.variantToDelete?.let { DeleteVariantSheet(it, onEvent) }
+        PhotoSheets(
+            uiState = uiState,
+            onEvent = onEvent,
+            pickingSource = pickingPhotoSource,
+            onSourcePicked = { source ->
+                pickingPhotoSource = false
+                source?.let(onAddPhoto)
+            },
+        )
         uiState.suggestion?.let { SuggestionSheetContent(it, onEvent) }
         if (uiState.showDeleteDialog) DeleteSheet(uiState.name, onEvent)
         if (uiState.showDiscardDialog) DiscardSheet(onEvent)
@@ -133,6 +163,7 @@ private fun FormContent(
     title: String,
     onEvent: (ProductFormEvent) -> Unit,
     onPickCategory: () -> Unit,
+    onAddPhoto: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scroll = rememberScrollState()
@@ -152,6 +183,7 @@ private fun FormContent(
             if (uiState.isBlocked) {
                 GlassBanner(text = stringResource(R.string.product_form_blocked, uiState.blockReason.orEmpty()), tone = BannerTone.Danger)
             }
+            PhotoSection(uiState, onEvent, onAddPhoto)
             CategorySection(uiState, onEvent, onPickCategory, positions)
             StorySection(uiState, onEvent, positions)
             SellingSection(uiState, onEvent, positions)

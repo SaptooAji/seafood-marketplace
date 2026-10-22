@@ -59,7 +59,7 @@ data class ProductDto(
             isBlocked = blocked,
             blockReason = blockReason,
             variants = variants.map { it.toDomain() },
-            images = images.map { ProductImage(it.id, it.url, it.thumbnailUrl) },
+            images = images.map { it.toDomain() },
         )
 }
 
@@ -95,11 +95,20 @@ data class UnitDto(
     val label: String,
 )
 
+/** `ProductImageResource`; `sort_order` is left out, since the list comes in order. */
 @Serializable
 data class ImageDto(
     val id: Long,
     val url: String,
     @SerialName("thumbnail_url") val thumbnailUrl: String,
+) {
+    fun toDomain() = ProductImage(id, url, thumbnailUrl)
+}
+
+/** The body of `PUT seller/products/{id}/images/order`: every photo id, first is main. */
+@Serializable
+data class ImageOrderRequest(
+    @SerialName("image_ids") val imageIds: List<Long>,
 )
 
 /**
@@ -231,6 +240,7 @@ data class ProductDetailDto(
     @SerialName("block_reason") val blockReason: String? = null,
     val category: CategoryDto,
     val variants: List<VariantDto>,
+    val images: List<ImageDto> = emptyList(),
     val attributes: List<AttributeDto>? = null,
 ) {
     fun toDomain() =
@@ -259,5 +269,6 @@ data class ProductDetailDto(
             isBlocked = blocked,
             blockReason = blockReason,
             variants = variants.map { it.toDomain() },
+            images = images.map { it.toDomain() },
         )
 }

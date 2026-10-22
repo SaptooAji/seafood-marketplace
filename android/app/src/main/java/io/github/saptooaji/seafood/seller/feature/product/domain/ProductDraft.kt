@@ -52,6 +52,8 @@ data class ProductDetail(
     val isBlocked: Boolean,
     val blockReason: String?,
     val variants: List<ProductVariant>,
+    /** In their order; the first is the main photo (#241). */
+    val images: List<ProductImage> = emptyList(),
 )
 
 enum class ProductCondition(

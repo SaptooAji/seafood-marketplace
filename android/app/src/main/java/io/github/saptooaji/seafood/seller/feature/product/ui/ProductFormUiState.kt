@@ -92,6 +92,15 @@ data class ProductFormUiState(
     val variantMessage: UiText? = null,
     val isBlocked: Boolean = false,
     val blockReason: String? = null,
+    /** The product's photos in order, saved or on their way (#241); the first is the main photo. */
+    val photos: List<FormPhoto> = emptyList(),
+    /** Shown under the photo row until the next photo action: a stopped queue, a failed reorder or delete. */
+    val photoNotice: UiText? = null,
+    /** The saved photo whose actions sheet is open. */
+    val photoActions: String? = null,
+    /** The saved photo whose delete waits for the seller's confirmation. */
+    val photoToDelete: String? = null,
+    val isReorderingPhotos: Boolean = false,
     /** The AI description sheet (#240, board VD-Saran-AI); null while closed. */
     val suggestion: SuggestionSheet? = null,
     val errors: Map<FormField, UiText> = emptyMap(),
@@ -117,6 +126,16 @@ data class ProductFormUiState(
 
     /** The name, category, or condition is still missing; the button says so. */
     val lacksWhatTheAiNeeds: Boolean get() = name.isBlank() || categoryId == null || condition == null
+
+    /** A saved product takes up to [MAX_PHOTOS], counting those on their way; a new one gets photos in #282. */
+    val canAddPhoto: Boolean get() = isEdit && !isLoading && photos.size < MAX_PHOTOS
+
+    /**
+     * The order is sent whole, so it waits while an upload would add a photo
+     * the list does not have yet, and while another reorder runs.
+     */
+    val canReorderPhotos: Boolean
+        get() = !isReorderingPhotos && photos.none { it is PendingPhoto && it.status.isWaitingToSend }
 
     /** The server takes up to [MAX_VARIANTS]; one add at a time, so the count stays right. */
     val canAddVariant: Boolean get() = isEdit && !isAddingVariant && variants.size < MAX_VARIANTS
@@ -327,4 +346,48 @@ sealed interface ProductFormEvent {
 
     /** Closes the sheet and drops a request still running; the form is left as it was. */
     data object DismissSuggestion : ProductFormEvent
+
+    // The photos of a saved product (#241).
+
+    /** A photo from the crop screen, prepared in the cache at [path], to upload. */
+    data class PhotoPrepared(
+        val path: String,
+    ) : ProductFormEvent
+
+    data class RetryPhoto(
+        val key: String,
+    ) : ProductFormEvent
+
+    /** Takes a photo that failed or waits off the row, with its cache file. */
+    data class RemovePendingPhoto(
+        val key: String,
+    ) : ProductFormEvent
+
+    /** Goes on with the photos a used-up limit held back. */
+    data object ResumeUploads : ProductFormEvent
+
+    data class OpenPhotoActions(
+        val key: String,
+    ) : ProductFormEvent
+
+    data object DismissPhotoActions : ProductFormEvent
+
+    data class MakeMainPhoto(
+        val key: String,
+    ) : ProductFormEvent
+
+    /** A saved photo dragged from index [from] to [to] in the row. */
+    data class MovePhoto(
+        val from: Int,
+        val to: Int,
+    ) : ProductFormEvent
+
+    /** Delete, from the actions sheet: asks first. */
+    data class DeletePhoto(
+        val key: String,
+    ) : ProductFormEvent
+
+    data object ConfirmDeletePhoto : ProductFormEvent
+
+    data object DismissDeletePhoto : ProductFormEvent
 }
