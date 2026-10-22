@@ -34,12 +34,25 @@ sealed interface ApiResult<out T> {
         val message: String?,
     ) : ApiResult<Nothing>
 
-    /** 429; [retryAfterSeconds] comes from the `Retry-After` header when it has one. */
+    /**
+     * 429; [retryAfterSeconds] comes from the `Retry-After` header when it has
+     * one. [message] is the server's: Indonesian from the app's own limits,
+     * English ("Too Many Attempts.") from the general API limit.
+     */
     data class TooManyRequests(
         val retryAfterSeconds: Long?,
+        val message: String? = null,
     ) : ApiResult<Nothing>
 
-    /** 5xx, or an answer the app cannot read. */
+    /**
+     * 503: a feature that is off or whose provider is failing, such as the AI
+     * description (#240). [message] is the server's, shown as is when there is one.
+     */
+    data class ServiceUnavailable(
+        val message: String?,
+    ) : ApiResult<Nothing>
+
+    /** Any other 5xx, or an answer the app cannot read. */
     data object ServerError : ApiResult<Nothing>
 
     /**

@@ -108,6 +108,7 @@ fun ProductFormScreen(
         }
         uiState.variantSheet?.let { VariantEditSheet(uiState, it, onEvent) }
         uiState.variantToDelete?.let { DeleteVariantSheet(it, onEvent) }
+        uiState.suggestion?.let { SuggestionSheetContent(it, onEvent) }
         if (uiState.showDeleteDialog) DeleteSheet(uiState.name, onEvent)
         if (uiState.showDiscardDialog) DiscardSheet(onEvent)
     }

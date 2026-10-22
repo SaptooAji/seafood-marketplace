@@ -11,6 +11,7 @@ import io.github.saptooaji.seafood.seller.feature.product.domain.CategoryReposit
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductDetail
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductRepository
 import io.github.saptooaji.seafood.seller.feature.product.domain.pathTo
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,9 @@ class ProductFormViewModel
         /** The form as loaded, to tell whether Back throws anything away. */
         private var initial: List<Any?>? = null
 
+        /** The AI request still running, dropped when the seller closes its sheet. */
+        private var suggesting: Job? = null
+
         /** The variant rows of a saved product; adding has none to edit. */
         private val variants: VariantEditor? = productId?.let { VariantEditor(it, products, _uiState, viewModelScope) }
 
@@ -57,6 +61,8 @@ class ProductFormViewModel
                 ProductFormEvent.ConfirmDelete -> delete()
                 ProductFormEvent.DismissDelete -> _uiState.update { it.copy(showDeleteDialog = false) }
                 ProductFormEvent.Retry -> if (_uiState.value.loadError != null) load()
+                ProductFormEvent.SuggestDescription, ProductFormEvent.UseSuggestion, ProductFormEvent.DismissSuggestion ->
+                    onSuggestion(event)
                 else -> if (variants?.handle(event) != true) edit { it.changedBy(event) }
             }
         }
@@ -123,6 +129,54 @@ class ProductFormViewModel
                     ApiResult.NotFound -> _uiState.update { it.copy(generalError = UiText.Resource(R.string.product_form_not_found)) }
                     else -> _uiState.update { it.copy(generalError = result.message()) }
                 }
+            }
+        }
+
+        /** The AI description sheet (#240). */
+        private fun onSuggestion(event: ProductFormEvent) {
+            when (event) {
+                ProductFormEvent.SuggestDescription -> suggest()
+                ProductFormEvent.UseSuggestion -> useSuggestion()
+                else -> {
+                    suggesting?.cancel()
+                    _uiState.update { it.copy(suggestion = null) }
+                }
+            }
+        }
+
+        /** Asks the AI with the form as it is; nothing changes until the seller uses the answer. */
+        private fun suggest() {
+            val state = _uiState.value
+            if (!state.canSuggestDescription) return
+            _uiState.update { it.copy(suggestion = SuggestionSheet.Loading) }
+            suggesting =
+                viewModelScope.launch {
+                    val result = products.suggestDescription(state.draft())
+                    val errors = (result as? ApiResult.Invalid)?.let { serverErrors(it.fieldErrors) }.orEmpty()
+                    _uiState.update {
+                        when {
+                            result is ApiResult.Success -> it.copy(suggestion = SuggestionSheet.Ready(result.data))
+                            // Something the AI needs is refused: the sheet closes and the field says what.
+                            errors.isNotEmpty() -> it.copy(suggestion = null).withErrors(errors)
+                            else -> it.copy(suggestion = result.suggestionFailure())
+                        }
+                    }
+                }
+        }
+
+        /** Fills the description and summary; over a written description, only the second tap does. */
+        private fun useSuggestion() {
+            val state = _uiState.value
+            val sheet = state.suggestion as? SuggestionSheet.Ready ?: return
+            if (state.description.isNotBlank() && !sheet.confirmReplace) {
+                _uiState.update { it.copy(suggestion = sheet.copy(confirmReplace = true)) }
+                return
+            }
+            edit {
+                it
+                    .withText(ProductTextField.Description, sheet.suggestion.description)
+                    .withText(ProductTextField.SeoDescription, sheet.suggestion.seoDescription)
+                    .copy(suggestion = null)
             }
         }
 

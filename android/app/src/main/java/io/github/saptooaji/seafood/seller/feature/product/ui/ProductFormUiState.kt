@@ -92,6 +92,8 @@ data class ProductFormUiState(
     val variantMessage: UiText? = null,
     val isBlocked: Boolean = false,
     val blockReason: String? = null,
+    /** The AI description sheet (#240, board VD-Saran-AI); null while closed. */
+    val suggestion: SuggestionSheet? = null,
     val errors: Map<FormField, UiText> = emptyMap(),
     /** An error that belongs to no field: no connection, a server error, or a product that is gone. */
     val generalError: UiText? = null,
@@ -105,6 +107,16 @@ data class ProductFormUiState(
     val result: ProductFormResult? = null,
 ) {
     val isBusy: Boolean get() = isSaving || isDeleting
+
+    /**
+     * The AI needs a name, a category, and a condition, the fields the
+     * server requires; the sales mode always has one. One request at a time.
+     */
+    val canSuggestDescription: Boolean
+        get() = !isLoading && !isBusy && !lacksWhatTheAiNeeds && suggestion != SuggestionSheet.Loading
+
+    /** The name, category, or condition is still missing; the button says so. */
+    val lacksWhatTheAiNeeds: Boolean get() = name.isBlank() || categoryId == null || condition == null
 
     /** The server takes up to [MAX_VARIANTS]; one add at a time, so the count stays right. */
     val canAddVariant: Boolean get() = isEdit && !isAddingVariant && variants.size < MAX_VARIANTS
@@ -304,4 +316,15 @@ sealed interface ProductFormEvent {
     data object DismissDeleteVariant : ProductFormEvent
 
     data object VariantMessageShown : ProductFormEvent
+
+    // The AI description (#240).
+
+    /** Asks the AI, or asks again from a failed sheet. */
+    data object SuggestDescription : ProductFormEvent
+
+    /** Fills the description and summary; over a written description, the first tap asks to confirm. */
+    data object UseSuggestion : ProductFormEvent
+
+    /** Closes the sheet and drops a request still running; the form is left as it was. */
+    data object DismissSuggestion : ProductFormEvent
 }

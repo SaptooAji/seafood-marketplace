@@ -15,6 +15,11 @@ data class CheckedProduct(
     val variant: NewVariant?,
 )
 
+/**
+ * The form as sent. After [validated] every number is valid; the AI request
+ * (#240) sends the form as it is, so a number not valid yet is left out and
+ * the server says what is missing.
+ */
 internal fun ProductFormUiState.draft(): ProductDraft {
     val preOrder = salesMode == SalesMode.PreOrder
     return ProductDraft(
@@ -24,7 +29,7 @@ internal fun ProductFormUiState.draft(): ProductDraft {
         seoDescription = seoDescription.trim().ifEmpty { null },
         condition = requireNotNull(condition),
         salesMode = salesMode,
-        dailyQuota = if (preOrder) dailyQuota.trim().toDecimal() else null,
+        dailyQuota = if (preOrder) dailyQuota.trim().toDecimalOrNull() else null,
         leadTimeDays = if (preOrder) leadTimeDays.trim().toIntOrNull() else null,
         cutoffTime = if (preOrder) cutoffTime.trim().ifEmpty { null }?.replace('.', ':') else null,
         shelfLifeDays = shelfLifeDays.trim().toIntOrNull(),

@@ -10,6 +10,7 @@ inline fun <T, R> ApiResult<T>.map(transform: (T) -> R): ApiResult<R> =
         ApiResult.NotFound -> ApiResult.NotFound
         is ApiResult.Conflict -> this
         is ApiResult.TooManyRequests -> this
+        is ApiResult.ServiceUnavailable -> this
         ApiResult.ServerError -> ApiResult.ServerError
         ApiResult.ServerUnreachable -> ApiResult.ServerUnreachable
         ApiResult.NetworkError -> ApiResult.NetworkError

@@ -45,6 +45,7 @@ object HttpClients {
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .apply { if (deviceNetwork != null) addInterceptor(ReachabilityInterceptor(deviceNetwork)) }
+            .addInterceptor(ReadTimeoutInterceptor())
             .addInterceptor { chain ->
                 chain.proceed(
                     chain

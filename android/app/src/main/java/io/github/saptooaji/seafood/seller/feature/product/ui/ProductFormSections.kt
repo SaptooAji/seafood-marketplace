@@ -139,6 +139,7 @@ fun StorySection(
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             minLines = 4,
         )
+        SuggestButton(uiState, onEvent)
         FormTextField(
             uiState,
             ProductTextField.SeoDescription,
@@ -149,6 +150,8 @@ fun StorySection(
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             minLines = 2,
             helpText = stringResource(R.string.product_form_counter, uiState.seoDescription.length, SEO_MAX),
+            // A suggestion may run over; the server refuses it on saving (#240).
+            helpIsWarning = uiState.seoDescription.length > SEO_MAX,
         )
     }
 }

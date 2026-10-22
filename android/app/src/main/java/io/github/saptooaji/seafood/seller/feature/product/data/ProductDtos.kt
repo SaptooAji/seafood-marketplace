@@ -1,5 +1,6 @@
 package io.github.saptooaji.seafood.seller.feature.product.data
 
+import io.github.saptooaji.seafood.seller.feature.product.domain.DescriptionSuggestion
 import io.github.saptooaji.seafood.seller.feature.product.domain.NewVariant
 import io.github.saptooaji.seafood.seller.feature.product.domain.Product
 import io.github.saptooaji.seafood.seller.feature.product.domain.ProductCondition
@@ -111,7 +112,7 @@ data class ImageDto(
 data class ProductRequest(
     @SerialName("category_id") val categoryId: Long,
     val name: String,
-    val description: String,
+    val description: String?,
     @SerialName("seo_description") val seoDescription: String?,
     val condition: String,
     @SerialName("sales_mode") val salesMode: String,
@@ -146,7 +147,23 @@ data class ProductRequest(
                 variants = variant?.let { listOf(NewVariantRequest.from(it)) },
             )
         }
+
+        /**
+         * The form as it is when the seller asks the AI (#240): no variants,
+         * and no description when none is written yet, since that is what
+         * is asked for.
+         */
+        fun forSuggestion(draft: ProductDraft) = from(draft, variant = null).copy(description = draft.description.ifBlank { null })
     }
+}
+
+/** The AI suggestion, `{"data":{"description","seo_description"}}`. */
+@Serializable
+data class DescriptionSuggestionDto(
+    val description: String,
+    @SerialName("seo_description") val seoDescription: String? = null,
+) {
+    fun toDomain() = DescriptionSuggestion(description, seoDescription.orEmpty())
 }
 
 /** A variant to add, alone or inside a new product; a null opening stock is left out. */
