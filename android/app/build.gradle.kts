@@ -170,4 +170,7 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
+    // The add-product flow test runs the app's Hilt graph with a fake server (#242).
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
 }
