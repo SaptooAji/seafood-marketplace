@@ -30,13 +30,13 @@ class FakeStockRepository : StockRepository {
     }
 
     companion object {
-        /** 05.40 WIB on Saturday 18 October 2026. */
+        /** 05.40 WIB on Sunday 18 October 2026. */
         val TODAY_0540: Instant = Instant.parse("2026-10-17T22:40:00Z")
 
-        /** 06.15 WIB on Friday 17 October. */
+        /** 06.15 WIB on Saturday 17 October. */
         val YESTERDAY_0615: Instant = Instant.parse("2026-10-16T23:15:00Z")
 
-        /** 06.20 WIB on Wednesday 15 October, three days before. */
+        /** 06.20 WIB on Thursday 15 October, three days before. */
         val THREE_DAYS_AGO: Instant = Instant.parse("2026-10-14T23:20:00Z")
 
         fun variant(

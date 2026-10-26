@@ -12,7 +12,7 @@ import java.time.ZonedDateTime
 class StockLabelsTest {
     private val jakarta = ZoneId.of("Asia/Jakarta")
 
-    /** 07.30 WIB on Saturday 18 October 2026. */
+    /** 07.30 WIB on Sunday 18 October 2026. */
     private val now = ZonedDateTime.of(2026, 10, 18, 7, 30, 0, 0, jakarta)
 
     @Test
@@ -56,7 +56,7 @@ class StockLabelsTest {
 
     @Test
     fun `the header names the day in Indonesian`() {
-        assertEquals("Sabtu, 18 Oktober", headerDate(now))
+        assertEquals("Minggu, 18 Oktober", headerDate(now))
     }
 
     @Test

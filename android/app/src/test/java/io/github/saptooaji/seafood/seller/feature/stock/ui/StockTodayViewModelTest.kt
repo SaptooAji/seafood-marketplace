@@ -38,7 +38,7 @@ class StockTodayViewModelTest {
 
     private val stock = FakeStockRepository()
 
-    /** 07.30 WIB on Saturday 18 October 2026. */
+    /** 07.30 WIB on Sunday 18 October 2026. */
     private val clock = Clock.fixed(Instant.parse("2026-10-18T00:30:00Z"), ZoneId.of("Asia/Jakarta"))
     private val saved = SavedStateHandle()
 

@@ -115,7 +115,10 @@ class StockRepositoryTest {
     @Test
     fun `a refused count keeps the server's field key`() {
         server.enqueue(
-            json(422, """{"message":"Stok tidak valid.","errors":{"variants.0.stock":["The variants.0.stock field must be at least 0."]}}"""),
+            json(
+                422,
+                """{"message":"Stok tidak valid.","errors":{"variants.0.stock":["The variants.0.stock field must be at least 0."]}}""",
+            ),
         )
 
         val result = io { repository.confirm(listOf(StockCount(11, BigDecimal("1")))) }

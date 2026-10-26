@@ -38,7 +38,7 @@ class StockTodayScreenTest {
     private val events = mutableListOf<StockTodayEvent>()
     private var openedProducts = false
 
-    /** 07.30 WIB on Saturday 18 October 2026. */
+    /** 07.30 WIB on Sunday 18 October 2026. */
     private val now = ZonedDateTime.of(2026, 10, 18, 7, 30, 0, 0, ZoneId.of("Asia/Jakarta"))
     private val loaded = StockTodayUiState(isLoading = false, products = FakeStockRepository.SCREEN, now = now)
 
@@ -54,7 +54,7 @@ class StockTodayScreenTest {
     fun theDayAndEveryVariantWithWhenItWasCounted() {
         show(loaded)
 
-        compose.onNodeWithText("Sabtu, 18 Oktober").assertIsDisplayed()
+        compose.onNodeWithText("Minggu, 18 Oktober").assertIsDisplayed()
         compose.onNodeWithText(context.getString(R.string.stock_summary_left, 2)).assertIsDisplayed()
         compose.onNodeWithText("2/4").assertIsDisplayed()
         compose.onNodeWithText("Kepiting Bakau Super").assertIsDisplayed()
