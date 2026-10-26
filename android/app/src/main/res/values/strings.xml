@@ -357,4 +357,35 @@
     <string name="photo_crop_use">Pakai foto ini</string>
     <string name="photo_crop_preparing">Menyiapkan foto…</string>
     <string name="photo_crop_unreadable">Foto tidak bisa dibuka. Pilih foto lain.</string>
+
+    <!-- Stok hari ini (#243) -->
+    <string name="stock_title">Stok hari ini</string>
+    <string name="stock_checked_today">Dicek %1$s</string>
+    <string name="stock_checked_yesterday">Dicek kemarin %1$s</string>
+    <string name="stock_unchecked_days">Belum dicek %1$d hari</string>
+    <string name="stock_never_checked">Belum pernah dicek</string>
+    <string name="stock_stale_badge">Belum dicek</string>
+    <string name="stock_changed_from">Diubah dari %1$s %2$s</string>
+    <string name="stock_revert">Kembalikan %1$s</string>
+    <string name="stock_summary_left">%1$d ukuran belum dicek</string>
+    <string name="stock_summary_done">Semua ukuran sudah dicek</string>
+    <string name="stock_save_same">Sama seperti kemarin</string>
+    <string name="stock_save_changes">Simpan %1$d perubahan</string>
+    <string name="stock_saving">Menyimpan…</string>
+    <string name="stock_help_same">Semua ukuran dikonfirmasi dengan stok di atas</string>
+    <string name="stock_help_changes">Ukuran lain ikut dikonfirmasi tanpa perubahan</string>
+    <string name="stock_help_fix">Perbaiki isian yang ditandai dulu</string>
+    <string name="stock_confirmed">Stok dikonfirmasi untuk %1$d ukuran, %2$s.</string>
+    <string name="stock_save_network">Tidak ada koneksi internet. Perubahanmu masih di sini; coba simpan lagi.</string>
+    <string name="stock_save_server">Server sedang bermasalah. Perubahanmu masih di sini; coba simpan lagi.</string>
+    <string name="stock_empty_title">Belum ada ukuran aktif</string>
+    <string name="stock_empty_body">Stok dihitung per ukuran produk. Tambahkan produk dan ukurannya dulu.</string>
+    <string name="stock_open_products">Buka produk</string>
+    <string name="stock_error_decimals">Paling banyak 3 angka di belakang koma.</string>
+    <string name="stock_error_negative">Stok tidak boleh kurang dari 0.</string>
+    <string name="stock_error_number">Isi angka, misalnya 12 atau 6,5.</string>
+    <string name="stock_error_too_big">Stok paling banyak 9.999.999,999.</string>
+    <string name="stock_decrease">Kurangi stok %1$s</string>
+    <string name="stock_increase">Tambah stok %1$s</string>
+    <string name="stock_field">Stok %1$s</string>
 </resources>

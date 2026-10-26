@@ -74,21 +74,25 @@ object MainTags {
 
 /**
  * The main screens of an active store, or of a pending one that already adds
- * products. The chosen tab survives a rotation. Stok and Pengaturan are
- * placeholders until their features arrive (#243, #245).
+ * products. The chosen tab survives a rotation. Pengaturan is a placeholder
+ * until its feature arrives (#245).
  *
  * @param storePending shows the "menunggu verifikasi" banner with a link to the status
+ * @param initialTab the tab shown first, such as Stok from the `stock/today` route
  * @param productsTab the Produk tab, given the banner to show under its header;
  *   null shows the placeholder, as in tests of the shell alone
+ * @param stockTab the Stok tab, given the banner and a way to the Produk tab
  */
 @Composable
 fun MainShell(
     storePending: Boolean,
     onStoreStatus: () -> Unit,
     modifier: Modifier = Modifier,
+    initialTab: MainTab = MainTab.Products,
     productsTab: (@Composable (banner: @Composable () -> Unit) -> Unit)? = null,
+    stockTab: (@Composable (banner: @Composable () -> Unit, openProducts: () -> Unit) -> Unit)? = null,
 ) {
-    var tab by rememberSaveable { mutableStateOf(MainTab.Products) }
+    var tab by rememberSaveable { mutableStateOf(initialTab) }
     MainShell(
         tab = tab,
         onTab = { tab = it },
@@ -96,6 +100,7 @@ fun MainShell(
         onStoreStatus = onStoreStatus,
         modifier = modifier,
         productsTab = productsTab,
+        stockTab = stockTab,
     )
 }
 
@@ -107,6 +112,7 @@ fun MainShell(
     onStoreStatus: () -> Unit,
     modifier: Modifier = Modifier,
     productsTab: (@Composable (banner: @Composable () -> Unit) -> Unit)? = null,
+    stockTab: (@Composable (banner: @Composable () -> Unit, openProducts: () -> Unit) -> Unit)? = null,
 ) {
     val banner: @Composable () -> Unit = {
         if (storePending) {
@@ -124,10 +130,10 @@ fun MainShell(
     }
 
     EmbunBackground(modifier.fillMaxSize()) {
-        if (tab == MainTab.Products && productsTab != null) {
-            productsTab(banner)
-        } else {
-            Placeholder(tab, banner)
+        when {
+            tab == MainTab.Products && productsTab != null -> productsTab(banner)
+            tab == MainTab.Stock && stockTab != null -> stockTab(banner) { onTab(MainTab.Products) }
+            else -> Placeholder(tab, banner)
         }
 
         TabCapsule(
