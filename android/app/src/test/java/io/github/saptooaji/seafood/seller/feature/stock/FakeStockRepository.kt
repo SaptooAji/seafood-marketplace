@@ -45,7 +45,6 @@ class FakeStockRepository : StockRepository {
             stock: String,
             unit: VariantUnit = VariantUnit.Kg,
             confirmedAt: Instant? = TODAY_0540,
-            isStale: Boolean = false,
         ) = StockVariant(
             id = id,
             name = name,
@@ -53,13 +52,14 @@ class FakeStockRepository : StockRepository {
             unitLabel = if (unit == VariantUnit.Kg) "Kg" else "Pcs",
             stock = BigDecimal(stock),
             confirmedAt = confirmedAt,
-            isStale = isStale,
+            // As the server judges it here: only a variant never counted is stale.
+            isStale = confirmedAt == null,
         )
 
         /** Ids 11-12 and 21 are kg, 31 is per piece; Rajungan Super is out of stock. */
         val KEPITING_300 = variant(11, "300–400 g per ekor", "12.000")
         val KEPITING_400 = variant(12, "400–500 g per ekor", "6.500")
-        val RAJUNGAN_SUPER = variant(21, "Super", "0.000", confirmedAt = null, isStale = true)
+        val RAJUNGAN_SUPER = variant(21, "Super", "0.000", confirmedAt = null)
         val KAKAP_UTUH = variant(31, "Utuh 1 kg", "2.000", VariantUnit.Piece, confirmedAt = YESTERDAY_0615)
 
         val SCREEN =
