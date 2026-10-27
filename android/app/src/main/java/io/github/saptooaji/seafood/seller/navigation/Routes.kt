@@ -1,5 +1,6 @@
 package io.github.saptooaji.seafood.seller.navigation
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Checks the stored token and the store, then moves on to where the seller belongs. */
@@ -39,6 +40,14 @@ data class StoreStatusRoute(
 data class MainRoute(
     val storePending: Boolean = false,
 )
+
+/**
+ * The main screens on the Stok tab (#243). Its route is fixed as
+ * `stock/today`, so the stock reminder (Tahap 6) can open it.
+ */
+@Serializable
+@SerialName("stock/today")
+data object StockTodayRoute
 
 /** Adding a product, opened from the products tab. */
 @Serializable

@@ -1,5 +1,7 @@
 package io.github.saptooaji.seafood.seller.feature.main.ui
 
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -54,6 +56,27 @@ class MainShellTest {
         compose.onNodeWithTag(MainTags.STORE_STATUS).performClick()
 
         assertEquals(1, statusClicks)
+    }
+
+    @Test
+    fun theStockTabCanOpenFirstAndSendTheSellerToProducts() {
+        compose.setContent {
+            SeafoodTheme {
+                MainShell(
+                    storePending = false,
+                    onStoreStatus = {},
+                    initialTab = MainTab.Stock,
+                    productsTab = { Text("daftar produk") },
+                    stockTab = { _, openProducts -> Button(onClick = openProducts) { Text("buka produk") } },
+                )
+            }
+        }
+
+        compose.onNodeWithTag(MainTags.TAB_STOCK).assertIsSelected()
+        compose.onNodeWithText("buka produk").performClick()
+
+        compose.onNodeWithTag(MainTags.TAB_PRODUCTS).assertIsSelected()
+        compose.onNodeWithText("daftar produk").assertIsDisplayed()
     }
 
     @Test
