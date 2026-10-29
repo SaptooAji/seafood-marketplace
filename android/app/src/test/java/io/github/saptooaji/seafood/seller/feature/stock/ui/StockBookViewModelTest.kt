@@ -293,7 +293,13 @@ class StockBookViewModelTest {
         vm.onEvent(StockBookEvent.SaveRecord)
         advanceUntilIdle()
 
-        assertEquals(error, vm.state.record?.errors?.get(field), case)
+        assertEquals(
+            error,
+            vm.state.record
+                ?.errors
+                ?.get(field),
+            case,
+        )
         assertTrue(stock.recorded.isEmpty())
     }
 
@@ -307,7 +313,12 @@ class StockBookViewModelTest {
             vm.onEvent(StockBookEvent.SaveRecord)
             advanceUntilIdle()
 
-            assertEquals(UiText.Resource(R.string.stock_record_error_variant), vm.state.record?.errors?.get(RecordField.Variant))
+            assertEquals(
+                UiText.Resource(R.string.stock_record_error_variant),
+                vm.state.record
+                    ?.errors
+                    ?.get(RecordField.Variant),
+            )
             assertTrue(stock.recorded.isEmpty())
         }
 
@@ -316,11 +327,19 @@ class StockBookViewModelTest {
         runTest(main.dispatcher) {
             val vm = recording(StockMovementType.Shrinkage)
             vm.onEvent(StockBookEvent.SaveRecord)
-            assertTrue(vm.state.record?.errors?.containsKey(RecordField.Qty) == true)
+            assertTrue(
+                vm.state.record
+                    ?.errors
+                    ?.containsKey(RecordField.Qty) == true,
+            )
 
             vm.type(RecordField.Qty, "1")
 
-            assertNull(vm.state.record?.errors?.get(RecordField.Qty))
+            assertNull(
+                vm.state.record
+                    ?.errors
+                    ?.get(RecordField.Qty),
+            )
         }
 
     @Test
@@ -333,7 +352,12 @@ class StockBookViewModelTest {
             vm.onEvent(StockBookEvent.SaveRecord)
             advanceUntilIdle()
 
-            assertEquals(UiText.Raw("Stok tidak cukup: sekarang 12 kg."), vm.state.record?.errors?.get(RecordField.Qty))
+            assertEquals(
+                UiText.Raw("Stok tidak cukup: sekarang 12 kg."),
+                vm.state.record
+                    ?.errors
+                    ?.get(RecordField.Qty),
+            )
             assertFalse(vm.state.record?.isSaving ?: true)
             assertEquals("15", vm.state.record?.qty)
         }
@@ -391,8 +415,20 @@ class StockBookViewModelTest {
             listOf(
                 Arguments.of("no quantity", StockMovementType.StockIn, RecordField.Qty, "", refused(R.string.stock_record_error_qty)),
                 Arguments.of("zero", StockMovementType.StockIn, RecordField.Qty, "0", refused(R.string.stock_record_error_zero)),
-                Arguments.of("four decimals", StockMovementType.Shrinkage, RecordField.Qty, "1,2345", refused(R.string.stock_error_decimals)),
-                Arguments.of("minus on stock in", StockMovementType.StockIn, RecordField.Qty, "-2", refused(R.string.stock_record_error_minus)),
+                Arguments.of(
+                    "four decimals",
+                    StockMovementType.Shrinkage,
+                    RecordField.Qty,
+                    "1,2345",
+                    refused(R.string.stock_error_decimals),
+                ),
+                Arguments.of(
+                    "minus on stock in",
+                    StockMovementType.StockIn,
+                    RecordField.Qty,
+                    "-2",
+                    refused(R.string.stock_record_error_minus),
+                ),
                 Arguments.of("not a number", StockMovementType.SaleOffline, RecordField.Qty, "dua", refused(R.string.stock_error_number)),
                 Arguments.of(
                     "a supplier of 256 characters",
@@ -401,7 +437,13 @@ class StockBookViewModelTest {
                     "a".repeat(256),
                     UiText.Resource(R.string.stock_record_error_too_long, listOf(255)),
                 ),
-                Arguments.of("a negative cost", StockMovementType.StockIn, RecordField.UnitCost, "-1", refused(R.string.stock_record_error_cost)),
+                Arguments.of(
+                    "a negative cost",
+                    StockMovementType.StockIn,
+                    RecordField.UnitCost,
+                    "-1",
+                    refused(R.string.stock_record_error_cost),
+                ),
                 Arguments.of(
                     "a cost above 100 million",
                     StockMovementType.StockIn,

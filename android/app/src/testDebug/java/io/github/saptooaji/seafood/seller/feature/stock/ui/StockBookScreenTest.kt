@@ -112,7 +112,8 @@ class StockBookScreenTest {
         show(loaded.copy(filterSheet = FilterDraft(from = LocalDate.of(2026, 10, 7), to = LocalDate.of(2026, 10, 1))))
 
         StockMovementType.entries.forEach { compose.onNodeWithTag(StockBookTags.filterType(it)).performScrollTo().assertIsDisplayed() }
-        compose.onNodeWithText(context.getString(R.string.stock_book_error_dates)).performScrollTo().assertIsDisplayed()
+        // The sheet swallows taps, so its plain texts merge into it; they are found unmerged.
+        compose.onNodeWithText(context.getString(R.string.stock_book_error_dates), useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(StockBookTags.APPLY_FILTER).performScrollTo().assertIsNotEnabled()
     }
 
@@ -151,7 +152,7 @@ class StockBookScreenTest {
             ),
         )
 
-        compose.onNodeWithText("Stok tidak cukup: sekarang 12 kg.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Stok tidak cukup: sekarang 12 kg.", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test
