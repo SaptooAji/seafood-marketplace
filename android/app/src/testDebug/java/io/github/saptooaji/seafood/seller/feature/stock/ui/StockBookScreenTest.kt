@@ -113,7 +113,10 @@ class StockBookScreenTest {
 
         StockMovementType.entries.forEach { compose.onNodeWithTag(StockBookTags.filterType(it)).performScrollTo().assertIsDisplayed() }
         // The sheet swallows taps, so its plain texts merge into it; they are found unmerged.
-        compose.onNodeWithText(context.getString(R.string.stock_book_error_dates), useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        compose
+            .onNodeWithText(context.getString(R.string.stock_book_error_dates), useUnmergedTree = true)
+            .performScrollTo()
+            .assertIsDisplayed()
         compose.onNodeWithTag(StockBookTags.APPLY_FILTER).performScrollTo().assertIsNotEnabled()
     }
 
