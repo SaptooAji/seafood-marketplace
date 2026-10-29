@@ -37,6 +37,7 @@ class StockTodayScreenTest {
     private val context = ApplicationProvider.getApplicationContext<android.app.Application>()
     private val events = mutableListOf<StockTodayEvent>()
     private var openedProducts = false
+    private var openedBook = false
 
     /** 07.30 WIB on Sunday 18 October 2026. */
     private val now = ZonedDateTime.of(2026, 10, 18, 7, 30, 0, 0, ZoneId.of("Asia/Jakarta"))
@@ -45,7 +46,12 @@ class StockTodayScreenTest {
     private fun show(state: StockTodayUiState) {
         compose.setContent {
             SeafoodTheme {
-                StockTodayScreen(uiState = state, onEvent = { events += it }, onOpenProducts = { openedProducts = true })
+                StockTodayScreen(
+                    uiState = state,
+                    onEvent = { events += it },
+                    onOpenProducts = { openedProducts = true },
+                    onOpenBook = { openedBook = true },
+                )
             }
         }
     }
@@ -64,6 +70,15 @@ class StockTodayScreenTest {
             .performScrollTo()
             .assertTextContains(context.getString(R.string.stock_never_checked), substring = true)
             .assertTextContains(context.getString(R.string.stock_stale_badge), substring = true)
+    }
+
+    @Test
+    fun theSummaryOpensTheStockBook() {
+        show(loaded)
+
+        compose.onNodeWithTag(StockTodayTags.OPEN_BOOK).assertTextContains(context.getString(R.string.stock_open_book)).performClick()
+
+        assertTrue(openedBook)
     }
 
     @Test
