@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\RecordStockMovement;
 use App\Enums\StockMovementType;
 use App\Enums\StoreRole;
+use App\Enums\Unit;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\StockMovement;
@@ -66,7 +67,11 @@ describe('POST /seller/stock-movements', function () {
             ->assertJsonPath('data.type', ['value' => 'stock_in', 'label' => StockMovementType::StockIn->label()])
             ->assertJsonPath('data.qty', '10.000')
             ->assertJsonPath('data.stock_after', '30.000')
-            ->assertJsonPath('data.variant', ['id' => $variant->id, 'name' => 'Size 50'])
+            ->assertJsonPath('data.variant', [
+                'id' => $variant->id,
+                'name' => 'Size 50',
+                'unit' => ['value' => 'kg', 'label' => Unit::Kg->label()],
+            ])
             ->assertJsonPath('data.product', ['id' => $variant->product_id, 'name' => 'Udang Vaname'])
             ->assertJsonPath('data.supplier_name', 'Pak Darto')
             ->assertJsonPath('data.unit_cost', 60_000)
@@ -247,6 +252,7 @@ describe('GET /seller/stock-movements', function () {
             ->assertOk()
             ->assertJsonPath('data.*.id', [$movement->id])
             ->assertJsonPath('data.0.variant.name', 'Size 50')
+            ->assertJsonPath('data.0.variant.unit.value', 'kg')
             ->assertJsonPath('data.0.product.name', 'Udang Vaname');
     });
 
