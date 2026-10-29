@@ -3,6 +3,7 @@ package io.github.saptooaji.seafood.seller.feature.stock.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -50,7 +52,10 @@ import io.github.saptooaji.seafood.seller.feature.stock.domain.StockVariant
 
 /** The ring of variants counted today, out of all, as in the board. */
 @Composable
-internal fun Summary(uiState: StockTodayUiState) {
+internal fun Summary(
+    uiState: StockTodayUiState,
+    onOpenBook: () -> Unit,
+) {
     val left = uiState.total - uiState.checkedToday
     GlassCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -66,15 +71,27 @@ internal fun Summary(uiState: StockTodayUiState) {
                 }
                 Text(text = "${uiState.checkedToday}/${uiState.total}", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
             }
-            Text(
-                text =
-                    if (left == 0) {
-                        stringResource(R.string.stock_summary_done)
-                    } else {
-                        stringResource(R.string.stock_summary_left, left)
-                    },
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text =
+                        if (left == 0) {
+                            stringResource(R.string.stock_summary_done)
+                        } else {
+                            stringResource(R.string.stock_summary_left, left)
+                        },
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                )
+                Text(
+                    text = stringResource(R.string.stock_open_book),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier =
+                        Modifier
+                            .clickable(role = Role.Button, onClick = onOpenBook)
+                            .padding(vertical = 4.dp)
+                            .testTag(StockTodayTags.OPEN_BOOK),
+                )
+            }
         }
     }
 }

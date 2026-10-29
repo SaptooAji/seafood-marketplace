@@ -24,6 +24,7 @@ import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductListScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartDestination
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
+import io.github.saptooaji.seafood.seller.feature.stock.ui.StockBookScreen
 import io.github.saptooaji.seafood.seller.feature.stock.ui.StockTodayScreen
 import io.github.saptooaji.seafood.seller.feature.store.ui.OpenStoreScreen
 import io.github.saptooaji.seafood.seller.feature.store.ui.StoreStatusScreen
@@ -99,6 +100,16 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
         }
         composable<MainRoute> { entry -> MainDestination(navController, entry, entry.toRoute<MainRoute>().storePending) }
         composable<StockTodayRoute> { entry -> MainDestination(navController, entry, storePending = false, initialTab = MainTab.Stock) }
+        composable<StockBookRoute> {
+            StockBookScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onRecorded = {
+                    navController.previousBackStackEntry?.savedStateHandle?.let { handle ->
+                        handle[KEY_STOCK_CHANGES] = (handle.get<Int>(KEY_STOCK_CHANGES) ?: 0) + 1
+                    }
+                },
+            )
+        }
         composable<ProductAddRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<ProductEditRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<PhotoCropRoute> {
@@ -126,6 +137,7 @@ private fun MainDestination(
     initialTab: MainTab = MainTab.Products,
 ) {
     val productChanges by entry.savedStateHandle.getStateFlow(KEY_PRODUCT_CHANGES, 0).collectAsStateWithLifecycle()
+    val stockChanges by entry.savedStateHandle.getStateFlow(KEY_STOCK_CHANGES, 0).collectAsStateWithLifecycle()
     MainShell(
         storePending = storePending,
         onStoreStatus = { navController.startOver(StoreStatusRoute()) },
@@ -138,7 +150,14 @@ private fun MainDestination(
                 changes = productChanges,
             )
         },
-        stockTab = { banner, openProducts -> StockTodayScreen(onOpenProducts = openProducts, banner = banner) },
+        stockTab = { banner, openProducts ->
+            StockTodayScreen(
+                onOpenProducts = openProducts,
+                onOpenBook = dropUnlessResumed { navController.navigate(StockBookRoute) },
+                banner = banner,
+                changes = stockChanges,
+            )
+        },
     )
 }
 
@@ -169,6 +188,9 @@ private fun ProductFormDestination(
 
 /** Counts the products saved or deleted, in the main screens' SavedStateHandle. */
 private const val KEY_PRODUCT_CHANGES = "product_changes"
+
+/** Counts the changes recorded in the stock book, in the main screens' SavedStateHandle. */
+private const val KEY_STOCK_CHANGES = "stock_changes"
 
 /** The prepared photo the crop screen hands back, in the form's SavedStateHandle. */
 private const val KEY_PREPARED_PHOTO = "prepared_photo"

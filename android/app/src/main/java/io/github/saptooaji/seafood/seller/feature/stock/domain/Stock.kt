@@ -33,7 +33,7 @@ data class StockCount(
     val stock: BigDecimal,
 )
 
-/** The daily stock check (`ConfirmDailyStock`, #94). */
+/** The daily stock check (`ConfirmDailyStock`, #94) and the stock book (#244). */
 interface StockRepository {
     /** `GET seller/stock/today`: products by name, each with its active variants. */
     suspend fun today(): ApiResult<List<StockProduct>>
@@ -45,4 +45,13 @@ interface StockRepository {
      * [counts], such as `variants.0.stock`.
      */
     suspend fun confirm(counts: List<StockCount>): ApiResult<List<StockProduct>>
+
+    /** `GET seller/stock-movements`: newest first, 30 a page. */
+    suspend fun movements(
+        filter: StockFilter,
+        page: Int,
+    ): ApiResult<StockMovementPage>
+
+    /** `POST seller/stock-movements`; a refusal comes back keyed by field, such as `qty`. */
+    suspend fun record(movement: NewStockMovement): ApiResult<StockMovement>
 }
