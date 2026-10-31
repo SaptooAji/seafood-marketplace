@@ -22,4 +22,7 @@ class StoreRepositoryImpl(
 
     override suspend fun open(details: StoreDetails): ApiResult<Store> =
         apiCall(json) { api.open(StoreRequest.from(details)) }.map { it.data.toDomain() }
+
+    override suspend fun update(details: StoreDetails): ApiResult<Store> =
+        apiCall(json) { api.update(StoreRequest.from(details)) }.map { it.data.toDomain() }
 }

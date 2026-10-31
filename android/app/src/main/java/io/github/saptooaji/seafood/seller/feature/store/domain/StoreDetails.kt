@@ -2,6 +2,7 @@ package io.github.saptooaji.seafood.seller.feature.store.domain
 
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalTime
 
 /**
  * What a seller fills in to open or edit a store (`StoreRequest`). The
@@ -18,10 +19,13 @@ data class StoreDetails(
     val bankName: String,
     val bankAccountNo: String,
     val bankAccountName: String,
+    /** Sent only when editing; opening a store sets no reminder. */
+    val stockReminderTime: LocalTime? = null,
 ) {
     // The account is not a secret to its owner, but it stays out of logs (MOB-4).
     override fun toString() =
-        "StoreDetails(name=$name, city=$city, lat=$lat, lng=$lng, bankName=$bankName, bankAccountNo=██, bankAccountName=██)"
+        "StoreDetails(name=$name, city=$city, lat=$lat, lng=$lng, bankName=$bankName, bankAccountNo=██, bankAccountName=██, " +
+            "stockReminderTime=$stockReminderTime)"
 }
 
 /** A point on the map, as the map library reports it. */

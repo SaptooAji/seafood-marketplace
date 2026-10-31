@@ -50,6 +50,11 @@ class AuthRepositoryImpl(
 
     override suspend fun me(): ApiResult<User> = apiCall(json) { api.me() }.map { it.data.toDomain() }
 
+    override suspend fun updateProfile(
+        name: String,
+        phone: String,
+    ): ApiResult<User> = apiCall(json) { api.updateProfile(UpdateProfileRequest(name, phone)) }.map { it.data.toDomain() }
+
     /** Keeps the API token of a successful sign-in or registration. */
     private suspend fun signIn(result: ApiResult<TokenResponse>): ApiResult<User> {
         if (result is ApiResult.Success) tokenStore.save(result.data.token)

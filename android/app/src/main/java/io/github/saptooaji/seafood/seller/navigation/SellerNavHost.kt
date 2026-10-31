@@ -22,6 +22,9 @@ import io.github.saptooaji.seafood.seller.feature.product.photo.PhotoCropScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormResult
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductListScreen
+import io.github.saptooaji.seafood.seller.feature.settings.ui.EditStoreResult
+import io.github.saptooaji.seafood.seller.feature.settings.ui.EditStoreScreen
+import io.github.saptooaji.seafood.seller.feature.settings.ui.SettingsScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartDestination
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
 import io.github.saptooaji.seafood.seller.feature.stock.ui.StockBookScreen
@@ -110,6 +113,15 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
                 },
             )
         }
+        composable<StoreEditRoute> {
+            EditStoreScreen(
+                onDone = { result ->
+                    // Pengaturan reads the store again, or says why it could not be saved.
+                    if (result != null) navController.previousBackStackEntry?.savedStateHandle?.set(KEY_STORE_EDITED, result.name)
+                    navController.popBackStack()
+                },
+            )
+        }
         composable<ProductAddRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<ProductEditRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<PhotoCropRoute> {
@@ -138,6 +150,7 @@ private fun MainDestination(
 ) {
     val productChanges by entry.savedStateHandle.getStateFlow(KEY_PRODUCT_CHANGES, 0).collectAsStateWithLifecycle()
     val stockChanges by entry.savedStateHandle.getStateFlow(KEY_STOCK_CHANGES, 0).collectAsStateWithLifecycle()
+    val storeEdited by entry.savedStateHandle.getStateFlow<String?>(KEY_STORE_EDITED, null).collectAsStateWithLifecycle()
     MainShell(
         storePending = storePending,
         onStoreStatus = { navController.startOver(StoreStatusRoute()) },
@@ -156,6 +169,17 @@ private fun MainDestination(
                 onOpenBook = dropUnlessResumed { navController.navigate(StockBookRoute) },
                 banner = banner,
                 changes = stockChanges,
+            )
+        },
+        settingsTab = { onModalChange ->
+            SettingsScreen(
+                onEditStore = dropUnlessResumed { navController.navigate(StoreEditRoute) },
+                // The shipping methods screen arrives with #246.
+                onShippingMethods = {},
+                onSignedOut = { navController.startOver(LoginRoute()) },
+                storeEdited = storeEdited?.let { name -> EditStoreResult.entries.firstOrNull { it.name == name } },
+                onStoreEditedTaken = { entry.savedStateHandle[KEY_STORE_EDITED] = null },
+                onModalChange = onModalChange,
             )
         },
     )
@@ -191,6 +215,9 @@ private const val KEY_PRODUCT_CHANGES = "product_changes"
 
 /** Counts the changes recorded in the stock book, in the main screens' SavedStateHandle. */
 private const val KEY_STOCK_CHANGES = "stock_changes"
+
+/** How the store form ended, as an [EditStoreResult] name, in the main screens' SavedStateHandle. */
+private const val KEY_STORE_EDITED = "store_edited"
 
 /** The prepared photo the crop screen hands back, in the form's SavedStateHandle. */
 private const val KEY_PREPARED_PHOTO = "prepared_photo"

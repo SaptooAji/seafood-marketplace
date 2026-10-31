@@ -27,4 +27,10 @@ interface AuthRepository {
 
     /** The account the stored token belongs to (`GET me`). */
     suspend fun me(): ApiResult<User>
+
+    /** Changes the name and phone of the account (`PUT me`); the email cannot change here. */
+    suspend fun updateProfile(
+        name: String,
+        phone: String,
+    ): ApiResult<User>
 }
