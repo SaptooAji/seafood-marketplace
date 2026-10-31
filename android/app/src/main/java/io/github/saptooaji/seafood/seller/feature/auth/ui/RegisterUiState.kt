@@ -22,6 +22,13 @@ data class RegisterUiState(
     val retryAfterSeconds: Long = 0,
 ) {
     val canSubmit: Boolean get() = !isSubmitting && retryAfterSeconds <= 0
+
+    // The passwords stay out of logs and crash reports (MOB-4).
+    override fun toString() =
+        "RegisterUiState(name=$name, email=$email, phone=$phone, password=██, passwordConfirmation=██, " +
+            "nameError=$nameError, emailError=$emailError, phoneError=$phoneError, passwordError=$passwordError, " +
+            "passwordConfirmationError=$passwordConfirmationError, generalError=$generalError, isSubmitting=$isSubmitting, " +
+            "registered=$registered, retryAfterSeconds=$retryAfterSeconds)"
 }
 
 sealed interface RegisterEvent {
@@ -39,11 +46,15 @@ sealed interface RegisterEvent {
 
     data class PasswordChanged(
         val password: String,
-    ) : RegisterEvent
+    ) : RegisterEvent {
+        override fun toString() = "PasswordChanged(password=██)"
+    }
 
     data class PasswordConfirmationChanged(
         val passwordConfirmation: String,
-    ) : RegisterEvent
+    ) : RegisterEvent {
+        override fun toString() = "PasswordConfirmationChanged(passwordConfirmation=██)"
+    }
 
     data object Submit : RegisterEvent
 }

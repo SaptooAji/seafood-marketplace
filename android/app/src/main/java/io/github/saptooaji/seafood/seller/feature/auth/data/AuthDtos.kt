@@ -9,7 +9,10 @@ data class LoginRequest(
     val email: String,
     val password: String,
     @SerialName("device_name") val deviceName: String,
-)
+) {
+    // The password stays out of logs and crash reports (MOB-4).
+    override fun toString() = "LoginRequest(email=$email, password=██, deviceName=$deviceName)"
+}
 
 @Serializable
 data class GoogleLoginRequest(
@@ -28,7 +31,10 @@ data class RegisterRequest(
     val password: String,
     @SerialName("password_confirmation") val passwordConfirmation: String,
     @SerialName("device_name") val deviceName: String,
-)
+) {
+    override fun toString() =
+        "RegisterRequest(name=$name, email=$email, phone=$phone, password=██, passwordConfirmation=██, deviceName=$deviceName)"
+}
 
 /** The body of `PUT me`. */
 @Serializable
@@ -42,7 +48,10 @@ data class UpdateProfileRequest(
 data class TokenResponse(
     val token: String,
     val user: UserDto,
-)
+) {
+    // The API token is a credential (MOB-1, MOB-4).
+    override fun toString() = "TokenResponse(token=██, user=$user)"
+}
 
 /** A Laravel API resource answer: `{"data": {...}}`. */
 @Serializable
