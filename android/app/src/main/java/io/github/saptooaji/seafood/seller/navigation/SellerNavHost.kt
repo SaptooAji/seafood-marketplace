@@ -16,6 +16,7 @@ import io.github.saptooaji.seafood.seller.core.session.SessionEvent
 import io.github.saptooaji.seafood.seller.feature.auth.ui.LoginScreen
 import io.github.saptooaji.seafood.seller.feature.auth.ui.RegisterScreen
 import io.github.saptooaji.seafood.seller.feature.main.ui.MainShell
+import io.github.saptooaji.seafood.seller.feature.main.ui.MainTab
 import io.github.saptooaji.seafood.seller.feature.product.photo.PhotoCropResult
 import io.github.saptooaji.seafood.seller.feature.product.photo.PhotoCropScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormResult
@@ -23,6 +24,7 @@ import io.github.saptooaji.seafood.seller.feature.product.ui.ProductFormScreen
 import io.github.saptooaji.seafood.seller.feature.product.ui.ProductListScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartDestination
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
+import io.github.saptooaji.seafood.seller.feature.stock.ui.StockTodayScreen
 import io.github.saptooaji.seafood.seller.feature.store.ui.OpenStoreScreen
 import io.github.saptooaji.seafood.seller.feature.store.ui.StoreStatusScreen
 import kotlinx.coroutines.flow.Flow
@@ -95,21 +97,8 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
                 onStartProducts = { navController.startOver(MainRoute(storePending = true)) },
             )
         }
-        composable<MainRoute> { entry ->
-            val productChanges by entry.savedStateHandle.getStateFlow(KEY_PRODUCT_CHANGES, 0).collectAsStateWithLifecycle()
-            MainShell(
-                storePending = entry.toRoute<MainRoute>().storePending,
-                onStoreStatus = { navController.startOver(StoreStatusRoute()) },
-                productsTab = { banner ->
-                    ProductListScreen(
-                        onAddProduct = dropUnlessResumed { navController.navigate(ProductAddRoute) },
-                        onOpenProduct = { id -> if (entry.isResumed()) navController.navigate(ProductEditRoute(id)) },
-                        banner = banner,
-                        changes = productChanges,
-                    )
-                },
-            )
-        }
+        composable<MainRoute> { entry -> MainDestination(navController, entry, entry.toRoute<MainRoute>().storePending) }
+        composable<StockTodayRoute> { entry -> MainDestination(navController, entry, storePending = false, initialTab = MainTab.Stock) }
         composable<ProductAddRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<ProductEditRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<PhotoCropRoute> {
@@ -126,6 +115,31 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
             )
         }
     }
+}
+
+/** The main screens: products, stock, and settings in one tab capsule. */
+@Composable
+private fun MainDestination(
+    navController: NavController,
+    entry: NavBackStackEntry,
+    storePending: Boolean,
+    initialTab: MainTab = MainTab.Products,
+) {
+    val productChanges by entry.savedStateHandle.getStateFlow(KEY_PRODUCT_CHANGES, 0).collectAsStateWithLifecycle()
+    MainShell(
+        storePending = storePending,
+        onStoreStatus = { navController.startOver(StoreStatusRoute()) },
+        initialTab = initialTab,
+        productsTab = { banner ->
+            ProductListScreen(
+                onAddProduct = dropUnlessResumed { navController.navigate(ProductAddRoute) },
+                onOpenProduct = { id -> if (entry.isResumed()) navController.navigate(ProductEditRoute(id)) },
+                banner = banner,
+                changes = productChanges,
+            )
+        },
+        stockTab = { banner, openProducts -> StockTodayScreen(onOpenProducts = openProducts, banner = banner) },
+    )
 }
 
 /**
