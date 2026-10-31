@@ -260,6 +260,34 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun `updating the profile puts the name and the phone, and reads the user back`() {
+        tokenStore.state.value = "sfm_abc"
+        server.enqueue(json(200, """{"data":{"id":7,"name":"Budi S.","email":"budi@example.com","phone":"081299998888","avatar":null}}"""))
+
+        val result = io { repository.updateProfile("Budi S.", "081299998888") }
+
+        assertEquals(ApiResult.Success(User(7, "Budi S.", "budi@example.com", "081299998888", null)), result)
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/api/v1/me", request.url.encodedPath)
+        assertEquals("Bearer sfm_abc", request.headers["Authorization"])
+        val body = Json.parseToJsonElement(request.body!!.utf8()).jsonObject
+        assertEquals(setOf("name", "phone"), body.keys)
+        assertEquals("Budi S.", body["name"]!!.jsonPrimitive.content)
+        assertEquals("081299998888", body["phone"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `a refused phone on the profile comes back keyed as the server sends it`() {
+        tokenStore.state.value = "sfm_abc"
+        server.enqueue(json(422, """{"message":"$PHONE_REFUSED","errors":{"phone":["$PHONE_REFUSED"]}}"""))
+
+        val result = io { repository.updateProfile("Budi Santoso", "12345") }
+
+        assertEquals(ApiResult.Invalid(mapOf("phone" to listOf(PHONE_REFUSED)), PHONE_REFUSED), result)
+    }
+
+    @Test
     fun `an expired token on me deletes the token and signs out`() =
         runBlocking {
             tokenStore.state.value = "sfm_expired"
@@ -282,5 +310,6 @@ private const val BUDI_WITH_AVATAR_JSON = """{$BUDI_FIELDS,"avatar":"https://exa
 // The server's message under APP_LOCALE=en; the app shows its own text instead (AUTH-3).
 private const val REFUSED = "These credentials do not match our records."
 private const val TAKEN = "The email has already been taken."
+private const val PHONE_REFUSED = "The phone field format is invalid."
 private const val GOOGLE_ID_TOKEN = "eyJhbGciOiJSUzI1NiJ9.google-id-token.signature"
 private const val GOOGLE_REFUSED = "The Google sign-in could not be verified."

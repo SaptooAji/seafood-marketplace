@@ -61,6 +61,23 @@ class FakeAuthRepository : AuthRepository {
         return meResult
     }
 
+    val updateProfileCalls = mutableListOf<Pair<String, String>>()
+
+    /** The answer to `updateProfile()`; by default the user with what was sent. */
+    var updateProfileResult: ApiResult<User>? = null
+
+    /** When set, updateProfile waits for it, so a test can look at the state mid-request. */
+    var updateProfileGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun updateProfile(
+        name: String,
+        phone: String,
+    ): ApiResult<User> {
+        updateProfileCalls += name to phone
+        updateProfileGate?.await()
+        return updateProfileResult ?: ApiResult.Success(BUDI.copy(name = name, phone = phone))
+    }
+
     companion object {
         val BUDI = User(id = 1, name = "Budi Santoso", email = "budi@example.com", phone = "081234567890", avatar = null)
     }

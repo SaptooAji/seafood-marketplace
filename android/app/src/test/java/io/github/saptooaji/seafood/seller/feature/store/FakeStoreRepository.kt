@@ -6,9 +6,11 @@ import io.github.saptooaji.seafood.seller.feature.store.domain.CurrentStore
 import io.github.saptooaji.seafood.seller.feature.store.domain.Store
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreDetails
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreRepository
+import io.github.saptooaji.seafood.seller.feature.store.domain.StoreRole
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreStatus
 import kotlinx.coroutines.CompletableDeferred
 import java.math.BigDecimal
+import java.time.LocalTime
 
 /** A [StoreRepository] whose answers each test sets, recording every call. */
 class FakeStoreRepository : StoreRepository {
@@ -44,6 +46,20 @@ class FakeStoreRepository : StoreRepository {
         return openResult
     }
 
+    val updateCalls = mutableListOf<StoreDetails>()
+
+    /** The answer to `update()`; by default the store as sent, so a test can read it back. */
+    var updateResult: ApiResult<Store>? = null
+
+    /** When set, update waits for it, so a test can look at the state mid-request. */
+    var updateGate: CompletableDeferred<Unit>? = null
+
+    override suspend fun update(details: StoreDetails): ApiResult<Store> {
+        updateCalls += details
+        updateGate?.await()
+        return updateResult ?: ApiResult.Success(ACTIVE_STORE.withDetails(details))
+    }
+
     companion object {
         val PENDING_STORE =
             Store(
@@ -60,12 +76,34 @@ class FakeStoreRepository : StoreRepository {
                 statusLabel = "Menunggu Persetujuan",
                 rejectionReason = null,
                 bank = BankAccount(name = "BCA", accountNo = "7700112233", accountName = "Budi Santoso"),
+                role = StoreRole.Owner,
+                stockReminderTime = null,
             )
 
         val ACTIVE_STORE = PENDING_STORE.copy(status = StoreStatus.Active, statusLabel = "Aktif")
         val REJECTED_STORE =
             PENDING_STORE.copy(status = StoreStatus.Rejected, statusLabel = "Ditolak", rejectionReason = "Foto KTP buram.", bank = null)
         val SUSPENDED_STORE = PENDING_STORE.copy(status = StoreStatus.Suspended, statusLabel = "Ditangguhkan")
+
+        /** An active store with a 06.00 reminder, as its owner sees it. */
+        val OWNED_STORE = ACTIVE_STORE.copy(stockReminderTime = LocalTime.of(6, 0))
+
+        /** The same store as a staff member sees it: no bank account (`StoreResource`). */
+        val STAFF_STORE = OWNED_STORE.copy(role = StoreRole.Staff, bank = null)
+
+        /** [this] store with what [details] changed, as `PUT seller/store` answers. */
+        fun Store.withDetails(details: StoreDetails) =
+            copy(
+                name = details.name,
+                description = details.description,
+                phone = details.phone,
+                address = details.address,
+                city = details.city,
+                lat = details.lat,
+                lng = details.lng,
+                bank = BankAccount(details.bankName, details.bankAccountNo, details.bankAccountName),
+                stockReminderTime = details.stockReminderTime,
+            )
 
         fun found(store: Store): ApiResult<CurrentStore> = ApiResult.Success(CurrentStore.Exists(store))
 
