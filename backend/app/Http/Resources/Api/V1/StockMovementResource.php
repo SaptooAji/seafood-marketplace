@@ -10,8 +10,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * One line of the stock book. `qty` is signed and `stock_after` is the stock
- * right after the movement. Expects `variant.product` and `createdBy` to be
- * loaded, including deleted variants and products.
+ * right after the movement, both in the variant's unit. Expects
+ * `variant.product` and `createdBy` to be loaded, including deleted variants
+ * and products.
  *
  * @mixin StockMovement
  */
@@ -35,6 +36,10 @@ class StockMovementResource extends JsonResource
             'variant' => [
                 'id' => $this->variant->id,
                 'name' => $this->variant->name,
+                'unit' => [
+                    'value' => $this->variant->unit->value,
+                    'label' => $this->variant->unit->label(),
+                ],
             ],
             'product' => [
                 'id' => $this->variant->product->id,

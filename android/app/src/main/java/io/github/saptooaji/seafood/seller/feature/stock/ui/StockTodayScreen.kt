@@ -45,11 +45,17 @@ import kotlinx.coroutines.delay
 @Composable
 fun StockTodayScreen(
     onOpenProducts: () -> Unit,
+    onOpenBook: () -> Unit,
     banner: @Composable () -> Unit = {},
+    changes: Int = 0,
     viewModel: StockTodayViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    StockTodayScreen(uiState, viewModel::onEvent, onOpenProducts, banner = banner)
+    // A change was recorded in the stock book: the counts are read again.
+    LaunchedEffect(changes) {
+        if (changes > 0) viewModel.onEvent(StockTodayEvent.Retry)
+    }
+    StockTodayScreen(uiState, viewModel::onEvent, onOpenProducts, onOpenBook, banner = banner)
 }
 
 /**
@@ -59,6 +65,7 @@ fun StockTodayScreen(
  * the capsule come from the main shell.
  *
  * @param onOpenProducts the empty state's way to the products tab
+ * @param onOpenBook the summary's link to the stock book (#244)
  * @param banner shown under the header, such as "menunggu verifikasi"
  */
 @Composable
@@ -66,6 +73,7 @@ fun StockTodayScreen(
     uiState: StockTodayUiState,
     onEvent: (StockTodayEvent) -> Unit,
     onOpenProducts: () -> Unit,
+    onOpenBook: () -> Unit = {},
     modifier: Modifier = Modifier,
     banner: @Composable () -> Unit = {},
 ) {
@@ -87,7 +95,7 @@ fun StockTodayScreen(
                 uiState.loadError != null -> LoadFailed(uiState.loadError, onEvent)
                 uiState.products.isEmpty() -> NoVariants(onOpenProducts)
                 else -> {
-                    Summary(uiState)
+                    Summary(uiState, onOpenBook)
                     uiState.products.forEach { ProductCard(it, uiState, onEvent) }
                 }
             }

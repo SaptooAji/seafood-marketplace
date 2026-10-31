@@ -32,6 +32,7 @@ object StockTodayTags {
     const val SAVE = "stock_save"
     const val RETRY = "stock_retry"
     const val OPEN_PRODUCTS = "stock_open_products"
+    const val OPEN_BOOK = "stock_open_book"
 
     fun row(id: Long) = "stock_row_$id"
 

@@ -49,6 +49,11 @@ data class MainRoute(
 @SerialName("stock/today")
 data object StockTodayRoute
 
+/** The stock book (#244), opened from Stok hari ini. */
+@Serializable
+@SerialName("stock/book")
+data object StockBookRoute
+
 /** Adding a product, opened from the products tab. */
 @Serializable
 data object ProductAddRoute
