@@ -59,6 +59,16 @@ data object StockBookRoute
 @SerialName("settings/store")
 data object StoreEditRoute
 
+/** Cara terima pesanan (#246), opened from Pengaturan. */
+@Serializable
+@SerialName("settings/shipping")
+data object ShippingMethodsRoute
+
+/** Adding or changing own delivery (#246), opened from Cara terima pesanan. */
+@Serializable
+@SerialName("settings/shipping/own-delivery")
+data object OwnDeliveryRoute
+
 /** Adding a product, opened from the products tab. */
 @Serializable
 data object ProductAddRoute
