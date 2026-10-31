@@ -13,7 +13,7 @@ import javax.xml.parsers.DocumentBuilderFactory
  * The security settings in the app's XML sources (docs/security-standards.md
  * §11): cleartext only in debug and only for the emulator host (MOB-3), the
  * token store kept out of backups (MOB-7), and only the launcher activity
- * exported (MOB-8). Unit tests run with the module directory as the working
+ * exported (MOB-8), and R8 on the release build (MOB-5). Unit tests run with the module directory as the working
  * directory, so the paths are relative to `android/app`.
  */
 class PlatformSecurityConfigTest {
@@ -79,6 +79,33 @@ class PlatformSecurityConfigTest {
                 .map { it.android("name") }
 
         assertEquals(listOf(".MainActivity"), exported)
+    }
+
+    @Test
+    fun `the release build shrinks code and resources with R8`() {
+        val release = block(File("build.gradle.kts").readText(), "buildTypes").let { block(it, "release") }
+
+        // MOB-5: turning either off makes this fail.
+        assertTrue(Regex("""\bisMinifyEnabled\s*=\s*true\b""").containsMatchIn(release), "release must set isMinifyEnabled = true")
+        assertTrue(Regex("""\bisShrinkResources\s*=\s*true\b""").containsMatchIn(release), "release must set isShrinkResources = true")
+    }
+
+    /** The body of the first `name { ... }` block in [source], braces matched. */
+    private fun block(
+        source: String,
+        name: String,
+    ): String {
+        val start = Regex("""\b$name\s*\{""").find(source)
+        assertTrue(start != null, "no $name block in build.gradle.kts")
+        var depth = 0
+        val open = start!!.range.last
+        for (i in open until source.length) {
+            when (source[i]) {
+                '{' -> depth++
+                '}' -> if (--depth == 0) return source.substring(open + 1, i)
+            }
+        }
+        error("the $name block in build.gradle.kts never closes")
     }
 
     private fun Element.excludesDataStore(): Boolean = excludes("file", "datastore/")

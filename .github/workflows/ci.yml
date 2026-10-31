@@ -170,6 +170,11 @@ jobs:
       - name: Build debug APK
         run: ./gradlew assembleDebug
 
+      # MOB-2 and MOB-5 (docs/security-standards.md §11): builds the release APK,
+      # checks that R8 ran, and searches it for third-party key patterns.
+      - name: Check the release APK
+        run: ./gradlew verifyReleaseApk
+
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7

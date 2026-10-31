@@ -1,5 +1,6 @@
 import com.android.build.api.variant.HostTestBuilder
 import java.util.Properties
+import java.util.zip.ZipFile
 
 plugins {
     alias(libs.plugins.android.application)
@@ -121,6 +122,70 @@ configurations.matching { it.name == "detekt" }.configureEach {
 // `check` runs what CI runs: ktlint, detekt, Android Lint, and every unit test.
 tasks.named("check") {
     dependsOn("detekt", "lintDebug")
+}
+
+// docs/security-standards.md §11 on the built release APK (#262): R8 has run (MOB-5), and no
+// third-party secret is inside (MOB-2), neither a known key pattern nor a secret value from
+// backend/.env when that file exists (on a developer machine, not in CI). Only the names of
+// what was found are printed, never the values.
+val verifyReleaseApk by tasks.registering {
+    group = "verification"
+    description = "Checks that R8 shrank the release APK (MOB-5) and that it holds no third-party secrets (MOB-2)."
+    dependsOn("assembleRelease")
+    val apkDir =
+        layout.buildDirectory
+            .dir("outputs/apk/release")
+            .get()
+            .asFile
+    val mapping =
+        layout.buildDirectory
+            .file("outputs/mapping/release/mapping.txt")
+            .get()
+            .asFile
+    val envFile = rootProject.file("../backend/.env")
+    doLast {
+        check(mapping.isFile && mapping.length() > 0) { "MOB-5: no R8 mapping at $mapping; is the release build minified?" }
+        val apk = apkDir.listFiles { file -> file.extension == "apk" }?.singleOrNull() ?: error("no single release APK in $apkDir")
+        val patterns =
+            mapOf(
+                "a Google API key" to Regex("AIza[0-9A-Za-z_\\-]{35}"),
+                "an sk- secret key" to Regex("sk-[A-Za-z0-9_\\-]{20,}"),
+                "a private key" to Regex("-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+                "a GitHub token" to Regex("gh[pousr]_[A-Za-z0-9]{36}"),
+                "an AWS access key" to Regex("AKIA[0-9A-Z]{16}"),
+            )
+        val secretName = Regex("KEY|SECRET|PASSWORD|TOKEN")
+        val envSecrets =
+            if (envFile.isFile) {
+                envFile.readLines().mapNotNull { line ->
+                    val parts = line.split("=", limit = 2)
+                    val key = parts[0].trim()
+                    val value =
+                        parts
+                            .getOrNull(1)
+                            ?.trim()
+                            ?.trim('"', '\'')
+                            .orEmpty()
+                    // Short values such as a local DB password would match by chance.
+                    (key to value).takeIf { !key.startsWith("#") && secretName.containsMatchIn(key) && value.length >= 12 }
+                }
+            } else {
+                emptyList()
+            }
+        val found = mutableListOf<String>()
+        ZipFile(apk).use { zip ->
+            zip.entries().asSequence().filterNot { it.isDirectory }.forEach { entry ->
+                // Byte for byte, so dex strings and binary resources are searched as they are.
+                val content = zip.getInputStream(entry).use { it.readBytes() }.toString(Charsets.ISO_8859_1)
+                patterns.forEach { (name, regex) -> if (regex.containsMatchIn(content)) found += "$name in ${entry.name}" }
+                envSecrets.forEach { (key, value) -> if (content.contains(value)) found += "backend/.env $key in ${entry.name}" }
+            }
+        }
+        check(found.isEmpty()) { "MOB-2: the release APK holds secrets:\n" + found.joinToString("\n") }
+        logger.lifecycle(
+            "MOB-2, MOB-5: ${apk.name} holds no known secrets (${envSecrets.size} values from backend/.env checked); R8 wrote ${mapping.name}.",
+        )
+    }
 }
 
 dependencies {

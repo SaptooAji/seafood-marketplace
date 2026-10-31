@@ -70,6 +70,11 @@ data class StoreFormState(
 
     fun withPin(point: GeoPoint) = copy(pin = point, errors = errors - StoreField.Pin)
 
+    // The account is not a secret to its owner, but it stays out of logs (MOB-4).
+    override fun toString() =
+        "StoreFormState(name=$name, description=$description, phone=$phone, address=$address, city=$city, pin=$pin, " +
+            "bankName=$bankName, bankAccountNo=██, bankAccountName=██, errors=$errors)"
+
     // Text is trimmed and the phone loses its spaces and dashes; the account
     // number is sent as typed, so a space in it is refused, not removed.
     private val details: StoreDetails?

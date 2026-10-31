@@ -24,6 +24,12 @@ data class LoginUiState(
 ) {
     /** Either button may start a sign-in: nothing is running and no 429 wait. */
     val canSubmit: Boolean get() = !isSubmitting && !isGoogleSubmitting && retryAfterSeconds <= 0
+
+    // The password stays out of logs and crash reports (MOB-4).
+    override fun toString() =
+        "LoginUiState(email=$email, password=██, emailError=$emailError, passwordError=$passwordError, " +
+            "generalError=$generalError, isSubmitting=$isSubmitting, isGoogleSubmitting=$isGoogleSubmitting, " +
+            "googleAvailable=$googleAvailable, loggedIn=$loggedIn, sessionExpired=$sessionExpired, retryAfterSeconds=$retryAfterSeconds)"
 }
 
 sealed interface LoginEvent {
@@ -33,7 +39,9 @@ sealed interface LoginEvent {
 
     data class PasswordChanged(
         val password: String,
-    ) : LoginEvent
+    ) : LoginEvent {
+        override fun toString() = "PasswordChanged(password=██)"
+    }
 
     data object Submit : LoginEvent
 
