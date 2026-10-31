@@ -15,6 +15,12 @@ interface StoreRepository {
      * admin as pending. A seller who already owns one gets [ApiResult.Conflict].
      */
     suspend fun open(details: StoreDetails): ApiResult<Store>
+
+    /**
+     * Saves every field of the store (`PUT seller/store`), the reminder time
+     * included. Only the owner may; anyone else gets [ApiResult.Forbidden].
+     */
+    suspend fun update(details: StoreDetails): ApiResult<Store>
 }
 
 /** Whether the signed-in seller has a store yet. */

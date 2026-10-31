@@ -91,6 +91,8 @@ fun GlassCard(
  * @param leading and [trailing] sit in the field beside the text, such as `Rp` or `kg`
  * @param helpIsWarning shows [helpText] in red without marking the field as
  *   refused, such as a character count past its limit
+ * @param enabled false shows a value the seller cannot change, such as the
+ *   email used to sign in
  */
 @Composable
 fun GlassTextField(
@@ -109,6 +111,7 @@ fun GlassTextField(
     singleLine: Boolean = true,
     minLines: Int = 1,
     helpIsWarning: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val edge = if (error != null) EmbunColors.DangerContent else EmbunColors.FieldEdge
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -130,12 +133,13 @@ fun GlassTextField(
             visualTransformation = visualTransformation,
             singleLine = singleLine,
             minLines = minLines,
+            enabled = enabled,
             decorationBox = { inner ->
                 Row(
                     modifier =
                         Modifier
                             .heightIn(min = 52.dp)
-                            .background(EmbunColors.Field, OptionShape)
+                            .background(if (enabled) EmbunColors.Field else EmbunColors.Disabled, OptionShape)
                             .border(1.5.dp, edge, OptionShape)
                             // Several lines start at the top, with room above and below.
                             .padding(horizontal = 18.dp, vertical = if (singleLine) 0.dp else 14.dp),

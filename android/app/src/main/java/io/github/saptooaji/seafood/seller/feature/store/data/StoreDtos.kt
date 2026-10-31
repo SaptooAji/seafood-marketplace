@@ -3,13 +3,22 @@ package io.github.saptooaji.seafood.seller.feature.store.data
 import io.github.saptooaji.seafood.seller.feature.store.domain.BankAccount
 import io.github.saptooaji.seafood.seller.feature.store.domain.Store
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreDetails
+import io.github.saptooaji.seafood.seller.feature.store.domain.StoreRole
 import io.github.saptooaji.seafood.seller.feature.store.domain.StoreStatus
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 /**
- * The body of `POST seller/store`. Coordinates go as decimal strings, so the
- * seven decimals reach the server without float rounding.
+ * The body of `POST` and `PUT seller/store`. Coordinates go as decimal
+ * strings, so the seven decimals reach the server without float rounding.
+ * The reminder is a JSON element so that "no reminder" goes as an explicit
+ * `null`: the shared [kotlinx.serialization.json.Json] leaves Kotlin nulls
+ * out, and a missing key would keep the old time on the server.
  */
 @Serializable
 data class StoreRequest(
@@ -23,6 +32,8 @@ data class StoreRequest(
     @SerialName("bank_name") val bankName: String,
     @SerialName("bank_account_no") val bankAccountNo: String,
     @SerialName("bank_account_name") val bankAccountName: String,
+    // No default: the shared Json does not encode defaults, and the key must always go.
+    @SerialName("stock_reminder_time") val stockReminderTime: JsonElement,
 ) {
     override fun toString() = "StoreRequest(name=$name, city=$city, lat=$lat, lng=$lng, bankAccountNo=██)"
 
@@ -40,10 +51,14 @@ data class StoreRequest(
                     bankName = bankName,
                     bankAccountNo = bankAccountNo,
                     bankAccountName = bankAccountName,
+                    stockReminderTime = stockReminderTime?.let { JsonPrimitive(it.format(REMINDER_FORMAT)) } ?: JsonNull,
                 )
             }
     }
 }
+
+/** `H:i` on the server: two-digit hours and minutes, such as `06:30`. */
+private val REMINDER_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /** `StoreResource`. Decimal columns arrive as strings, such as `"-6.1067000"`. */
 @Serializable
@@ -60,6 +75,8 @@ data class StoreDto(
     val status: StatusDto,
     @SerialName("rejection_reason") val rejectionReason: String? = null,
     val bank: BankDto? = null,
+    val role: StatusDto? = null,
+    @SerialName("stock_reminder_time") val stockReminderTime: String? = null,
 ) {
     fun toDomain() =
         Store(
@@ -76,6 +93,8 @@ data class StoreDto(
             statusLabel = status.label,
             rejectionReason = rejectionReason,
             bank = bank?.let { BankAccount(it.name, it.accountNo, it.accountName) },
+            role = role?.let { StoreRole.from(it.value) },
+            stockReminderTime = stockReminderTime?.let { runCatching { LocalTime.parse(it, REMINDER_FORMAT) }.getOrNull() },
         )
 }
 

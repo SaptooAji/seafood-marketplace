@@ -77,10 +77,13 @@ fun TextDivider(
     }
 }
 
-/** The heading of a numbered part of a long form: the number in a glass circle, then the title. */
+/**
+ * The heading of a part of a long form: the number in a glass circle, then
+ * the title. A null [number] shows the title alone, as when editing a store.
+ */
 @Composable
 fun GlassSectionHeader(
-    number: Int,
+    number: Int?,
     title: String,
     modifier: Modifier = Modifier,
 ) {
@@ -89,11 +92,13 @@ fun GlassSectionHeader(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier.size(32.dp).background(EmbunColors.GlassButton, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = number.toString(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+        if (number != null) {
+            Box(
+                modifier = Modifier.size(32.dp).background(EmbunColors.GlassButton, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = number.toString(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+            }
         }
         Text(
             text = title,

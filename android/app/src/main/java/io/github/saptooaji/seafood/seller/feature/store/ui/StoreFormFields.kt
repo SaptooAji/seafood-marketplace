@@ -62,11 +62,12 @@ fun StoreFormFields(
     locationMessage: UiText?,
     map: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
+    numbered: Boolean = true,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        ProfileSection(form, onFieldChange)
-        LocationSection(form, onUseMyLocation, locationMessage, map)
-        BankSection(form, onFieldChange)
+        ProfileSection(form, onFieldChange, numbered)
+        LocationSection(form, onUseMyLocation, locationMessage, map, numbered)
+        BankSection(form, onFieldChange, numbered)
     }
 }
 
@@ -74,9 +75,14 @@ fun StoreFormFields(
 private fun ProfileSection(
     form: StoreFormState,
     onFieldChange: (StoreField, String) -> Unit,
+    numbered: Boolean,
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
-        GlassSectionHeader(number = 1, title = stringResource(R.string.store_section_profile))
+        GlassSectionHeader(
+            number = 1.takeIf { numbered },
+            // Editing, the screen title already says "Profil toko" (VD-Profil-Toko).
+            title = stringResource(if (numbered) R.string.store_section_profile else R.string.store_section_profile_short),
+        )
         StoreTextField(
             form,
             StoreField.Name,
@@ -131,9 +137,10 @@ private fun LocationSection(
     onUseMyLocation: () -> Unit,
     locationMessage: UiText?,
     map: @Composable (Modifier) -> Unit,
+    numbered: Boolean,
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
-        GlassSectionHeader(number = 2, title = stringResource(R.string.store_section_location))
+        GlassSectionHeader(number = 2.takeIf { numbered }, title = stringResource(R.string.store_section_location))
         Text(text = stringResource(R.string.store_location_help), style = MaterialTheme.typography.bodyMedium, color = EmbunColors.Muted)
 
         val mapDescription = stringResource(R.string.store_map_description)
@@ -217,9 +224,10 @@ private fun MyLocationButton(
 private fun BankSection(
     form: StoreFormState,
     onFieldChange: (StoreField, String) -> Unit,
+    numbered: Boolean,
 ) {
     GlassCard(Modifier.fillMaxWidth()) {
-        GlassSectionHeader(number = 3, title = stringResource(R.string.store_section_bank))
+        GlassSectionHeader(number = 3.takeIf { numbered }, title = stringResource(R.string.store_section_bank))
         Text(text = stringResource(R.string.store_bank_help), style = MaterialTheme.typography.bodyMedium, color = EmbunColors.Muted)
         StoreTextField(
             form,

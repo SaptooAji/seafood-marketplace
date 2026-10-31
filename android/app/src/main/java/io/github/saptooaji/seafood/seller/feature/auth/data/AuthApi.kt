@@ -4,6 +4,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 
 /** The auth endpoints of `/api/v1` (docs/prd.md, "Endpoint API"). */
 interface AuthApi {
@@ -27,4 +28,9 @@ interface AuthApi {
 
     @GET("me")
     suspend fun me(): Response<DataEnvelope<UserDto>>
+
+    @PUT("me")
+    suspend fun updateProfile(
+        @Body request: UpdateProfileRequest,
+    ): Response<DataEnvelope<UserDto>>
 }

@@ -54,6 +54,11 @@ data object StockTodayRoute
 @SerialName("stock/book")
 data object StockBookRoute
 
+/** Editing the store profile, location, and bank account (#245), opened from Pengaturan. */
+@Serializable
+@SerialName("settings/store")
+data object StoreEditRoute
+
 /** Adding a product, opened from the products tab. */
 @Serializable
 data object ProductAddRoute

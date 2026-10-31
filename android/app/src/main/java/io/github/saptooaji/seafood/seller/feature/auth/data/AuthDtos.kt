@@ -30,6 +30,13 @@ data class RegisterRequest(
     @SerialName("device_name") val deviceName: String,
 )
 
+/** The body of `PUT me`. */
+@Serializable
+data class UpdateProfileRequest(
+    val name: String,
+    val phone: String,
+)
+
 /** The answer to a sign-in or a registration: `{"token": "...", "user": {...}}`. */
 @Serializable
 data class TokenResponse(

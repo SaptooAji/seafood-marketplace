@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,14 +75,15 @@ object MainTags {
 
 /**
  * The main screens of an active store, or of a pending one that already adds
- * products. The chosen tab survives a rotation. Pengaturan is a placeholder
- * until its feature arrives (#245).
+ * products. The chosen tab survives a rotation.
  *
  * @param storePending shows the "menunggu verifikasi" banner with a link to the status
  * @param initialTab the tab shown first, such as Stok from the `stock/today` route
  * @param productsTab the Produk tab, given the banner to show under its header;
  *   null shows the placeholder, as in tests of the shell alone
  * @param stockTab the Stok tab, given the banner and a way to the Produk tab
+ * @param settingsTab the Pengaturan tab, given a way to hide the capsule
+ *   while one of its sheets is open
  */
 @Composable
 fun MainShell(
@@ -91,6 +93,7 @@ fun MainShell(
     initialTab: MainTab = MainTab.Products,
     productsTab: (@Composable (banner: @Composable () -> Unit) -> Unit)? = null,
     stockTab: (@Composable (banner: @Composable () -> Unit, openProducts: () -> Unit) -> Unit)? = null,
+    settingsTab: (@Composable (onModalChange: (Boolean) -> Unit) -> Unit)? = null,
 ) {
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     MainShell(
@@ -101,6 +104,7 @@ fun MainShell(
         modifier = modifier,
         productsTab = productsTab,
         stockTab = stockTab,
+        settingsTab = settingsTab,
     )
 }
 
@@ -113,7 +117,10 @@ fun MainShell(
     modifier: Modifier = Modifier,
     productsTab: (@Composable (banner: @Composable () -> Unit) -> Unit)? = null,
     stockTab: (@Composable (banner: @Composable () -> Unit, openProducts: () -> Unit) -> Unit)? = null,
+    settingsTab: (@Composable (onModalChange: (Boolean) -> Unit) -> Unit)? = null,
 ) {
+    // A sheet of the tab covers the whole screen; the capsule must not sit on its buttons.
+    var modalOpen by remember { mutableStateOf(false) }
     val banner: @Composable () -> Unit = {
         if (storePending) {
             GlassBanner(
@@ -133,18 +140,21 @@ fun MainShell(
         when {
             tab == MainTab.Products && productsTab != null -> productsTab(banner)
             tab == MainTab.Stock && stockTab != null -> stockTab(banner) { onTab(MainTab.Products) }
+            tab == MainTab.Settings && settingsTab != null -> settingsTab { modalOpen = it }
             else -> Placeholder(tab, banner)
         }
 
-        TabCapsule(
-            selected = tab,
-            onSelect = onTab,
-            modifier =
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(start = 28.dp, end = 28.dp, bottom = 16.dp),
-        )
+        if (!modalOpen || tab != MainTab.Settings) {
+            TabCapsule(
+                selected = tab,
+                onSelect = onTab,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(start = 28.dp, end = 28.dp, bottom = 16.dp),
+            )
+        }
     }
 }
 
