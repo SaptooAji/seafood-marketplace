@@ -25,6 +25,9 @@ import io.github.saptooaji.seafood.seller.feature.product.ui.ProductListScreen
 import io.github.saptooaji.seafood.seller.feature.settings.ui.EditStoreResult
 import io.github.saptooaji.seafood.seller.feature.settings.ui.EditStoreScreen
 import io.github.saptooaji.seafood.seller.feature.settings.ui.SettingsScreen
+import io.github.saptooaji.seafood.seller.feature.shipping.ui.OwnDeliveryResult
+import io.github.saptooaji.seafood.seller.feature.shipping.ui.OwnDeliveryScreen
+import io.github.saptooaji.seafood.seller.feature.shipping.ui.ShippingMethodsScreen
 import io.github.saptooaji.seafood.seller.feature.start.StartDestination
 import io.github.saptooaji.seafood.seller.feature.start.StartScreen
 import io.github.saptooaji.seafood.seller.feature.stock.ui.StockBookScreen
@@ -122,6 +125,24 @@ fun SellerNavHost(sessionEvents: Flow<SessionEvent>) {
                 },
             )
         }
+        composable<ShippingMethodsRoute> { entry ->
+            val ownDelivery by entry.savedStateHandle.getStateFlow<String?>(KEY_OWN_DELIVERY, null).collectAsStateWithLifecycle()
+            ShippingMethodsScreen(
+                onBack = dropUnlessResumed { navController.popBackStack() },
+                onOwnDelivery = dropUnlessResumed { navController.navigate(OwnDeliveryRoute) },
+                ownDeliveryResult = ownDelivery?.let { name -> OwnDeliveryResult.entries.firstOrNull { it.name == name } },
+                onOwnDeliveryResultTaken = { entry.savedStateHandle[KEY_OWN_DELIVERY] = null },
+            )
+        }
+        composable<OwnDeliveryRoute> {
+            OwnDeliveryScreen(
+                onDone = { result ->
+                    // The list reads the methods again, or says why the change was refused.
+                    if (result != null) navController.previousBackStackEntry?.savedStateHandle?.set(KEY_OWN_DELIVERY, result.name)
+                    navController.popBackStack()
+                },
+            )
+        }
         composable<ProductAddRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<ProductEditRoute> { entry -> ProductFormDestination(navController, entry) }
         composable<PhotoCropRoute> {
@@ -174,8 +195,7 @@ private fun MainDestination(
         settingsTab = { onModalChange ->
             SettingsScreen(
                 onEditStore = dropUnlessResumed { navController.navigate(StoreEditRoute) },
-                // The shipping methods screen arrives with #246.
-                onShippingMethods = {},
+                onShippingMethods = dropUnlessResumed { navController.navigate(ShippingMethodsRoute) },
                 onSignedOut = { navController.startOver(LoginRoute()) },
                 storeEdited = storeEdited?.let { name -> EditStoreResult.entries.firstOrNull { it.name == name } },
                 onStoreEditedTaken = { entry.savedStateHandle[KEY_STORE_EDITED] = null },
@@ -218,6 +238,9 @@ private const val KEY_STOCK_CHANGES = "stock_changes"
 
 /** How the store form ended, as an [EditStoreResult] name, in the main screens' SavedStateHandle. */
 private const val KEY_STORE_EDITED = "store_edited"
+
+/** How the own delivery form ended, as an [OwnDeliveryResult] name, in the list's SavedStateHandle. */
+private const val KEY_OWN_DELIVERY = "own_delivery"
 
 /** The prepared photo the crop screen hands back, in the form's SavedStateHandle. */
 private const val KEY_PREPARED_PHOTO = "prepared_photo"
