@@ -79,7 +79,7 @@ class EditStoreScreenTest {
         compose.onNodeWithText(context.getString(R.string.edit_store_title)).assertIsDisplayed()
         compose.onNodeWithTag(StoreFormTags.NAME).assertTextContains("UD Kepiting Pak Budi")
         compose.onNodeWithTag(StoreFormTags.BANK_ACCOUNT_NO).performScrollTo().assertTextContains("7700112233")
-        compose.onNodeWithTag(EditStoreTags.SAVE).performScrollTo().performClick()
+        compose.onNodeWithTag(EditStoreTags.SAVE).performClick()
 
         assertEquals(listOf(EditStoreEvent.Save), events)
     }
@@ -97,7 +97,7 @@ class EditStoreScreenTest {
     fun aSavingFormCannotBeSentAgain() {
         show(filled.copy(isSaving = true))
 
-        compose.onNodeWithTag(EditStoreTags.SAVE).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithTag(EditStoreTags.SAVE).assertIsNotEnabled()
     }
 
     @Test
